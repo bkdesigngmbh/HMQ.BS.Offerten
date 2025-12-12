@@ -89,7 +89,6 @@ export default function Tab1Daten({ offerte, updateOfferte, onNext }: Tab1DatenP
             value={offerte.standortId}
             onChange={(e) => updateOfferte({ standortId: e.target.value })}
             options={standorte.map((s) => ({ value: s.id, label: s.name }))}
-            placeholder="Standort wählen"
           />
         </div>
       </section>
@@ -118,7 +117,6 @@ export default function Tab1Daten({ offerte, updateOfferte, onNext }: Tab1DatenP
             value={offerte.empfaenger.anrede}
             onChange={(e) => updateEmpfaenger("anrede", e.target.value)}
             options={anredeOptions}
-            placeholder="Bitte wählen"
           />
           <Input
             label="Name / Firma"
