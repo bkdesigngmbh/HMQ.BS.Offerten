@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1",
+    "name": "Benjamin Patt",
+    "email": "b.patt@hmq.ch",
+    "telefon": "+41 44 123 45 67",
+    "standortId": "1",
+    "unterschriftBild": "/unterschrift-bpa.png"
+  },
+  {
+    "id": "2",
+    "name": "Bianca Hochuli",
+    "email": "b.hochuli@hmq.ch",
+    "telefon": "+41 44 123 45 68",
+    "standortId": "1",
+    "unterschriftBild": "/unterschrift-bho.png"
+  }
+]

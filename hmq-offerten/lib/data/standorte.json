@@ -1,0 +1,23 @@
+[
+  {
+    "id": "1",
+    "name": "Hauptsitz Zürich",
+    "adresse": "Musterstrasse 1",
+    "plz": "8000",
+    "ort": "Zürich"
+  },
+  {
+    "id": "2",
+    "name": "Filiale Bern",
+    "adresse": "Bundesplatz 10",
+    "plz": "3000",
+    "ort": "Bern"
+  },
+  {
+    "id": "3",
+    "name": "Filiale Basel",
+    "adresse": "Rheinweg 5",
+    "plz": "4000",
+    "ort": "Basel"
+  }
+]
