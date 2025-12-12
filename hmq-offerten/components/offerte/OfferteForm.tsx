@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Tabs, { TabPanel } from "@/components/ui/Tabs";
 import Tab1Daten from "./Tab1Daten";
 import Tab2Kosten from "./Tab2Kosten";
 import { Offerte, TabId, createEmptyOfferte } from "@/lib/types";
-import { getOfferteDraft, saveOfferteDraft } from "@/lib/store";
 import Link from "next/link";
 
 const tabs = [
@@ -16,36 +15,10 @@ const tabs = [
 export default function OfferteForm() {
   const [activeTab, setActiveTab] = useState<TabId>("daten");
   const [offerte, setOfferte] = useState<Offerte>(createEmptyOfferte());
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    const draft = getOfferteDraft();
-    if (draft) {
-      setOfferte({
-        ...createEmptyOfferte(),
-        ...draft,
-      });
-    }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded) {
-      saveOfferteDraft(offerte);
-    }
-  }, [offerte, isLoaded]);
 
   const updateOfferte = (updates: Partial<Offerte>) => {
     setOfferte((prev) => ({ ...prev, ...updates }));
   };
-
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <span className="text-gray-500">Laden...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">

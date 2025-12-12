@@ -4,7 +4,7 @@ import { useMemo, useEffect, useState } from "react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Offerte, Ansprechpartner, Standort } from "@/lib/types";
-import { getAnsprechpartner, getStandorte, clearOfferteDraft } from "@/lib/store";
+import { getAnsprechpartner, getStandorte } from "@/lib/store";
 import Image from "next/image";
 
 interface Tab2KostenProps {
@@ -68,7 +68,6 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
   const handleSubmit = () => {
     // Hier würde die PDF-Generierung erfolgen
     alert("Offerte erstellt! (PDF-Generierung noch nicht implementiert)");
-    clearOfferteDraft();
   };
 
   return (
