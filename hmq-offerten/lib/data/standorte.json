@@ -1,16 +1,23 @@
 [
   {
     "id": "zh",
-    "name": "HMQ AG Zürich",
-    "strasse": "Musterstrasse 1",
-    "plzOrt": "8000 Zürich",
-    "telefon": "+41 44 123 45 67"
+    "name": "HMQ AG",
+    "strasse": "Balz-Zimmermann-Strasse 7",
+    "plzOrt": "8152 Zürich-Opfikon",
+    "telefon": "+41 44 925 50 00"
   },
   {
-    "id": "be",
-    "name": "HMQ AG Bern",
-    "strasse": "Bundesplatz 10",
-    "plzOrt": "3000 Bern",
-    "telefon": "+41 31 123 45 67"
+    "id": "gr",
+    "name": "HMQ AG",
+    "strasse": "Sommeraustrasse 30",
+    "plzOrt": "7000 Chur",
+    "telefon": "+41 81 650 05 05"
+  },
+  {
+    "id": "ag",
+    "name": "HMQ AG",
+    "strasse": "Vordere Hauptgasse 104",
+    "plzOrt": "4800 Zofingen",
+    "telefon": "+41 62 752 00 22"
   }
 ]

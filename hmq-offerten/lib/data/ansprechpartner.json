@@ -3,14 +3,14 @@
     "id": "bpa",
     "vorname": "Benjamin",
     "nachname": "Patt",
-    "funktion": "Projektleiter",
-    "unterschriftDatei": "unterschrift-bpa.png"
+    "funktion": "Geomatiker EFZ, Bereichsleitung Beweissicherung",
+    "unterschriftDatei": "unterschrift-bpa.svg"
   },
   {
     "id": "bho",
     "vorname": "Bianca",
     "nachname": "Hochuli",
-    "funktion": "Projektleiterin",
-    "unterschriftDatei": "unterschrift-bho.png"
+    "funktion": "Kauffrau EFZ, Stv. Bereichsleitung Beweissicherung",
+    "unterschriftDatei": "unterschrift-bho.svg"
   }
 ]
