@@ -1,23 +1,16 @@
 [
   {
-    "id": "1",
-    "name": "Hauptsitz Zürich",
-    "adresse": "Musterstrasse 1",
-    "plz": "8000",
-    "ort": "Zürich"
+    "id": "zh",
+    "name": "HMQ AG Zürich",
+    "strasse": "Musterstrasse 1",
+    "plzOrt": "8000 Zürich",
+    "telefon": "+41 44 123 45 67"
   },
   {
-    "id": "2",
-    "name": "Filiale Bern",
-    "adresse": "Bundesplatz 10",
-    "plz": "3000",
-    "ort": "Bern"
-  },
-  {
-    "id": "3",
-    "name": "Filiale Basel",
-    "adresse": "Rheinweg 5",
-    "plz": "4000",
-    "ort": "Basel"
+    "id": "be",
+    "name": "HMQ AG Bern",
+    "strasse": "Bundesplatz 10",
+    "plzOrt": "3000 Bern",
+    "telefon": "+41 31 123 45 67"
   }
 ]

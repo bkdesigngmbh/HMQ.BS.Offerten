@@ -17,9 +17,9 @@ interface EditingStandort extends Omit<Standort, "id"> {
 
 const emptyStandort: EditingStandort = {
   name: "",
-  adresse: "",
-  plz: "",
-  ort: "",
+  strasse: "",
+  plzOrt: "",
+  telefon: "",
 };
 
 export default function StandorteListe() {
@@ -97,19 +97,21 @@ export default function StandorteListe() {
               onChange={(e) => updateField("name", e.target.value)}
             />
             <Input
-              label="Adresse"
-              value={editing.adresse}
-              onChange={(e) => updateField("adresse", e.target.value)}
+              label="Strasse"
+              value={editing.strasse}
+              onChange={(e) => updateField("strasse", e.target.value)}
             />
             <Input
-              label="PLZ"
-              value={editing.plz}
-              onChange={(e) => updateField("plz", e.target.value)}
+              label="PLZ / Ort"
+              value={editing.plzOrt}
+              onChange={(e) => updateField("plzOrt", e.target.value)}
+              placeholder="8000 Zürich"
             />
             <Input
-              label="Ort"
-              value={editing.ort}
-              onChange={(e) => updateField("ort", e.target.value)}
+              label="Telefon"
+              value={editing.telefon}
+              onChange={(e) => updateField("telefon", e.target.value)}
+              placeholder="+41 44 123 45 67"
             />
           </div>
           <div className="flex gap-2 mt-4">
@@ -130,10 +132,13 @@ export default function StandorteListe() {
                 Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Adresse
+                Strasse
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 PLZ / Ort
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Telefon
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Aktionen
@@ -147,10 +152,13 @@ export default function StandorteListe() {
                   {standort.name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  {standort.adresse}
+                  {standort.strasse}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  {standort.plz} {standort.ort}
+                  {standort.plzOrt}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                  {standort.telefon}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <Button
@@ -175,7 +183,7 @@ export default function StandorteListe() {
             ))}
             {standorte.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   Keine Standorte vorhanden
                 </td>
               </tr>

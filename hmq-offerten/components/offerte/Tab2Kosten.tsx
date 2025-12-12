@@ -3,24 +3,24 @@
 import { useMemo, useEffect, useState } from "react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { OfferteData, Ansprechpartner, Standort } from "@/lib/types";
+import { Offerte, Ansprechpartner, Standort } from "@/lib/types";
 import { getAnsprechpartner, getStandorte, clearOfferteDraft } from "@/lib/store";
 import Image from "next/image";
 
 interface Tab2KostenProps {
-  offerte: OfferteData;
-  updateOfferte: (updates: Partial<OfferteData>) => void;
+  offerte: Offerte;
+  updateOfferte: (updates: Partial<Offerte>) => void;
   onBack: () => void;
 }
 
 const MWST_SATZ = 0.081; // 8.1% MwSt
 
 export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2KostenProps) {
-  const [ansprechpartner, setAnsprechpartner] = useState<Ansprechpartner[]>([]);
+  const [ansprechpartnerListe, setAnsprechpartnerListe] = useState<Ansprechpartner[]>([]);
   const [standorte, setStandorte] = useState<Standort[]>([]);
 
   useEffect(() => {
-    setAnsprechpartner(getAnsprechpartner());
+    setAnsprechpartnerListe(getAnsprechpartner());
     setStandorte(getStandorte());
   }, []);
 
@@ -32,15 +32,13 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
   };
 
   const berechnungen = useMemo(() => {
-    const { arbeit, material, zusatz, rabatt } = offerte.kosten;
-    const zwischensumme = arbeit + material + zusatz;
-    const rabattBetrag = (zwischensumme * rabatt) / 100;
-    const netto = zwischensumme - rabattBetrag;
+    const { leistungspreis, rabattProzent } = offerte.kosten;
+    const rabattBetrag = (leistungspreis * rabattProzent) / 100;
+    const netto = leistungspreis - rabattBetrag;
     const mwst = netto * MWST_SATZ;
     const total = netto + mwst;
 
     return {
-      zwischensumme,
       rabattBetrag,
       netto,
       mwst,
@@ -48,13 +46,11 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
     };
   }, [offerte.kosten]);
 
-  const selectedAnsprechpartner = ansprechpartner.find(
-    (a) => a.id === offerte.projekt.ansprechpartnerId
+  const selectedAnsprechpartner = ansprechpartnerListe.filter((ap) =>
+    offerte.ansprechpartnerIds.includes(ap.id)
   );
 
-  const selectedStandort = standorte.find(
-    (s) => s.id === offerte.projekt.standortId
-  );
+  const selectedStandort = standorte.find((s) => s.id === offerte.standortId);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("de-CH", {
@@ -63,56 +59,42 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
     }).format(value);
   };
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "–";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("de-CH");
+  };
+
   const handleSubmit = () => {
     // Hier würde die PDF-Generierung erfolgen
     alert("Offerte erstellt! (PDF-Generierung noch nicht implementiert)");
     clearOfferteDraft();
   };
 
-  const selectedLeistungen = offerte.leistungen.filter((l) => l.checked);
-
   return (
     <div className="space-y-8">
       {/* Kosteneingabe */}
       <section>
         <h2 className="text-lg font-semibold mb-4 text-gray-800">Kosten eingeben</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Arbeitskosten (CHF)"
-            name="arbeit"
+            label="Leistungspreis (CHF)"
+            name="leistungspreis"
             type="number"
             min="0"
             step="0.01"
-            value={offerte.kosten.arbeit || ""}
-            onChange={(e) => updateKosten("arbeit", e.target.value)}
-          />
-          <Input
-            label="Materialkosten (CHF)"
-            name="material"
-            type="number"
-            min="0"
-            step="0.01"
-            value={offerte.kosten.material || ""}
-            onChange={(e) => updateKosten("material", e.target.value)}
-          />
-          <Input
-            label="Zusatzkosten (CHF)"
-            name="zusatz"
-            type="number"
-            min="0"
-            step="0.01"
-            value={offerte.kosten.zusatz || ""}
-            onChange={(e) => updateKosten("zusatz", e.target.value)}
+            value={offerte.kosten.leistungspreis || ""}
+            onChange={(e) => updateKosten("leistungspreis", e.target.value)}
           />
           <Input
             label="Rabatt (%)"
-            name="rabatt"
+            name="rabattProzent"
             type="number"
             min="0"
             max="100"
             step="0.1"
-            value={offerte.kosten.rabatt || ""}
-            onChange={(e) => updateKosten("rabatt", e.target.value)}
+            value={offerte.kosten.rabattProzent || ""}
+            onChange={(e) => updateKosten("rabattProzent", e.target.value)}
           />
         </div>
       </section>
@@ -132,10 +114,9 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
               {selectedStandort ? (
                 <>
                   <p className="font-semibold">{selectedStandort.name}</p>
-                  <p>{selectedStandort.adresse}</p>
-                  <p>
-                    {selectedStandort.plz} {selectedStandort.ort}
-                  </p>
+                  <p>{selectedStandort.strasse}</p>
+                  <p>{selectedStandort.plzOrt}</p>
+                  <p>{selectedStandort.telefon}</p>
                 </>
               ) : (
                 <p>Kein Standort gewählt</p>
@@ -143,46 +124,69 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
             </div>
           </div>
 
+          {/* Offerte Info */}
+          <div className="mb-6 text-sm text-gray-600">
+            <p>Offerte Nr.: {offerte.offertnummer || "–"}</p>
+            <p>Datum: {formatDate(offerte.datum)}</p>
+          </div>
+
           {/* Empfänger */}
           <div className="mb-8">
-            <p className="font-semibold">{offerte.empfaenger.firma || "–"}</p>
-            <p>
-              {offerte.empfaenger.anrede === "herr"
-                ? "Herr"
-                : offerte.empfaenger.anrede === "frau"
-                ? "Frau"
-                : ""}{" "}
-              {offerte.empfaenger.vorname} {offerte.empfaenger.nachname}
+            <p className="font-semibold">
+              {offerte.empfaenger.anrede} {offerte.empfaenger.name || "–"}
             </p>
+            {offerte.empfaenger.zusatz && <p>{offerte.empfaenger.zusatz}</p>}
             <p>{offerte.empfaenger.strasse}</p>
-            <p>
-              {offerte.empfaenger.plz} {offerte.empfaenger.ort}
-            </p>
+            <p>{offerte.empfaenger.plzOrt}</p>
           </div>
 
           {/* Titel */}
           <h3 className="text-xl font-bold mb-4">
             Offerte: {offerte.projekt.bezeichnung || "–"}
           </h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Projekt-Ort: {offerte.projekt.ort || "–"} | Anfragedatum: {formatDate(offerte.projekt.anfrageDatum)}
+          </p>
 
-          {/* Leistungen */}
-          {selectedLeistungen.length > 0 && (
-            <div className="mb-6">
-              <h4 className="font-semibold mb-2">Leistungen:</h4>
-              <ul className="list-disc list-inside text-gray-700">
-                {selectedLeistungen.map((l) => (
-                  <li key={l.id}>{l.name}</li>
-                ))}
-              </ul>
+          {/* Checkbox Zusammenfassung */}
+          <div className="mb-6 text-sm">
+            <h4 className="font-semibold mb-2">Leistungsumfang:</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-gray-500">Art Bauvorhaben:</p>
+                <p>
+                  {[
+                    offerte.checkboxen.artBauvorhaben.neubau && "Neubau",
+                    offerte.checkboxen.artBauvorhaben.umbau && "Umbau",
+                    offerte.checkboxen.artBauvorhaben.rueckbau && "Rückbau",
+                    offerte.checkboxen.artBauvorhaben.sonstiges,
+                  ].filter(Boolean).join(", ") || "–"}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500">Art Gebäude:</p>
+                <p>
+                  {[
+                    offerte.checkboxen.artGebaeude.efhFreistehend && "EFH",
+                    offerte.checkboxen.artGebaeude.reihenhaus && "Reihenhaus",
+                    offerte.checkboxen.artGebaeude.terrassenhaus && "Terrassenhaus",
+                    offerte.checkboxen.artGebaeude.mfh && "MFH",
+                    offerte.checkboxen.artGebaeude.strassen && "Strassen",
+                    offerte.checkboxen.artGebaeude.kunstbauten && "Kunstbauten",
+                    offerte.checkboxen.artGebaeude.sonstiges1,
+                    offerte.checkboxen.artGebaeude.sonstiges2,
+                  ].filter(Boolean).join(", ") || "–"}
+                </p>
+              </div>
             </div>
-          )}
+          </div>
 
           {/* Plan */}
-          {offerte.planBild && (
+          {offerte.planbeilage && (
             <div className="mb-6">
-              <h4 className="font-semibold mb-2">Plan:</h4>
+              <h4 className="font-semibold mb-2">Planbeilage:</h4>
               <Image
-                src={offerte.planBild}
+                src={offerte.planbeilage.base64}
                 alt="Plan"
                 width={400}
                 height={300}
@@ -191,45 +195,30 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
             </div>
           )}
 
-          {/* Bemerkungen */}
-          {offerte.bemerkungen && (
-            <div className="mb-6">
-              <h4 className="font-semibold mb-2">Bemerkungen:</h4>
-              <p className="text-gray-700 whitespace-pre-wrap">{offerte.bemerkungen}</p>
-            </div>
-          )}
+          {/* Vorlaufzeit */}
+          <div className="mb-6">
+            <p className="text-sm">
+              <span className="text-gray-500">Vorlaufzeit:</span> {offerte.vorlaufzeit}
+            </p>
+          </div>
 
           {/* Kostentabelle */}
           <div className="border-t pt-4 mt-6">
             <table className="w-full text-sm">
               <tbody>
                 <tr>
-                  <td className="py-1">Arbeitskosten</td>
-                  <td className="py-1 text-right">{formatCurrency(offerte.kosten.arbeit)}</td>
+                  <td className="py-1">Leistungspreis</td>
+                  <td className="py-1 text-right">{formatCurrency(offerte.kosten.leistungspreis)}</td>
                 </tr>
-                <tr>
-                  <td className="py-1">Materialkosten</td>
-                  <td className="py-1 text-right">{formatCurrency(offerte.kosten.material)}</td>
-                </tr>
-                <tr>
-                  <td className="py-1">Zusatzkosten</td>
-                  <td className="py-1 text-right">{formatCurrency(offerte.kosten.zusatz)}</td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-1 font-medium">Zwischensumme</td>
-                  <td className="py-1 text-right font-medium">
-                    {formatCurrency(berechnungen.zwischensumme)}
-                  </td>
-                </tr>
-                {offerte.kosten.rabatt > 0 && (
+                {offerte.kosten.rabattProzent > 0 && (
                   <tr>
-                    <td className="py-1 text-red-600">Rabatt ({offerte.kosten.rabatt}%)</td>
+                    <td className="py-1 text-red-600">Rabatt ({offerte.kosten.rabattProzent}%)</td>
                     <td className="py-1 text-right text-red-600">
                       -{formatCurrency(berechnungen.rabattBetrag)}
                     </td>
                   </tr>
                 )}
-                <tr>
+                <tr className="border-t">
                   <td className="py-1">Netto</td>
                   <td className="py-1 text-right">{formatCurrency(berechnungen.netto)}</td>
                 </tr>
@@ -245,23 +234,31 @@ export default function Tab2Kosten({ offerte, updateOfferte, onBack }: Tab2Koste
             </table>
           </div>
 
-          {/* Unterschrift */}
+          {/* Unterschriften */}
           <div className="mt-8 pt-4 border-t">
-            <p className="text-sm text-gray-600 mb-2">Mit freundlichen Grüssen</p>
-            {selectedAnsprechpartner?.unterschriftBild && (
-              <div className="h-16 mb-2">
-                <Image
-                  src={selectedAnsprechpartner.unterschriftBild}
-                  alt="Unterschrift"
-                  width={150}
-                  height={60}
-                  className="h-full w-auto object-contain"
-                />
-              </div>
-            )}
-            <p className="font-medium">
-              {selectedAnsprechpartner?.name || "Ansprechpartner wählen"}
-            </p>
+            <p className="text-sm text-gray-600 mb-4">Mit freundlichen Grüssen</p>
+            <div className="flex gap-8">
+              {selectedAnsprechpartner.map((ap) => (
+                <div key={ap.id} className="text-center">
+                  {ap.unterschriftDatei && (
+                    <div className="h-16 mb-2">
+                      <Image
+                        src={`/${ap.unterschriftDatei}`}
+                        alt={`Unterschrift ${ap.vorname} ${ap.nachname}`}
+                        width={150}
+                        height={60}
+                        className="h-full w-auto object-contain"
+                      />
+                    </div>
+                  )}
+                  <p className="font-medium">{ap.vorname} {ap.nachname}</p>
+                  <p className="text-sm text-gray-500">{ap.funktion}</p>
+                </div>
+              ))}
+              {selectedAnsprechpartner.length === 0 && (
+                <p className="text-gray-400">Keine Ansprechpartner gewählt</p>
+              )}
+            </div>
           </div>
         </div>
       </section>
