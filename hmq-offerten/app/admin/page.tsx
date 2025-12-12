@@ -1,36 +1,19 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 export default function AdminPage() {
   return (
-    <main className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link
-          href="/admin/standorte"
-          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
-        >
-          <h2 className="text-xl font-semibold mb-2">Standorte</h2>
-          <p className="text-gray-600">Standorte verwalten (hinzufügen, bearbeiten, löschen)</p>
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-8 text-gray-800">Administration</h1>
+      <div className="grid gap-4">
+        <Link href="/admin/standorte" className="block p-6 bg-white rounded-lg shadow-sm border hover:border-blue-500 transition-colors">
+          <h2 className="text-lg font-semibold text-gray-800">Standorte</h2>
+          <p className="text-sm text-gray-500 mt-1">HMQ Standorte verwalten (Adresse, Telefon)</p>
         </Link>
-
-        <Link
-          href="/admin/ansprechpartner"
-          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
-        >
-          <h2 className="text-xl font-semibold mb-2">Ansprechpartner</h2>
-          <p className="text-gray-600">Ansprechpartner verwalten (hinzufügen, bearbeiten, löschen)</p>
+        <Link href="/admin/ansprechpartner" className="block p-6 bg-white rounded-lg shadow-sm border hover:border-blue-500 transition-colors">
+          <h2 className="text-lg font-semibold text-gray-800">Ansprechpartner</h2>
+          <p className="text-sm text-gray-500 mt-1">Ansprechpartner verwalten (Name, Funktion, Unterschrift)</p>
         </Link>
       </div>
-
-      <div className="mt-8">
-        <Link
-          href="/offerte"
-          className="text-blue-600 hover:text-blue-800"
-        >
-          ← Zurück zum Offerten-Formular
-        </Link>
-      </div>
-    </main>
+    </div>
   );
 }
