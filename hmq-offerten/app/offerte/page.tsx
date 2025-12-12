@@ -1,9 +1,10 @@
-import OfferteForm from "@/components/offerte/OfferteForm";
+import OfferteForm from '@/components/offerte/OfferteForm';
 
 export default function OffertePage() {
   return (
-    <main className="container mx-auto py-8 px-4">
+    <div>
+      <h1 className="text-2xl font-bold text-center mb-8 text-gray-800">Neue Offerte erstellen</h1>
       <OfferteForm />
-    </main>
+    </div>
   );
 }

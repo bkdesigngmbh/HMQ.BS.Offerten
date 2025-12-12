@@ -1,109 +1,100 @@
-"use client";
+'use client';
 
-import { useRef, ChangeEvent } from "react";
-import Button from "@/components/ui/Button";
-import Image from "next/image";
-import { Planbeilage } from "@/lib/types";
+import { useCallback, useState } from 'react';
+import { Planbeilage } from '@/lib/types';
 
 interface PlanUploadProps {
-  planbeilage: Planbeilage | null;
-  onUpload: (planbeilage: Planbeilage) => void;
-  onRemove: () => void;
+  value: Planbeilage | null;
+  onChange: (planbeilage: Planbeilage | null) => void;
 }
 
-export default function PlanUpload({ planbeilage, onUpload, onRemove }: PlanUploadProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+export default function PlanUpload({ value, onChange }: PlanUploadProps) {
+  const [dragActive, setDragActive] = useState(false);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validierung: Nur PNG und JPEG
-    if (file.type !== "image/png" && file.type !== "image/jpeg") {
-      alert("Bitte nur PNG oder JPEG Dateien hochladen.");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Die Datei ist zu gross (max. 5MB).");
+  const handleFile = useCallback((file: File) => {
+    if (!file.type.match(/^image\/(png|jpeg|jpg)$/)) {
+      alert('Bitte nur PNG oder JPG Dateien hochladen.');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      onUpload({
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      onChange({
         dateiname: file.name,
-        base64,
-        mimeType: file.type as "image/png" | "image/jpeg",
+        base64: base64.split(',')[1],
+        mimeType: file.type as 'image/png' | 'image/jpeg',
       });
     };
     reader.readAsDataURL(file);
+  }, [onChange]);
 
-    // Input zurücksetzen
-    if (inputRef.current) {
-      inputRef.current.value = "";
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+
+    if (e.dataTransfer.files?.[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  }, [handleFile]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      handleFile(e.target.files[0]);
     }
   };
 
   return (
-    <div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg"
-        onChange={handleFileChange}
-        className="hidden"
-        id="plan-upload"
-      />
+    <div className="mb-6">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Planbeilage (Situationsplan)
+      </label>
 
-      {planbeilage ? (
-        <div className="space-y-4">
-          <div className="relative inline-block">
-            <Image
-              src={planbeilage.base64}
-              alt={planbeilage.dateiname}
-              width={400}
-              height={300}
-              className="max-w-md rounded border shadow-sm"
-            />
-            <p className="text-sm text-gray-500 mt-1">{planbeilage.dateiname}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => inputRef.current?.click()}
-            >
-              Bild ändern
-            </Button>
-            <Button variant="danger" size="sm" onClick={onRemove}>
-              Entfernen
-            </Button>
-          </div>
+      {value ? (
+        <div className="relative border rounded-lg p-4 bg-gray-50">
+          <img
+            src={`data:${value.mimeType};base64,${value.base64}`}
+            alt="Situationsplan Vorschau"
+            className="max-h-64 mx-auto rounded"
+          />
+          <p className="text-sm text-gray-500 text-center mt-2">{value.dateiname}</p>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+          >
+            ×
+          </button>
         </div>
       ) : (
         <div
-          onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={handleDrop}
+          className={`
+            border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+            ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+          `}
         >
-          <div className="text-gray-500">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              stroke="currentColor"
-              fill="none"
-              viewBox="0 0 48 48"
-            >
-              <path
-                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <p className="mt-2 text-sm">Klicken Sie hier, um einen Plan hochzuladen</p>
-            <p className="mt-1 text-xs text-gray-400">PNG, JPG bis 5MB</p>
-          </div>
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            onChange={handleChange}
+            className="hidden"
+            id="plan-upload"
+          />
+          <label htmlFor="plan-upload" className="cursor-pointer">
+            <div className="text-gray-500">
+              <svg className="mx-auto h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm">
+                <span className="text-blue-600 hover:text-blue-700">Datei auswählen</span>
+                {' '}oder hierher ziehen
+              </p>
+              <p className="text-xs text-gray-400 mt-1">PNG oder JPG</p>
+            </div>
+          </label>
         </div>
       )}
     </div>

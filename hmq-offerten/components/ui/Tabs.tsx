@@ -1,54 +1,29 @@
-"use client";
-
-import { ReactNode } from "react";
-
-interface Tab {
-  id: string;
-  label: string;
-}
-
 interface TabsProps {
-  tabs: Tab[];
-  activeTab: string;
-  onTabChange: (tabId: string) => void;
-  children: ReactNode;
+  tabs: string[];
+  activeIndex: number;
+  onChange: (index: number) => void;
 }
 
-export default function Tabs({ tabs, activeTab, onTabChange, children }: TabsProps) {
+export default function Tabs({ tabs, activeIndex, onChange }: TabsProps) {
   return (
-    <div>
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-4" aria-label="Tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`
-                py-3 px-4 text-sm font-medium border-b-2 transition-colors
-                ${
-                  activeTab === tab.id
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }
-              `}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-      <div className="py-6">{children}</div>
+    <div className="border-b border-gray-200 mb-6">
+      <nav className="flex gap-4">
+        {tabs.map((tab, index) => (
+          <button
+            key={tab}
+            onClick={() => onChange(index)}
+            className={`
+              py-3 px-1 border-b-2 font-medium text-sm transition-colors
+              ${activeIndex === index
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }
+            `}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
     </div>
   );
-}
-
-interface TabPanelProps {
-  id: string;
-  activeTab: string;
-  children: ReactNode;
-}
-
-export function TabPanel({ id, activeTab, children }: TabPanelProps) {
-  if (id !== activeTab) return null;
-  return <div>{children}</div>;
 }
