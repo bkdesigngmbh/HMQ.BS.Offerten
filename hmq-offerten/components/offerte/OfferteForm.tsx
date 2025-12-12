@@ -4,44 +4,9 @@ import { useState, useEffect } from "react";
 import Tabs, { TabPanel } from "@/components/ui/Tabs";
 import Tab1Daten from "./Tab1Daten";
 import Tab2Kosten from "./Tab2Kosten";
-import { OfferteData, TabId, Leistung } from "@/lib/types";
+import { Offerte, TabId, createEmptyOfferte } from "@/lib/types";
 import { getOfferteDraft, saveOfferteDraft } from "@/lib/store";
 import Link from "next/link";
-
-const defaultLeistungen: Leistung[] = [
-  { id: "1", name: "Parkett schleifen", checked: false },
-  { id: "2", name: "Parkett versiegeln", checked: false },
-  { id: "3", name: "Parkett ölen", checked: false },
-  { id: "4", name: "Parkett reparieren", checked: false },
-  { id: "5", name: "Unterlagsboden", checked: false },
-  { id: "6", name: "Sockelleisten", checked: false },
-];
-
-const defaultOfferte: OfferteData = {
-  empfaenger: {
-    firma: "",
-    anrede: "",
-    vorname: "",
-    nachname: "",
-    strasse: "",
-    plz: "",
-    ort: "",
-  },
-  projekt: {
-    bezeichnung: "",
-    standortId: "",
-    ansprechpartnerId: "",
-  },
-  leistungen: defaultLeistungen,
-  kosten: {
-    arbeit: 0,
-    material: 0,
-    zusatz: 0,
-    rabatt: 0,
-  },
-  planBild: undefined,
-  bemerkungen: "",
-};
 
 const tabs = [
   { id: "daten", label: "1. Daten" },
@@ -50,16 +15,15 @@ const tabs = [
 
 export default function OfferteForm() {
   const [activeTab, setActiveTab] = useState<TabId>("daten");
-  const [offerte, setOfferte] = useState<OfferteData>(defaultOfferte);
+  const [offerte, setOfferte] = useState<Offerte>(createEmptyOfferte());
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const draft = getOfferteDraft();
     if (draft) {
       setOfferte({
-        ...defaultOfferte,
+        ...createEmptyOfferte(),
         ...draft,
-        leistungen: draft.leistungen || defaultLeistungen,
       });
     }
     setIsLoaded(true);
@@ -71,7 +35,7 @@ export default function OfferteForm() {
     }
   }, [offerte, isLoaded]);
 
-  const updateOfferte = (updates: Partial<OfferteData>) => {
+  const updateOfferte = (updates: Partial<Offerte>) => {
     setOfferte((prev) => ({ ...prev, ...updates }));
   };
 

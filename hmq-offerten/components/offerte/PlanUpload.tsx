@@ -3,23 +3,24 @@
 import { useRef, ChangeEvent } from "react";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
+import { Planbeilage } from "@/lib/types";
 
 interface PlanUploadProps {
-  planBild?: string;
-  onUpload: (bild: string) => void;
+  planbeilage: Planbeilage | null;
+  onUpload: (planbeilage: Planbeilage) => void;
   onRemove: () => void;
 }
 
-export default function PlanUpload({ planBild, onUpload, onRemove }: PlanUploadProps) {
+export default function PlanUpload({ planbeilage, onUpload, onRemove }: PlanUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validierung
-    if (!file.type.startsWith("image/")) {
-      alert("Bitte nur Bilddateien hochladen.");
+    // Validierung: Nur PNG und JPEG
+    if (file.type !== "image/png" && file.type !== "image/jpeg") {
+      alert("Bitte nur PNG oder JPEG Dateien hochladen.");
       return;
     }
 
@@ -30,8 +31,12 @@ export default function PlanUpload({ planBild, onUpload, onRemove }: PlanUploadP
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const result = event.target?.result as string;
-      onUpload(result);
+      const base64 = event.target?.result as string;
+      onUpload({
+        dateiname: file.name,
+        base64,
+        mimeType: file.type as "image/png" | "image/jpeg",
+      });
     };
     reader.readAsDataURL(file);
 
@@ -46,22 +51,23 @@ export default function PlanUpload({ planBild, onUpload, onRemove }: PlanUploadP
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg"
         onChange={handleFileChange}
         className="hidden"
         id="plan-upload"
       />
 
-      {planBild ? (
+      {planbeilage ? (
         <div className="space-y-4">
           <div className="relative inline-block">
             <Image
-              src={planBild}
-              alt="Hochgeladener Plan"
+              src={planbeilage.base64}
+              alt={planbeilage.dateiname}
               width={400}
               height={300}
               className="max-w-md rounded border shadow-sm"
             />
+            <p className="text-sm text-gray-500 mt-1">{planbeilage.dateiname}</p>
           </div>
           <div className="flex gap-2">
             <Button

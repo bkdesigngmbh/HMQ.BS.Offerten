@@ -1,18 +1,16 @@
 [
   {
-    "id": "1",
-    "name": "Benjamin Patt",
-    "email": "b.patt@hmq.ch",
-    "telefon": "+41 44 123 45 67",
-    "standortId": "1",
-    "unterschriftBild": "/unterschrift-bpa.png"
+    "id": "bpa",
+    "vorname": "Benjamin",
+    "nachname": "Patt",
+    "funktion": "Projektleiter",
+    "unterschriftDatei": "unterschrift-bpa.png"
   },
   {
-    "id": "2",
-    "name": "Bianca Hochuli",
-    "email": "b.hochuli@hmq.ch",
-    "telefon": "+41 44 123 45 68",
-    "standortId": "1",
-    "unterschriftBild": "/unterschrift-bho.png"
+    "id": "bho",
+    "vorname": "Bianca",
+    "nachname": "Hochuli",
+    "funktion": "Projektleiterin",
+    "unterschriftDatei": "unterschrift-bho.png"
   }
 ]

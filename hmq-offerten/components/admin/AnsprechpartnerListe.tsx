@@ -3,14 +3,12 @@
 import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
-import { Ansprechpartner, Standort } from "@/lib/types";
+import { Ansprechpartner } from "@/lib/types";
 import {
   getAnsprechpartner,
   addAnsprechpartner,
   updateAnsprechpartner,
   deleteAnsprechpartner,
-  getStandorte,
 } from "@/lib/store";
 
 interface EditingAnsprechpartner extends Omit<Ansprechpartner, "id"> {
@@ -18,28 +16,20 @@ interface EditingAnsprechpartner extends Omit<Ansprechpartner, "id"> {
 }
 
 const emptyAnsprechpartner: EditingAnsprechpartner = {
-  name: "",
-  email: "",
-  telefon: "",
-  standortId: "",
-  unterschriftBild: "",
+  vorname: "",
+  nachname: "",
+  funktion: "",
+  unterschriftDatei: "",
 };
 
 export default function AnsprechpartnerListe() {
   const [ansprechpartner, setAnsprechpartner] = useState<Ansprechpartner[]>([]);
-  const [standorte, setStandorte] = useState<Standort[]>([]);
   const [editing, setEditing] = useState<EditingAnsprechpartner | null>(null);
   const [isNew, setIsNew] = useState(false);
 
   useEffect(() => {
     setAnsprechpartner(getAnsprechpartner());
-    setStandorte(getStandorte());
   }, []);
-
-  const getStandortName = (standortId: string) => {
-    const standort = standorte.find((s) => s.id === standortId);
-    return standort?.name || "–";
-  };
 
   const handleNew = () => {
     setEditing({ ...emptyAnsprechpartner });
@@ -59,8 +49,8 @@ export default function AnsprechpartnerListe() {
   const handleSave = () => {
     if (!editing) return;
 
-    if (!editing.name.trim()) {
-      alert("Name ist erforderlich");
+    if (!editing.vorname.trim() || !editing.nachname.trim()) {
+      alert("Vor- und Nachname sind erforderlich");
       return;
     }
 
@@ -102,34 +92,26 @@ export default function AnsprechpartnerListe() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Name"
-              value={editing.name}
-              onChange={(e) => updateField("name", e.target.value)}
+              label="Vorname"
+              value={editing.vorname}
+              onChange={(e) => updateField("vorname", e.target.value)}
             />
             <Input
-              label="E-Mail"
-              type="email"
-              value={editing.email}
-              onChange={(e) => updateField("email", e.target.value)}
+              label="Nachname"
+              value={editing.nachname}
+              onChange={(e) => updateField("nachname", e.target.value)}
             />
             <Input
-              label="Telefon"
-              value={editing.telefon}
-              onChange={(e) => updateField("telefon", e.target.value)}
-            />
-            <Select
-              label="Standort"
-              value={editing.standortId}
-              onChange={(e) => updateField("standortId", e.target.value)}
-              options={standorte.map((s) => ({ value: s.id, label: s.name }))}
-              placeholder="Standort wählen"
+              label="Funktion"
+              value={editing.funktion}
+              onChange={(e) => updateField("funktion", e.target.value)}
+              placeholder="z.B. Projektleiter"
             />
             <Input
-              label="Unterschrift-Bild (Pfad)"
-              value={editing.unterschriftBild || ""}
-              onChange={(e) => updateField("unterschriftBild", e.target.value)}
-              placeholder="/unterschrift-xxx.png"
-              className="md:col-span-2"
+              label="Unterschrift-Datei"
+              value={editing.unterschriftDatei}
+              onChange={(e) => updateField("unterschriftDatei", e.target.value)}
+              placeholder="unterschrift-xxx.png"
             />
           </div>
           <div className="flex gap-2 mt-4">
@@ -147,16 +129,16 @@ export default function AnsprechpartnerListe() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Name
+                Vorname
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                E-Mail
+                Nachname
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Telefon
+                Funktion
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Standort
+                Unterschrift
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Aktionen
@@ -167,16 +149,16 @@ export default function AnsprechpartnerListe() {
             {ansprechpartner.map((ap) => (
               <tr key={ap.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap font-medium">
-                  {ap.name}
+                  {ap.vorname}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  {ap.email}
+                  {ap.nachname}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  {ap.telefon}
+                  {ap.funktion}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                  {getStandortName(ap.standortId)}
+                  {ap.unterschriftDatei || "–"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <Button
