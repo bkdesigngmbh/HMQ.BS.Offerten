@@ -204,40 +204,30 @@ function entferneRabatt(xml: string, rabattProzent: number): string {
 
 // EMU Konvertierung: 1 cm = 360000 EMUs
 const EMU_PER_CM = 360000;
-const MAX_WIDTH_CM = 16;  // Maximale Breite in cm
-const MAX_HEIGHT_CM = 10; // Maximale Höhe in cm
+
+// A4 = 210mm Breite, typische Ränder = 25mm links + 25mm rechts
+// Verfügbare Breite = 210 - 50 = 160mm = 16cm
+const FULL_WIDTH_CM = 16;
 
 function calculateProportionalSize(
   originalWidth: number,
-  originalHeight: number,
-  maxWidthCm: number = MAX_WIDTH_CM,
-  maxHeightCm: number = MAX_HEIGHT_CM
+  originalHeight: number
 ): { widthEmu: number; heightEmu: number } {
-  // Wenn keine Dimensionen vorhanden, Standardgrösse verwenden
+  // Breite ist IMMER die volle verfügbare Breite
+  const finalWidthEmu = FULL_WIDTH_CM * EMU_PER_CM;
+
+  // Wenn keine Dimensionen vorhanden, Standardverhältnis 16:9 annehmen
   if (!originalWidth || !originalHeight) {
+    const defaultAspectRatio = 16 / 9;
     return {
-      widthEmu: maxWidthCm * EMU_PER_CM,
-      heightEmu: maxHeightCm * EMU_PER_CM,
+      widthEmu: finalWidthEmu,
+      heightEmu: Math.round(finalWidthEmu / defaultAspectRatio),
     };
   }
 
+  // Höhe proportional berechnen (Seitenverhältnis beibehalten)
   const aspectRatio = originalWidth / originalHeight;
-  const maxWidthEmu = maxWidthCm * EMU_PER_CM;
-  const maxHeightEmu = maxHeightCm * EMU_PER_CM;
-
-  let finalWidthEmu: number;
-  let finalHeightEmu: number;
-
-  // Prüfe ob Breite oder Höhe limitierend ist
-  if (originalWidth / maxWidthCm > originalHeight / maxHeightCm) {
-    // Breite ist limitierend
-    finalWidthEmu = maxWidthEmu;
-    finalHeightEmu = maxWidthEmu / aspectRatio;
-  } else {
-    // Höhe ist limitierend
-    finalHeightEmu = maxHeightEmu;
-    finalWidthEmu = maxHeightEmu * aspectRatio;
-  }
+  const finalHeightEmu = finalWidthEmu / aspectRatio;
 
   return {
     widthEmu: Math.round(finalWidthEmu),
