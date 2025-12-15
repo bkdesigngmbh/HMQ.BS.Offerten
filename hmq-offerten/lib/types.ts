@@ -107,6 +107,34 @@ export interface Checkboxen {
   dokumentation: CheckboxenDokumentation;
 }
 
+// =====================================================
+// KOSTENBERECHNUNG TYPEN
+// =====================================================
+
+export interface KategorieEingabe {
+  kategorieId: string;
+  titel: string;
+  anzahl: number;
+}
+
+export interface KostenOverrides {
+  stundenEnd: number | null;      // Override für Zustandsaufnahme-Stunden
+  bindemengeEnd: number | null;   // Override für Bindemenge
+}
+
+export interface KostenSpesen {
+  kilometer: number;
+  reisezeitStunden: number;
+  verpflegungAnzahl: number;
+  uebernachtungenAnzahl: number;
+}
+
+export interface KostenBerechnung {
+  kategorien: KategorieEingabe[];
+  overrides: KostenOverrides;
+  spesen: KostenSpesen;
+}
+
 export interface Offerte {
   offertnummer: string;
   datum: string;
@@ -115,6 +143,7 @@ export interface Offerte {
   empfaenger: Empfaenger;
   projekt: Projekt;
   kosten: Kosten;
+  kostenBerechnung: KostenBerechnung;
   vorlaufzeit: string;
   einsatzpauschalen: number;
   checkboxen: Checkboxen;
@@ -146,6 +175,19 @@ export function createEmptyOfferte(): Offerte {
     kosten: {
       leistungspreis: 0,
       rabattProzent: 0,
+    },
+    kostenBerechnung: {
+      kategorien: [],
+      overrides: {
+        stundenEnd: null,
+        bindemengeEnd: null,
+      },
+      spesen: {
+        kilometer: 0,
+        reisezeitStunden: 0,
+        verpflegungAnzahl: 0,
+        uebernachtungenAnzahl: 0,
+      },
     },
     vorlaufzeit: '3 Wochen',
     einsatzpauschalen: 2,

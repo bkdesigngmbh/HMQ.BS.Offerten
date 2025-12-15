@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Offerte } from '@/lib/types';
-import Input from '@/components/ui/Input';
+import { useState, useEffect, useMemo } from 'react';
+import { Offerte, KategorieEingabe } from '@/lib/types';
+import { getKategorien, getBasiswerte, KostenKategorie, KostenBasiswerte } from '@/lib/supabase';
+import { berechneKosten, KostenErgebnis, rundeAuf5Rappen } from '@/lib/kosten-berechnung';
 
 interface Tab2KostenProps {
   offerte: Offerte;
@@ -10,34 +11,137 @@ interface Tab2KostenProps {
   errors: Record<string, string>;
 }
 
-function formatCHF(amount: number): string {
-  return amount.toLocaleString('de-CH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
 export default function Tab2Kosten({ offerte, onChange, errors }: Tab2KostenProps) {
-  const MWST_SATZ = 8.1;
+  // Supabase Daten
+  const [kategorienConfig, setKategorienConfig] = useState<KostenKategorie[]>([]);
+  const [basiswerte, setBasiswerte] = useState<KostenBasiswerte | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const updateKosten = (field: string, value: number) => {
+  // Laden der Konfiguration
+  useEffect(() => {
+    async function load() {
+      try {
+        const [kat, basis] = await Promise.all([
+          getKategorien(),
+          getBasiswerte(),
+        ]);
+        setKategorienConfig(kat);
+        setBasiswerte(basis);
+
+        // Initialisiere Kategorien-Eingaben falls leer
+        if (offerte.kostenBerechnung.kategorien.length === 0 && kat.length > 0) {
+          const initialKategorien: KategorieEingabe[] = kat.map(k => ({
+            kategorieId: k.id,
+            titel: k.titel,
+            anzahl: 0,
+          }));
+          onChange({
+            ...offerte,
+            kostenBerechnung: {
+              ...offerte.kostenBerechnung,
+              kategorien: initialKategorien,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden:', error);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  // Berechnung
+  const ergebnis: KostenErgebnis | null = useMemo(() => {
+    if (!basiswerte || kategorienConfig.length === 0) return null;
+
+    return berechneKosten(
+      offerte.kostenBerechnung.kategorien,
+      kategorienConfig,
+      basiswerte,
+      offerte.kostenBerechnung.overrides,
+      offerte.kostenBerechnung.spesen
+    );
+  }, [offerte.kostenBerechnung, kategorienConfig, basiswerte]);
+
+  // Endpreis automatisch aktualisieren
+  useEffect(() => {
+    if (ergebnis && ergebnis.endpreis !== offerte.kosten.leistungspreis) {
+      onChange({
+        ...offerte,
+        kosten: {
+          ...offerte.kosten,
+          leistungspreis: ergebnis.endpreis,
+        },
+      });
+    }
+  }, [ergebnis?.endpreis]);
+
+  // Handler
+  function handleKategorieChange(kategorieId: string, anzahl: number) {
+    const newKategorien = offerte.kostenBerechnung.kategorien.map(k =>
+      k.kategorieId === kategorieId ? { ...k, anzahl } : k
+    );
     onChange({
       ...offerte,
-      kosten: { ...offerte.kosten, [field]: value },
+      kostenBerechnung: {
+        ...offerte.kostenBerechnung,
+        kategorien: newKategorien,
+      },
     });
-  };
+  }
 
-  const berechnung = useMemo(() => {
-    const leistungspreis = offerte.kosten.leistungspreis || 0;
-    const rabattProzent = offerte.kosten.rabattProzent || 0;
+  function handleOverrideChange(field: 'stundenEnd' | 'bindemengeEnd', value: number | null) {
+    onChange({
+      ...offerte,
+      kostenBerechnung: {
+        ...offerte.kostenBerechnung,
+        overrides: {
+          ...offerte.kostenBerechnung.overrides,
+          [field]: value,
+        },
+      },
+    });
+  }
 
-    const rabattBetrag = leistungspreis * (rabattProzent / 100);
-    const zwischentotal = leistungspreis - rabattBetrag;
-    const mwstBetrag = zwischentotal * (MWST_SATZ / 100);
-    const total = zwischentotal + mwstBetrag;
+  function handleSpesenChange(field: keyof typeof offerte.kostenBerechnung.spesen, value: number) {
+    onChange({
+      ...offerte,
+      kostenBerechnung: {
+        ...offerte.kostenBerechnung,
+        spesen: {
+          ...offerte.kostenBerechnung.spesen,
+          [field]: value,
+        },
+      },
+    });
+  }
 
-    return { leistungspreis, rabattProzent, rabattBetrag, zwischentotal, mwstBetrag, total };
-  }, [offerte.kosten]);
+  function handleRabattChange(rabattProzent: number) {
+    onChange({
+      ...offerte,
+      kosten: {
+        ...offerte.kosten,
+        rabattProzent,
+      },
+    });
+  }
+
+  // Formatierung
+  function formatCHF(amount: number): string {
+    return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  }
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500">Laden...</div>;
+  }
+
+  if (!basiswerte) {
+    return <div className="p-8 text-center text-red-500">Fehler: Basiswerte nicht geladen</div>;
+  }
+
+  const rabattBetrag = ergebnis ? rundeAuf5Rappen(ergebnis.endpreis * (offerte.kosten.rabattProzent / 100)) : 0;
+  const totalNachRabatt = ergebnis ? rundeAuf5Rappen(ergebnis.endpreis - rabattBetrag) : 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
