@@ -1,259 +1,265 @@
 'use client';
 
-import { useState, useCallback, DragEvent } from 'react';
+import { useCallback, useState } from 'react';
 import { Offerte } from '@/lib/types';
-import { parseFolderName, parseEmailContent, parseStandort } from '@/lib/mail-parser';
+import { parseFolderName, parseEmailContent, parseMsgFile } from '@/lib/mail-parser';
 
 interface FolderImportProps {
   offerte: Offerte;
   onChange: (offerte: Offerte) => void;
 }
 
-interface FileEntry {
-  name: string;
-  content: string;
-}
-
 export default function FolderImport({ offerte, onChange }: FolderImportProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<string>('');
 
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsText(file);
-    });
-  };
+  const processFiles = useCallback(async (items: DataTransferItemList | FileList) => {
+    setStatus('Verarbeite...');
 
-  const processEntry = async (entry: FileSystemEntry): Promise<FileEntry[]> => {
-    const files: FileEntry[] = [];
+    let folderName = '';
+    let mailContent = '';
 
-    if (entry.isFile) {
-      const fileEntry = entry as FileSystemFileEntry;
-      const file = await new Promise<File>((resolve, reject) => {
-        fileEntry.file(resolve, reject);
-      });
+    // Verarbeite die Dateien
+    const fileList = items instanceof FileList ? items : null;
 
-      // Nur .eml Dateien lesen
-      if (file.name.toLowerCase().endsWith('.eml')) {
-        const content = await readFileAsText(file);
-        files.push({ name: file.name, content });
+    if (fileList) {
+      // FileList von input[type=file]
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+
+        // Ordnername aus dem Pfad extrahieren
+        const pathParts = file.webkitRelativePath?.split('/') || [];
+        if (pathParts.length > 0 && !folderName) {
+          folderName = pathParts[0];
+        }
+
+        // EML-Datei suchen
+        if (file.name.endsWith('.eml')) {
+          mailContent = await file.text();
+        }
+
+        // MSG-Datei suchen
+        if (file.name.endsWith('.msg')) {
+          const arrayBuffer = await file.arrayBuffer();
+          mailContent = await parseMsgFile(arrayBuffer);
+        }
       }
-    } else if (entry.isDirectory) {
-      const dirEntry = entry as FileSystemDirectoryEntry;
-      const reader = dirEntry.createReader();
+    } else {
+      // DataTransferItemList von Drag & Drop
+      const entries: FileSystemEntry[] = [];
+      const itemList = items as DataTransferItemList;
 
-      const entries = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-        reader.readEntries(resolve, reject);
-      });
+      for (let i = 0; i < itemList.length; i++) {
+        const item = itemList[i];
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry();
+          if (entry) {
+            entries.push(entry);
 
-      for (const subEntry of entries) {
-        const subFiles = await processEntry(subEntry);
-        files.push(...subFiles);
+            // Ordnername
+            if (entry.isDirectory && !folderName) {
+              folderName = entry.name;
+            }
+          }
+        }
+      }
+
+      // Rekursiv nach EML oder MSG suchen
+      for (const entry of entries) {
+        if (entry.isDirectory) {
+          mailContent = await findMailInDirectory(entry as FileSystemDirectoryEntry);
+          if (mailContent) break;
+        } else if (entry.name.endsWith('.eml')) {
+          mailContent = await readFileEntry(entry as FileSystemFileEntry);
+        } else if (entry.name.endsWith('.msg')) {
+          const arrayBuffer = await readFileEntryAsArrayBuffer(entry as FileSystemFileEntry);
+          mailContent = await parseMsgFile(arrayBuffer);
+        }
       }
     }
 
-    return files;
-  };
+    // Daten extrahieren
+    let updatedOfferte = { ...offerte };
+    let changes: string[] = [];
 
-  const handleDrop = useCallback(async (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    setStatus('processing');
-    setMessage('Verarbeite Ordner...');
-
-    try {
-      const items = e.dataTransfer.items;
-      if (!items || items.length === 0) {
-        throw new Error('Keine Dateien gefunden');
-      }
-
-      let folderName = '';
-      const allFiles: FileEntry[] = [];
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const entry = item.webkitGetAsEntry?.();
-
-        if (entry) {
-          if (entry.isDirectory && !folderName) {
-            folderName = entry.name;
-          }
-          const files = await processEntry(entry);
-          allFiles.push(...files);
-        }
-      }
-
-      if (!folderName) {
-        // Fallback: Dateinamen verwenden
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-          const path = (files[0] as any).webkitRelativePath || files[0].name;
-          folderName = path.split('/')[0];
-        }
-      }
-
-      // Ordnername parsen
+    // 1. Ordnername parsen
+    if (folderName) {
       const folderData = parseFolderName(folderName);
 
-      // E-Mail parsen falls vorhanden
-      let emailData = null;
-      const emlFile = allFiles.find(f => f.name.toLowerCase().endsWith('.eml'));
-      if (emlFile) {
-        emailData = parseEmailContent(emlFile.content);
-      }
-
-      // Standort bestimmen
-      const standortId = parseStandort(emailData?.plz || '');
-
-      // Offerte aktualisieren
-      const newOfferte = { ...offerte };
-
-      // Aus Ordnername
       if (folderData.offertnummer) {
-        newOfferte.offertnummer = folderData.offertnummer;
+        updatedOfferte.offertnummer = folderData.offertnummer;
+        changes.push('Offertnummer');
       }
       if (folderData.projektOrt) {
-        newOfferte.projekt = { ...newOfferte.projekt, ort: folderData.projektOrt };
+        updatedOfferte.projekt = {
+          ...updatedOfferte.projekt,
+          ort: folderData.projektOrt,
+        };
+        changes.push('Projektort');
       }
       if (folderData.projektBezeichnung) {
-        newOfferte.projekt = { ...newOfferte.projekt, bezeichnung: folderData.projektBezeichnung };
+        updatedOfferte.projekt = {
+          ...updatedOfferte.projekt,
+          bezeichnung: folderData.projektBezeichnung,
+        };
+        changes.push('Projektbezeichnung');
       }
-
-      // Aus E-Mail
-      if (emailData) {
-        if (emailData.firma) {
-          newOfferte.empfaenger = { ...newOfferte.empfaenger, firma: emailData.firma };
-        }
-        if (emailData.vorname || emailData.nachname) {
-          newOfferte.empfaenger = {
-            ...newOfferte.empfaenger,
-            anrede: 'Herr', // Default, kann manuell geändert werden
-            vorname: emailData.vorname,
-            nachname: emailData.nachname,
-          };
-        }
-        if (emailData.funktion) {
-          newOfferte.empfaenger = { ...newOfferte.empfaenger, funktion: emailData.funktion };
-        }
-        if (emailData.strasse) {
-          newOfferte.empfaenger = { ...newOfferte.empfaenger, strasse: emailData.strasse };
-        }
-        if (emailData.plz) {
-          newOfferte.empfaenger = { ...newOfferte.empfaenger, plz: emailData.plz };
-        }
-        if (emailData.ort) {
-          newOfferte.empfaenger = { ...newOfferte.empfaenger, ort: emailData.ort };
-        }
-      }
-
-      // Standort setzen
-      newOfferte.standortId = standortId;
-
-      onChange(newOfferte);
-
-      // Erfolgsmeldung
-      const imported: string[] = [];
-      if (folderData.offertnummer) imported.push('Offertnummer');
-      if (folderData.projektOrt) imported.push('Projektort');
-      if (folderData.projektBezeichnung) imported.push('Projektbezeichnung');
-      if (emailData?.firma) imported.push('Firma');
-      if (emailData?.vorname || emailData?.nachname) imported.push('Kontaktperson');
-      if (emailData?.strasse) imported.push('Strasse');
-      if (emailData?.plz || emailData?.ort) imported.push('PLZ/Ort');
-
-      if (imported.length > 0) {
-        setStatus('success');
-        setMessage(`Importiert: ${imported.join(', ')}`);
-      } else {
-        setStatus('idle');
-        setMessage('Keine Daten gefunden');
-      }
-
-      // Nach 5 Sekunden ausblenden
-      setTimeout(() => {
-        setStatus('idle');
-        setMessage('');
-      }, 5000);
-
-    } catch (error) {
-      console.error('Import-Fehler:', error);
-      setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Unbekannter Fehler');
-
-      setTimeout(() => {
-        setStatus('idle');
-        setMessage('');
-      }, 5000);
     }
+
+    // 2. Mail parsen (NUR für Empfänger-Daten, NICHT für Projekt!)
+    if (mailContent) {
+      const mailData = parseEmailContent(mailContent);
+
+      // Empfänger aus Mail
+      if (mailData.nachname) {
+        updatedOfferte.empfaenger = {
+          ...updatedOfferte.empfaenger,
+          firma: '', // Muss manuell ergänzt werden
+          anrede: mailData.anrede,
+          vorname: mailData.vorname,
+          nachname: mailData.nachname,
+          strasse: mailData.strasse,
+          plz: mailData.plz,
+          ort: mailData.ort,
+        };
+        changes.push('Empfänger');
+      }
+
+      // WICHTIG: Projekt IMMER aus Ordnername, NIEMALS aus Mail!
+      // Die Mail enthält nur die ursprüngliche Anfrage,
+      // der Ordnername enthält die finale/angepasste Version.
+    }
+
+    if (changes.length > 0) {
+      onChange(updatedOfferte);
+      setStatus(`✓ Importiert: ${changes.join(', ')}`);
+    } else {
+      setStatus('Keine Daten gefunden');
+    }
+
+    setTimeout(() => setStatus(''), 5000);
   }, [offerte, onChange]);
 
-  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   }, []);
 
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.items) {
+      processFiles(e.dataTransfer.items);
+    }
+  }, [processFiles]);
+
   return (
-    <div
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      className={`
-        relative border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
-        ${isDragging
-          ? 'border-blue-500 bg-blue-50'
-          : status === 'success'
-            ? 'border-green-400 bg-green-50'
-            : status === 'error'
-              ? 'border-red-400 bg-red-50'
-              : 'border-gray-300 hover:border-gray-400 bg-gray-50'
-        }
-      `}
-    >
-      {status === 'processing' ? (
-        <div className="flex items-center justify-center gap-2 text-gray-600">
-          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    <div className="mb-6">
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`
+          border-2 border-dashed rounded-lg p-6 text-center transition-colors
+          ${isDragging
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-300 hover:border-gray-400'
+          }
+        `}
+      >
+        <div className="flex flex-col items-center gap-2">
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          <span>{message}</span>
-        </div>
-      ) : status === 'success' ? (
-        <div className="flex items-center justify-center gap-2 text-green-700">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          <span>{message}</span>
-        </div>
-      ) : status === 'error' ? (
-        <div className="flex items-center justify-center gap-2 text-red-700">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          <span>{message}</span>
-        </div>
-      ) : (
-        <div className="text-gray-500">
-          <svg className="mx-auto h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-          </svg>
-          <p className="text-sm font-medium">Projektordner hierher ziehen</p>
-          <p className="text-xs text-gray-400 mt-1">
-            Format: &quot;51.25.405 Zürich, Projektbezeichnung&quot;
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">Projektordner hierhin ziehen</span>
+            <br />
+            <span className="text-xs text-gray-500">
+              Ordnername + Mail (.eml/.msg) werden automatisch ausgelesen
+            </span>
           </p>
         </div>
+      </div>
+
+      {status && (
+        <p className={`mt-2 text-sm ${status.startsWith('✓') ? 'text-green-600' : 'text-gray-500'}`}>
+          {status}
+        </p>
       )}
     </div>
   );
+}
+
+// Hilfsfunktionen für FileSystem API
+
+async function findMailInDirectory(dirEntry: FileSystemDirectoryEntry): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = dirEntry.createReader();
+
+    reader.readEntries(async (entries) => {
+      for (const entry of entries) {
+        // EML-Datei
+        if (entry.isFile && entry.name.endsWith('.eml')) {
+          const content = await readFileEntry(entry as FileSystemFileEntry);
+          resolve(content);
+          return;
+        }
+
+        // MSG-Datei
+        if (entry.isFile && entry.name.endsWith('.msg')) {
+          const arrayBuffer = await readFileEntryAsArrayBuffer(entry as FileSystemFileEntry);
+          const content = await parseMsgFile(arrayBuffer);
+          resolve(content);
+          return;
+        }
+
+        if (entry.isDirectory) {
+          // Rekursiv suchen (auch in "99 Offerte Unterlagen")
+          const content = await findMailInDirectory(entry as FileSystemDirectoryEntry);
+          if (content) {
+            resolve(content);
+            return;
+          }
+        }
+      }
+      resolve('');
+    });
+  });
+}
+
+async function readFileEntry(fileEntry: FileSystemFileEntry): Promise<string> {
+  return new Promise((resolve, reject) => {
+    fileEntry.file(
+      (file) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file);
+      },
+      (error) => reject(error)
+    );
+  });
+}
+
+async function readFileEntryAsArrayBuffer(fileEntry: FileSystemFileEntry): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    fileEntry.file(
+      (file) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(file);
+      },
+      (error) => reject(error)
+    );
+  });
 }
