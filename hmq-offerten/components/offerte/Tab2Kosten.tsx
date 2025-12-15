@@ -201,6 +201,8 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
 
   const rabattBetrag = rundeAuf5Rappen(editablePreise.zwischentotal * (offerte.kosten.rabattProzent / 100));
   const totalNachRabatt = rundeAuf5Rappen(editablePreise.zwischentotal - rabattBetrag);
+  const mwstBetrag = rundeAuf5Rappen(totalNachRabatt * 0.081); // 8.1% MwSt.
+  const totalInklMwst = rundeAuf5Rappen(totalNachRabatt + mwstBetrag);
 
   const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all";
 
@@ -451,23 +453,24 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
                 placeholder="0"
               />
               <span>%</span>
+              {offerte.kosten.rabattProzent > 0 && (
+                <span className="text-white/60 text-sm">(-{formatCHF(rabattBetrag)})</span>
+              )}
             </div>
           </div>
 
-          {offerte.kosten.rabattProzent > 0 && (
-            <div className="flex justify-between text-sm mb-3 text-white/80">
-              <span>Rabatt-Betrag</span>
-              <span>- CHF {formatCHF(rabattBetrag)}</span>
-            </div>
-          )}
+          {/* Trennlinie */}
+          <div className="border-t border-white/20 my-4"></div>
 
-          <div className="pt-4 border-t border-white/20">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-medium">Total exkl. MwSt.</span>
-              <span className="text-2xl font-bold font-mono">
-                CHF {formatCHF(totalNachRabatt)}
-              </span>
+          {/* Total inkl. MwSt. */}
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="text-lg font-medium">Total inkl. MwSt.</span>
+              <div className="text-white/60 text-xs">inkl. 8.1% MwSt. ({formatCHF(mwstBetrag)})</div>
             </div>
+            <span className="text-2xl font-bold font-mono">
+              CHF {formatCHF(totalInklMwst)}
+            </span>
           </div>
         </div>
 
