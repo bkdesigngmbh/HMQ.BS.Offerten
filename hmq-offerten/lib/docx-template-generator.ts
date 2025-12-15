@@ -5,10 +5,20 @@ import path from 'path';
 
 const MWST_SATZ = 8.1;
 
-const STANDORTE: Record<string, string> = {
-  zh: 'Zürich-Opfikon',
-  gr: 'Chur',
-  ag: 'Zofingen',
+// HMQ Standorte mit Absender-Adresse
+const STANDORTE: Record<string, { name: string; adresse: string }> = {
+  zh: {
+    name: 'Zürich-Opfikon',
+    adresse: 'Balz-Zimmermann-Strasse 7 · 8152 Zürich-Opfikon'
+  },
+  gr: {
+    name: 'Chur',
+    adresse: 'Sommeraustrasse 30 · 7000 Chur'
+  },
+  ag: {
+    name: 'Zofingen',
+    adresse: 'Vordere Hauptgasse 104 · 4800 Zofingen'
+  },
 };
 
 // === HELPER ===
@@ -17,17 +27,6 @@ function formatDatumKurz(isoDate: string): string {
   if (!isoDate) return '';
   const d = new Date(isoDate);
   return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
-}
-
-function formatDatumTeile(isoDate: string): { tag: string; monat: string; jahr: string } {
-  if (!isoDate) return { tag: '', monat: '', jahr: '' };
-  const d = new Date(isoDate);
-  const monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  return {
-    tag: `${d.getDate()}. `,
-    monat: monate[d.getMonth()],
-    jahr: d.getFullYear().toString(),
-  };
 }
 
 function formatCHF(amount: number): string {
@@ -51,88 +50,87 @@ function generiereAnrede(empfaenger: Offerte['empfaenger']): string {
   return 'Sehr geehrte Damen und Herren';
 }
 
-function parseOffertnummer(nr: string): { o1: string; o2: string; o3: string; o4: string; o5: string } {
-  // Format: 51.25.405 -> o1=51. o2=2 o3=5 o4=. o5=405
+function formatAnfrageDatum(isoDate: string): { tag: string; monat: string; jahr: string } {
+  if (!isoDate) return { tag: '', monat: '', jahr: '' };
+  const d = new Date(isoDate);
+  const monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  return {
+    tag: `${d.getDate()}. `,
+    monat: monate[d.getMonth()],
+    jahr: ` ${d.getFullYear()}`,
+  };
+}
+
+// Offertnummer aufteilen: "51.25.405" -> { a: "51.", b: "2", c: "5", d: ".405" }
+function parseOffertnummer(nr: string): { a: string; b: string; c: string; d: string } {
   const parts = nr.split('.');
   if (parts.length >= 3) {
+    const mitte = parts[1] || '';
     return {
-      o1: parts[0] + '.',
-      o2: parts[1]?.[0] || '',
-      o3: parts[1]?.[1] || '',
-      o4: '.',
-      o5: parts[2] || '',
+      a: parts[0] + '.',
+      b: mitte[0] || '',
+      c: mitte[1] || '',
+      d: '.' + parts[2],
     };
   }
-  return { o1: nr, o2: '', o3: '', o4: '', o5: '' };
+  // Fallback: alles in a
+  return { a: nr, b: '', c: '', d: '' };
 }
 
-function generiereEinsatzText(anzahl: number): { anzahlText: string; tageText: string } {
-  const zahlworte: Record<number, string> = {
-    1: 'eine Einsatzpauschale',
-    2: 'zwei Einsatzpauschalen',
-    3: 'drei Einsatzpauschalen',
-    4: 'vier Einsatzpauschalen',
+// Einsatzpauschalen-Texte generieren
+function generiereEinsatzTexte(anzahl: number): { z1: string; z2: string; wort: string; tage: string } {
+  const daten: Record<number, { z1: string; z2: string; wort: string; tage: string }> = {
+    1: { z1: 'ei', z2: 'ne', wort: 'Einsatzpauschale', tage: 'einem Tag' },
+    2: { z1: 'zw', z2: 'ei', wort: 'Einsatzpauschalen', tage: 'zwei verschiedenen Tagen' },
+    3: { z1: 'dr', z2: 'ei', wort: 'Einsatzpauschalen', tage: 'drei verschiedenen Tagen' },
+    4: { z1: 'vi', z2: 'er', wort: 'Einsatzpauschalen', tage: 'vier verschiedenen Tagen' },
   };
-  const tageworte: Record<number, string> = {
-    1: 'Einsätze an maximal einem Tag',
-    2: 'Einsätze an maximal zwei verschiedenen Tagen',
-    3: 'Einsätze an maximal drei verschiedenen Tagen',
-    4: 'Einsätze an maximal vier verschiedenen Tagen',
-  };
-  return {
-    anzahlText: zahlworte[anzahl] || `${anzahl} Einsatzpauschalen`,
-    tageText: tageworte[anzahl] || `Einsätze an maximal ${anzahl} verschiedenen Tagen`,
-  };
-}
-
-function generiereTotalZeile(rabattProzent: number): string {
-  if (rabattProzent > 0) {
-    return `Total pauschal (inkl. ${rabattProzent.toFixed(1)}% Rabatt und inkl. 8.1% MwSt.)`;
-  }
-  return 'Total pauschal (inkl. 8.1% MwSt.)';
+  return daten[anzahl] || daten[2];
 }
 
 // === CHECKBOXEN ===
 
 function setCheckboxen(xml: string, offerte: Offerte): string {
+  const cb = offerte.checkboxen;
+
   const states: boolean[] = [
-    offerte.checkboxen.artBauvorhaben.neubau,
-    offerte.checkboxen.artBauvorhaben.umbau,
-    offerte.checkboxen.artBauvorhaben.rueckbau,
-    !!offerte.checkboxen.artBauvorhaben.sonstiges,
-    offerte.checkboxen.artGebaeude.efhFreistehend,
-    offerte.checkboxen.artGebaeude.reihenhaus,
-    offerte.checkboxen.artGebaeude.terrassenhaus,
-    offerte.checkboxen.artGebaeude.mfh,
-    offerte.checkboxen.artGebaeude.strassen,
-    offerte.checkboxen.artGebaeude.kunstbauten,
-    !!offerte.checkboxen.artGebaeude.sonstiges1,
-    !!offerte.checkboxen.artGebaeude.sonstiges2,
-    offerte.checkboxen.taetigkeiten.aushub,
-    offerte.checkboxen.taetigkeiten.rammarbeiten,
-    offerte.checkboxen.taetigkeiten.mikropfaehle,
-    offerte.checkboxen.taetigkeiten.baustellenverkehr,
-    offerte.checkboxen.taetigkeiten.schwereMaschinen,
-    offerte.checkboxen.taetigkeiten.sprengungen,
-    offerte.checkboxen.taetigkeiten.diverses,
-    !!offerte.checkboxen.taetigkeiten.sonstiges,
-    offerte.checkboxen.koordination.schriftlicheInfo,
-    offerte.checkboxen.koordination.terminvereinbarung,
-    offerte.checkboxen.koordination.durchAuftraggeber,
-    !!offerte.checkboxen.koordination.sonstiges,
-    offerte.checkboxen.erstaufnahme.fassaden,
-    offerte.checkboxen.erstaufnahme.strassen,
-    offerte.checkboxen.erstaufnahme.strassenBelag,
-    offerte.checkboxen.erstaufnahme.strassenRand,
-    offerte.checkboxen.erstaufnahme.innenraeume,
-    offerte.checkboxen.erstaufnahme.aussenanlagen,
-    !!offerte.checkboxen.erstaufnahme.sonstiges,
-    offerte.checkboxen.dokumentation.rissprotokoll,
-    offerte.checkboxen.dokumentation.fotoAussen,
-    offerte.checkboxen.dokumentation.fotoInnen,
-    offerte.checkboxen.dokumentation.fotoStrasse,
-    offerte.checkboxen.dokumentation.zustellbestaetigung,
-    offerte.checkboxen.dokumentation.datenabgabe,
+    cb.artBauvorhaben.neubau,
+    cb.artBauvorhaben.umbau,
+    cb.artBauvorhaben.rueckbau,
+    !!cb.artBauvorhaben.sonstiges,
+    cb.artGebaeude.efhFreistehend,
+    cb.artGebaeude.reihenhaus,
+    cb.artGebaeude.terrassenhaus,
+    cb.artGebaeude.mfh,
+    cb.artGebaeude.strassen,
+    cb.artGebaeude.kunstbauten,
+    !!cb.artGebaeude.sonstiges1,
+    !!cb.artGebaeude.sonstiges2,
+    cb.taetigkeiten.aushub,
+    cb.taetigkeiten.rammarbeiten,
+    cb.taetigkeiten.mikropfaehle,
+    cb.taetigkeiten.baustellenverkehr,
+    cb.taetigkeiten.schwereMaschinen,
+    cb.taetigkeiten.sprengungen,
+    cb.taetigkeiten.diverses,
+    !!cb.taetigkeiten.sonstiges,
+    cb.koordination.schriftlicheInfo,
+    cb.koordination.terminvereinbarung,
+    cb.koordination.durchAuftraggeber,
+    !!cb.koordination.sonstiges,
+    cb.erstaufnahme.fassaden,
+    cb.erstaufnahme.strassen,
+    cb.erstaufnahme.strassenBelag,
+    cb.erstaufnahme.strassenRand,
+    cb.erstaufnahme.innenraeume,
+    cb.erstaufnahme.aussenanlagen,
+    !!cb.erstaufnahme.sonstiges,
+    cb.dokumentation.rissprotokoll,
+    cb.dokumentation.fotoAussen,
+    cb.dokumentation.fotoInnen,
+    cb.dokumentation.fotoStrasse,
+    cb.dokumentation.zustellbestaetigung,
+    cb.dokumentation.datenabgabe,
   ];
 
   let idx = 0;
@@ -153,30 +151,28 @@ function setCheckboxen(xml: string, offerte: Offerte): string {
   return xml;
 }
 
-// === RABATT-ZEILE ENTFERNEN ===
-
-function entferneRabattZeile(xml: string, rabattProzent: number): string {
-  if (rabattProzent > 0) return xml;
-
-  // Entferne die Tabellenzeile mit {{RABATT_ZEILE}}
-  xml = xml.replace(
-    /<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{RABATT_ZEILE\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
-    ''
-  );
-
-  return xml;
-}
-
-// === LEERE FUNKTION ENTFERNEN ===
+// === LEERE ZEILEN ENTFERNEN ===
 
 function entferneLeereFunktion(xml: string, funktion: string): string {
   if (funktion && funktion.trim()) return xml;
+  xml = xml.replace(/<w:p[^>]*>(?:(?!<\/w:p>).)*\{\{FUNKTION_1\}\}(?:(?!<\/w:p>).)*<\/w:p>/gs, '');
+  return xml;
+}
 
-  // Entferne Paragraph mit {{FUNKTION_A}} und {{FUNKTION_B}}
-  xml = xml.replace(
-    /<w:p[^>]*>(?:(?!<\/w:p>).)*\{\{FUNKTION_A\}\}(?:(?!<\/w:p>).)*<\/w:p>/gs,
-    ''
-  );
+function entferneLeerenKontakt(xml: string, hatKontakt: boolean): string {
+  if (hatKontakt) return xml;
+  xml = xml.replace(/<w:p[^>]*>(?:(?!<\/w:p>).)*\{\{KONTAKT_ZEILE\}\}(?:(?!<\/w:p>).)*<\/w:p>/gs, '');
+  return xml;
+}
+
+// === RABATT ENTFERNEN ===
+
+function entferneRabatt(xml: string, rabattProzent: number): string {
+  if (rabattProzent > 0) return xml;
+
+  // Entferne Zeile mit {{RABATT_LABEL}} und {{PREIS_RABATT}}
+  xml = xml.replace(/<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{RABATT_LABEL\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs, '');
+  xml = xml.replace(/<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{PREIS_RABATT\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs, '');
 
   return xml;
 }
@@ -187,7 +183,6 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
   let xml = zip.file('word/document.xml')?.asText() || '';
 
   if (!offerte.planbeilage) {
-    // Kein Bild - behalte Original (rId12)
     xml = xml.replace(/\{\{PLAN_RID\}\}/g, 'rId12');
     return xml;
   }
@@ -195,24 +190,19 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
   const ext = offerte.planbeilage.mimeType === 'image/png' ? 'png' : 'jpeg';
   const imageData = Buffer.from(offerte.planbeilage.base64, 'base64');
 
-  // Neues Bild hinzufügen
-  zip.file(`word/media/planbeilage_neu.${ext}`, imageData);
+  zip.file(`word/media/planbeilage_custom.${ext}`, imageData);
 
-  // Neue Relationship hinzufügen
   const relsPath = 'word/_rels/document.xml.rels';
   let rels = zip.file(relsPath)?.asText() || '';
 
-  // Nächste freie rId
   const rIdMatches = rels.match(/Id="rId(\d+)"/g) || [];
   const maxId = Math.max(0, ...rIdMatches.map(m => parseInt(m.match(/\d+/)?.[0] || '0')));
   const newRId = `rId${maxId + 1}`;
 
-  // Neue Relationship einfügen
-  const newRel = `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/planbeilage_neu.${ext}"/>`;
+  const newRel = `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/planbeilage_custom.${ext}"/>`;
   rels = rels.replace('</Relationships>', `${newRel}</Relationships>`);
   zip.file(relsPath, rels);
 
-  // Platzhalter ersetzen
   xml = xml.replace(/\{\{PLAN_RID\}\}/g, newRId);
 
   return xml;
@@ -221,7 +211,7 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
 // === HAUPTFUNKTION ===
 
 export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V3.docx');
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V5.docx');
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
@@ -230,95 +220,91 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   const zip = new PizZip(fs.readFileSync(templatePath));
   let xml = zip.file('word/document.xml')?.asText() || '';
 
-  // Daten vorbereiten
+  // Daten
   const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
   const kosten = berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
-  const anfrage = formatDatumTeile(offerte.projekt.anfrageDatum);
-  const offertNr = parseOffertnummer(offerte.offertnummer);
-  const einsatz = generiereEinsatzText(offerte.einsatzpauschalen);
+  const anfrage = formatAnfrageDatum(offerte.projekt.anfrageDatum);
+  const offNr = parseOffertnummer(offerte.offertnummer);
+  const einsatz = generiereEinsatzTexte(offerte.einsatzpauschalen);
 
   // Kontakt
+  const hatKontakt = !!(offerte.empfaenger.anrede && offerte.empfaenger.nachname);
   let kontaktZeile = '';
-  if (offerte.empfaenger.anrede && offerte.empfaenger.nachname) {
+  if (hatKontakt) {
     kontaktZeile = `${offerte.empfaenger.anrede} ${offerte.empfaenger.vorname} ${offerte.empfaenger.nachname}`.trim();
   }
 
-  // Funktion aufteilen
-  const funktionParts = offerte.empfaenger.funktion?.split(' ') || [];
-  const funktionA = funktionParts[0] || '';
-  const funktionB = funktionParts.length > 1 ? ' ' + funktionParts.slice(1).join(' ') : '';
+  // Funktion
+  const funktion1 = offerte.empfaenger.funktion?.split(' ')[0] || '';
+  const funktion2 = offerte.empfaenger.funktion?.split(' ').slice(1).join(' ') || '';
 
-  // === PLATZHALTER ERSETZEN ===
+  // PLZ/Ort mit CH-
+  const plzOrt = `CH-${offerte.empfaenger.plz} ${offerte.empfaenger.ort}`;
+
+  // Total-Text
+  const total2 = offerte.kosten.rabattProzent > 0
+    ? `l (inkl. ${offerte.kosten.rabattProzent.toFixed(1)}% Rabatt und inkl. `
+    : 'l (inkl. ';
+
+  // === PLATZHALTER ===
   const replacements: Record<string, string> = {
-    // Empfänger
+    '{{ABSENDER_ADRESSE}}': standort.adresse,
     '{{FIRMA}}': offerte.empfaenger.firma,
-    '{{KONTAKT}}': kontaktZeile,
-    '{{FUNKTION_A}}': funktionA,
-    '{{FUNKTION_B}}': funktionB,
+    '{{KONTAKT_ZEILE}}': kontaktZeile,
+    '{{FUNKTION_1}}': funktion1,
+    '{{FUNKTION_2}}': funktion2 ? ` ${funktion2}` : '',
     '{{STRASSE}}': offerte.empfaenger.strasse,
-    '{{PLZ_ORT}}': offerte.empfaenger.plzOrt,
-
-    // Anrede
+    '{{PLZ_ORT}}': plzOrt,
     '{{ANREDE}}': generiereAnrede(offerte.empfaenger),
-
-    // Standort & Datum
-    '{{STANDORT_ORT}}': standort,
+    '{{STANDORT}}': standort.name,
     '{{DATUM}}': formatDatumKurz(offerte.datum),
-
-    // Offertnummer
-    '{{OFFERT_1}}': offertNr.o1,
-    '{{OFFERT_2}}': offertNr.o2,
-    '{{OFFERT_3}}': offertNr.o3,
-    '{{OFFERT_4}}': offertNr.o4,
-    '{{OFFERT_5}}': offertNr.o5,
-
-    // Projekt
+    '{{OFFNR_A}}': offNr.a,
+    '{{OFFNR_B}}': offNr.b,
+    '{{OFFNR_C}}': offNr.c,
+    '{{OFFNR_D}}': offNr.d,
     '{{PROJEKT_ORT}}': offerte.projekt.ort,
-    '{{PROJEKT_BEZ1}}': offerte.projekt.bezeichnung.split(' ')[0] || '',
+    '{{PROJEKT_BEZ1}}': offerte.projekt.bezeichnung.split(' ')[0] || offerte.projekt.bezeichnung,
     '{{PROJEKT_BEZ2}}': offerte.projekt.bezeichnung.includes(' ')
       ? ' ' + offerte.projekt.bezeichnung.split(' ').slice(1).join(' ')
       : '',
-
-    // Anfragedatum
     '{{ANF_TAG}}': anfrage.tag,
     '{{ANF_MONAT}}': anfrage.monat,
     '{{ANF_JAHR}}': anfrage.jahr,
-
-    // Kosten
     '{{PREIS_LEISTUNG}}': formatCHF(offerte.kosten.leistungspreis),
     '{{PREIS_RABATT}}': `-${formatCHF(kosten.rabattBetrag)}`,
     '{{PREIS_ZWISCHEN}}': formatCHF(kosten.zwischentotal),
     '{{PREIS_MWST}}': formatCHF(kosten.mwstBetrag),
     '{{PREIS_TOTAL}}': formatCHF(kosten.total),
-    '{{RABATT_ZEILE}}': `Rabatt ${offerte.kosten.rabattProzent.toFixed(1)}%`,
-    '{{TOTAL_ZEILE}}': generiereTotalZeile(offerte.kosten.rabattProzent),
-
-    // Vorlaufzeit & Einsätze
+    '{{RABATT_LABEL}}': `Rabatt ${offerte.kosten.rabattProzent.toFixed(1)}%`,
+    '{{TOTAL_1}}': 'Total pauscha',
+    '{{TOTAL_2}}': total2,
     '{{VORLAUFZEIT}}': offerte.vorlaufzeit,
-    '{{EINSATZ_ANZAHL}}': einsatz.anzahlText,
-    '{{EINSATZ_TAGE}}': einsatz.tageText,
+    '{{EIN_Z1}}': einsatz.z1,
+    '{{EIN_Z2}}': einsatz.z2,
+    '{{EIN_WORT}}': einsatz.wort,
+    '{{EIN_TAGE_2}}': einsatz.tage,
   };
 
-  for (const [placeholder, value] of Object.entries(replacements)) {
-    xml = xml.split(placeholder).join(value);
+  for (const [ph, val] of Object.entries(replacements)) {
+    xml = xml.split(ph).join(val);
   }
 
-  // Leere Funktion entfernen
+  // Leere Zeilen
   xml = entferneLeereFunktion(xml, offerte.empfaenger.funktion);
+  xml = entferneLeerenKontakt(xml, hatKontakt);
 
-  // Checkboxen setzen
+  // Rabatt
+  xml = entferneRabatt(xml, offerte.kosten.rabattProzent);
+
+  // Checkboxen
   xml = setCheckboxen(xml, offerte);
 
-  // Rabatt-Zeile entfernen wenn 0%
-  xml = entferneRabattZeile(xml, offerte.kosten.rabattProzent);
-
-  // XML speichern (vor Bild)
+  // Speichern
   zip.file('word/document.xml', xml);
 
-  // Planbeilage einfügen
+  // Planbeilage
   xml = insertPlanbeilage(zip, offerte);
   zip.file('word/document.xml', xml);
 
-  // Buffer generieren
   return Buffer.from(zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }));
 }

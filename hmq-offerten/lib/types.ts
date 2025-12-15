@@ -22,7 +22,8 @@ export interface Empfaenger {
   nachname: string;
   funktion: string;
   strasse: string;
-  plzOrt: string;
+  plz: string;
+  ort: string;
 }
 
 export interface Projekt {
@@ -134,7 +135,8 @@ export function createEmptyOfferte(): Offerte {
       nachname: '',
       funktion: '',
       strasse: '',
-      plzOrt: '',
+      plz: '',
+      ort: '',
     },
     projekt: {
       ort: '',
