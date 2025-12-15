@@ -260,25 +260,38 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
   rels = rels.replace('</Relationships>', `${newRel}</Relationships>`);
   zip.file(relsPath, rels);
 
-  // RID ersetzen
-  xml = xml.replace(/\{\{PLAN_RID\}\}/g, newRId);
-
   // Proportionale Bildgrösse berechnen
   const { widthEmu, heightEmu } = calculateProportionalSize(
     offerte.planbeilage.width || 0,
     offerte.planbeilage.height || 0
   );
 
-  // Bildgrösse im XML anpassen
-  // wp:extent und a:ext haben beide cx (Breite) und cy (Höhe) Attribute
+  // NUR das Planbeilage-Bild anpassen (das mit {{PLAN_RID}} Platzhalter)
+  // Finde den Drawing-Block mit dem Platzhalter und ersetze dort die Grössen
   xml = xml.replace(
-    /(<wp:extent\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
-    `$1${widthEmu}$3${heightEmu}$5`
+    /(<w:drawing>[\s\S]*?)(\{\{PLAN_RID\}\})([\s\S]*?<\/w:drawing>)/g,
+    (match, before, placeholder, after) => {
+      // Ersetze den Platzhalter mit der neuen rId
+      let result = before + newRId + after;
+
+      // Ersetze wp:extent nur in diesem Block
+      result = result.replace(
+        /(<wp:extent\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
+        `$1${widthEmu}$3${heightEmu}$5`
+      );
+
+      // Ersetze a:ext nur in diesem Block
+      result = result.replace(
+        /(<a:ext\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
+        `$1${widthEmu}$3${heightEmu}$5`
+      );
+
+      return result;
+    }
   );
-  xml = xml.replace(
-    /(<a:ext\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
-    `$1${widthEmu}$3${heightEmu}$5`
-  );
+
+  // Falls Platzhalter ausserhalb eines Drawing-Blocks (Fallback)
+  xml = xml.replace(/\{\{PLAN_RID\}\}/g, newRId);
 
   return xml;
 }
