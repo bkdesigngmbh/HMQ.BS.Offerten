@@ -251,8 +251,11 @@ export default function AdminPage() {
                             <input
                               type="number"
                               step="0.1"
-                              value={(editingKat as any)[`faktor_${f}`]}
-                              onChange={(e) => setEditingKat({ ...editingKat, [`faktor_${f}`]: parseFloat(e.target.value) })}
+                              value={(editingKat as any)[`faktor_${f}`] ?? 1}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                setEditingKat({ ...editingKat, [`faktor_${f}`]: isNaN(val) ? 1 : val });
+                              }}
                               className={inputClass}
                             />
                           </div>
@@ -301,8 +304,11 @@ export default function AdminPage() {
                     <input
                       type="number"
                       step="0.05"
-                      value={(basiswerte as any)[f.key]}
-                      onChange={(e) => setBasiswerte({ ...basiswerte, [f.key]: parseFloat(e.target.value) })}
+                      value={(basiswerte as any)[f.key] ?? 0}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setBasiswerte({ ...basiswerte, [f.key]: isNaN(val) ? 0 : val });
+                      }}
                       className={inputClass}
                     />
                   </div>
@@ -318,8 +324,11 @@ export default function AdminPage() {
                   <input
                     type="number"
                     step="0.1"
-                    value={basiswerte.basisstunden_aufnahme}
-                    onChange={(e) => setBasiswerte({ ...basiswerte, basisstunden_aufnahme: parseFloat(e.target.value) })}
+                    value={basiswerte.basisstunden_aufnahme ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setBasiswerte({ ...basiswerte, basisstunden_aufnahme: isNaN(val) ? 0 : val });
+                    }}
                     className={inputClass}
                   />
                 </div>
@@ -328,8 +337,11 @@ export default function AdminPage() {
                   <input
                     type="number"
                     step="0.05"
-                    value={basiswerte.stundensatz_aufnahme}
-                    onChange={(e) => setBasiswerte({ ...basiswerte, stundensatz_aufnahme: parseFloat(e.target.value) })}
+                    value={basiswerte.stundensatz_aufnahme ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setBasiswerte({ ...basiswerte, stundensatz_aufnahme: isNaN(val) ? 0 : val });
+                    }}
                     className={inputClass}
                   />
                 </div>
@@ -344,8 +356,11 @@ export default function AdminPage() {
                   <input
                     type="number"
                     step="0.05"
-                    value={basiswerte.usb_pauschal}
-                    onChange={(e) => setBasiswerte({ ...basiswerte, usb_pauschal: parseFloat(e.target.value) })}
+                    value={basiswerte.usb_pauschal ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setBasiswerte({ ...basiswerte, usb_pauschal: isNaN(val) ? 0 : val });
+                    }}
                     className={inputClass}
                   />
                 </div>
@@ -354,8 +369,11 @@ export default function AdminPage() {
                   <input
                     type="number"
                     step="0.05"
-                    value={basiswerte.binden_einheitspreis}
-                    onChange={(e) => setBasiswerte({ ...basiswerte, binden_einheitspreis: parseFloat(e.target.value) })}
+                    value={basiswerte.binden_einheitspreis ?? 0}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setBasiswerte({ ...basiswerte, binden_einheitspreis: isNaN(val) ? 0 : val });
+                    }}
                     className={inputClass}
                   />
                 </div>
@@ -376,8 +394,11 @@ export default function AdminPage() {
                     <input
                       type="number"
                       step="0.01"
-                      value={(basiswerte as any)[f.key]}
-                      onChange={(e) => setBasiswerte({ ...basiswerte, [f.key]: parseFloat(e.target.value) })}
+                      value={(basiswerte as any)[f.key] ?? 0}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setBasiswerte({ ...basiswerte, [f.key]: isNaN(val) ? 0 : val });
+                      }}
                       className={inputClass}
                     />
                   </div>
