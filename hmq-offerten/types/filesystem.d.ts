@@ -1,16 +1,13 @@
-// FileSystem API Type Definitions for drag & drop folder handling
-
 interface FileSystemEntry {
   isFile: boolean;
   isDirectory: boolean;
   name: string;
-  fullPath: string;
 }
 
 interface FileSystemFileEntry extends FileSystemEntry {
   isFile: true;
   isDirectory: false;
-  file(successCallback: (file: File) => void, errorCallback?: (error: DOMException) => void): void;
+  file(successCallback: (file: File) => void, errorCallback?: (error: Error) => void): void;
 }
 
 interface FileSystemDirectoryEntry extends FileSystemEntry {
@@ -22,7 +19,7 @@ interface FileSystemDirectoryEntry extends FileSystemEntry {
 interface FileSystemDirectoryReader {
   readEntries(
     successCallback: (entries: FileSystemEntry[]) => void,
-    errorCallback?: (error: DOMException) => void
+    errorCallback?: (error: Error) => void
   ): void;
 }
 

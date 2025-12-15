@@ -1,274 +1,245 @@
-// === MAIL & FOLDER PARSING UTILITIES ===
+export interface ParsedMailData {
+  // Projekt
+  standort: string;
+  bezeichnung: string;
 
-export interface ParsedFolder {
+  // Empfänger
+  anrede: string;
+  vorname: string;
+  nachname: string;
+  strasse: string;
+  plz: string;
+  ort: string;
+  email: string;
+
+  // Zusatz
+  bemerkung: string;
+}
+
+export interface ParsedFolderData {
   offertnummer: string;
   projektOrt: string;
   projektBezeichnung: string;
 }
 
-export interface ParsedEmail {
-  firma: string;
-  anrede: string;
-  vorname: string;
-  nachname: string;
-  funktion: string;
-  strasse: string;
-  plz: string;
-  ort: string;
-}
-
 /**
- * Parst den Ordnernamen und extrahiert Offertnummer, Projektort, Projektbezeichnung
- * Erwartetes Format: "51.25.405 Zürich, Wehntalerstrasse 47"
- * oder: "51.25.405 - Zürich - Wehntalerstrasse 47"
+ * Parst einen Ordnernamen im Format:
+ * "51.25.405 Zürich, Seestrasse 44, Neubau MFH"
  */
-export function parseFolderName(folderName: string): ParsedFolder {
-  const result: ParsedFolder = {
-    offertnummer: '',
-    projektOrt: '',
-    projektBezeichnung: '',
-  };
+export function parseFolderName(folderName: string): ParsedFolderData {
+  // Regex: Offertnummer (XX.XX.XXX), dann Ort, dann Rest
+  const match = folderName.match(/^(\d{2}\.\d{2}\.\d{3})\s+([^,]+),\s*(.+)$/);
 
-  if (!folderName) return result;
-
-  // Versuche verschiedene Muster
-  // Muster 1: "51.25.405 Zürich, Wehntalerstrasse 47"
-  const pattern1 = /^(\d+\.\d+\.\d+)\s+([^,]+),\s*(.+)$/;
-  // Muster 2: "51.25.405 - Zürich - Wehntalerstrasse 47"
-  const pattern2 = /^(\d+\.\d+\.\d+)\s*[-–]\s*([^-–]+)\s*[-–]\s*(.+)$/;
-  // Muster 3: "51.25.405 Zürich Wehntalerstrasse 47" (erstes Wort nach Nummer = Ort)
-  const pattern3 = /^(\d+\.\d+\.\d+)\s+(\S+)\s+(.+)$/;
-
-  let match = folderName.match(pattern1);
-  if (match) {
-    result.offertnummer = match[1];
-    result.projektOrt = match[2].trim();
-    result.projektBezeichnung = match[3].trim();
-    return result;
-  }
-
-  match = folderName.match(pattern2);
-  if (match) {
-    result.offertnummer = match[1];
-    result.projektOrt = match[2].trim();
-    result.projektBezeichnung = match[3].trim();
-    return result;
-  }
-
-  match = folderName.match(pattern3);
-  if (match) {
-    result.offertnummer = match[1];
-    result.projektOrt = match[2].trim();
-    result.projektBezeichnung = match[3].trim();
-    return result;
-  }
-
-  // Fallback: Nur Offertnummer extrahieren
-  const nummerMatch = folderName.match(/^(\d+\.\d+\.\d+)/);
-  if (nummerMatch) {
-    result.offertnummer = nummerMatch[1];
-    const rest = folderName.slice(nummerMatch[0].length).trim();
-    // Alles nach der Nummer als Bezeichnung
-    result.projektBezeichnung = rest.replace(/^[-–,]\s*/, '');
-  }
-
-  return result;
-}
-
-/**
- * Dekodiert Quoted-Printable Encoding (für E-Mail-Inhalte)
- */
-function decodeQuotedPrintable(str: string): string {
-  return str
-    .replace(/=\r?\n/g, '') // Soft line breaks entfernen
-    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
-}
-
-/**
- * Dekodiert MIME-kodierte Header (=?UTF-8?Q?...?= oder =?UTF-8?B?...?=)
- */
-function decodeMimeHeader(str: string): string {
-  if (!str) return '';
-
-  // =?charset?encoding?text?= Pattern
-  return str.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (_, charset, encoding, text) => {
-    if (encoding.toUpperCase() === 'B') {
-      // Base64
-      try {
-        return atob(text);
-      } catch {
-        return text;
-      }
-    } else {
-      // Quoted-Printable
-      return decodeQuotedPrintable(text.replace(/_/g, ' '));
-    }
-  });
-}
-
-/**
- * Extrahiert den Namen aus einer E-Mail-Adresse
- * Format: "Vorname Nachname <email@domain.com>" oder nur "<email@domain.com>"
- */
-function parseEmailAddress(emailLine: string): { name: string; email: string } {
-  const decoded = decodeMimeHeader(emailLine);
-
-  // "Name <email>" Format
-  const match = decoded.match(/^([^<]+)<([^>]+)>/);
   if (match) {
     return {
-      name: match[1].trim().replace(/^["']|["']$/g, ''),
-      email: match[2].trim(),
+      offertnummer: match[1],
+      projektOrt: match[2].trim(),
+      projektBezeichnung: match[3].trim(),
     };
   }
 
-  // Nur E-Mail
-  const emailOnly = decoded.match(/<([^>]+)>/);
-  if (emailOnly) {
-    return { name: '', email: emailOnly[1] };
+  // Fallback: Versuche nur Offertnummer zu extrahieren
+  const offertMatch = folderName.match(/^(\d{2}\.\d{2}\.\d{3})/);
+  if (offertMatch) {
+    const rest = folderName.substring(offertMatch[0].length).trim();
+    return {
+      offertnummer: offertMatch[1],
+      projektOrt: '',
+      projektBezeichnung: rest,
+    };
   }
 
-  return { name: '', email: decoded.trim() };
+  return {
+    offertnummer: '',
+    projektOrt: '',
+    projektBezeichnung: folderName,
+  };
 }
 
 /**
- * Parst den Inhalt einer .eml-Datei und extrahiert Empfängerdaten
+ * Parst eine MSG-Datei (Outlook-Format) und extrahiert den Body
  */
-export function parseEmailContent(emlContent: string): ParsedEmail {
-  const result: ParsedEmail = {
-    firma: '',
+export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<string> {
+  // Dynamischer Import für Client-Side
+  const MsgReader = (await import('@kenjiuno/msgreader')).default;
+
+  const msgReader = new MsgReader(arrayBuffer);
+  const fileData = msgReader.getFileData();
+
+  // Body extrahieren (HTML oder Text)
+  let body = fileData.body || '';
+
+  // Falls HTML-Body vorhanden, diesen verwenden
+  if (fileData.bodyHtml) {
+    body = fileData.bodyHtml;
+  }
+
+  return body;
+}
+
+/**
+ * Dekodiert Quoted-Printable Encoding
+ */
+function decodeQuotedPrintable(text: string): string {
+  return text
+    .replace(/=\r?\n/g, '') // Soft line breaks
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
+      String.fromCharCode(parseInt(hex, 16))
+    );
+}
+
+/**
+ * Parst eine EML-Datei und extrahiert die relevanten Daten
+ */
+export function parseEmailContent(emlContent: string): ParsedMailData {
+  // Dekodiere Quoted-Printable falls vorhanden
+  let content = emlContent;
+  if (content.includes('quoted-printable')) {
+    // Finde den Body nach den Headers
+    const bodyStart = content.indexOf('\r\n\r\n');
+    if (bodyStart > 0) {
+      const headers = content.substring(0, bodyStart);
+      let body = content.substring(bodyStart + 4);
+      body = decodeQuotedPrintable(body);
+      content = headers + '\r\n\r\n' + body;
+    }
+  }
+
+  // Entferne HTML-Tags
+  let text = content.replace(/<[^>]+>/g, '\n');
+
+  // Dekodiere HTML-Entities
+  text = text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&uuml;/g, 'ü')
+    .replace(/&auml;/g, 'ä')
+    .replace(/&ouml;/g, 'ö')
+    .replace(/&Uuml;/g, 'Ü')
+    .replace(/&Auml;/g, 'Ä')
+    .replace(/&Ouml;/g, 'Ö');
+
+  // Bereinige und splitte in Zeilen
+  const lines = text
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
+
+  const result: ParsedMailData = {
+    standort: '',
+    bezeichnung: '',
     anrede: '',
     vorname: '',
     nachname: '',
-    funktion: '',
     strasse: '',
     plz: '',
     ort: '',
+    email: '',
+    bemerkung: '',
   };
 
-  if (!emlContent) return result;
+  let section = '';
+  let empfaengerLines: string[] = [];
+  let bemerkungLines: string[] = [];
 
-  // From-Header extrahieren
-  const fromMatch = emlContent.match(/^From:\s*(.+?)(?:\r?\n(?!\s)|\r?\n\r?\n)/ms);
-  if (fromMatch) {
-    const { name, email } = parseEmailAddress(fromMatch[1].replace(/\r?\n\s+/g, ' '));
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
 
-    if (name) {
-      const nameParts = name.split(/\s+/);
-      if (nameParts.length >= 2) {
-        result.vorname = nameParts[0];
-        result.nachname = nameParts.slice(1).join(' ');
-      } else if (nameParts.length === 1) {
-        result.nachname = nameParts[0];
-      }
+    // Standort erkennen
+    if (line.startsWith('Standort:')) {
+      result.standort = line.replace('Standort:', '').trim();
+      continue;
     }
 
-    // Firma aus E-Mail-Domain ableiten (Heuristik)
-    if (email) {
-      const domain = email.split('@')[1];
-      if (domain && !domain.match(/gmail|yahoo|hotmail|outlook|gmx|bluewin|icloud/i)) {
-        // Firmen-E-Mail - Domain als Hinweis
-        const firmaPart = domain.split('.')[0];
-        if (firmaPart.length > 2) {
-          result.firma = firmaPart.charAt(0).toUpperCase() + firmaPart.slice(1);
-        }
+    // Bezeichnung erkennen
+    if (line.startsWith('Bezeichnung:')) {
+      result.bezeichnung = line.replace('Bezeichnung:', '').trim();
+      continue;
+    }
+
+    // Sektionen erkennen
+    if (line === 'Empfänger:') {
+      section = 'empfaenger';
+      continue;
+    }
+
+    if (line === 'Bemerkung' || line === 'Bemerkung:') {
+      section = 'bemerkung';
+      continue;
+    }
+
+    if (line.startsWith('Bei Fragen stehen wir')) {
+      section = '';
+      continue;
+    }
+
+    // Daten sammeln
+    if (section === 'empfaenger') {
+      empfaengerLines.push(line);
+    } else if (section === 'bemerkung') {
+      bemerkungLines.push(line);
+    }
+  }
+
+  // Empfänger parsen
+  if (empfaengerLines.length >= 4) {
+    // Zeile 0: Anrede (Herr/Frau)
+    if (empfaengerLines[0] === 'Herr' || empfaengerLines[0] === 'Frau') {
+      result.anrede = empfaengerLines[0];
+      empfaengerLines.shift();
+    }
+
+    // Zeile 1: Name (Vorname Nachname)
+    if (empfaengerLines.length > 0) {
+      const nameParts = empfaengerLines[0].split(' ');
+      result.vorname = nameParts[0] || '';
+      result.nachname = nameParts.slice(1).join(' ') || '';
+      empfaengerLines.shift();
+    }
+
+    // Zeile 2: Strasse
+    if (empfaengerLines.length > 0) {
+      result.strasse = empfaengerLines[0];
+      empfaengerLines.shift();
+    }
+
+    // Zeile 3: PLZ Ort
+    if (empfaengerLines.length > 0) {
+      const plzOrtMatch = empfaengerLines[0].match(/^(\d{4})\s+(.+)$/);
+      if (plzOrtMatch) {
+        result.plz = plzOrtMatch[1];
+        result.ort = plzOrtMatch[2];
       }
+      empfaengerLines.shift();
+    }
+
+    // Zeile 4: E-Mail
+    if (empfaengerLines.length > 0 && empfaengerLines[0].includes('@')) {
+      result.email = empfaengerLines[0];
     }
   }
 
-  // Signatur im Body nach Adressdaten durchsuchen
-  const bodyStart = emlContent.indexOf('\r\n\r\n');
-  if (bodyStart > -1) {
-    let body = emlContent.slice(bodyStart + 4);
-
-    // Quoted-Printable dekodieren falls nötig
-    if (emlContent.includes('Content-Transfer-Encoding: quoted-printable')) {
-      body = decodeQuotedPrintable(body);
-    }
-
-    // HTML-Tags entfernen
-    body = body.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
-
-    // PLZ/Ort Muster suchen (CH-Format: 4-stellige PLZ)
-    const plzOrtMatch = body.match(/(\d{4})\s+([A-ZÄÖÜ][a-zäöüéèê]+(?:\s+[a-zäöüéèê]+)?)/);
-    if (plzOrtMatch) {
-      result.plz = plzOrtMatch[1];
-      result.ort = plzOrtMatch[2];
-    }
-
-    // Strasse suchen (typisch: "Wort(e) + Hausnummer")
-    const strasseMatch = body.match(/([A-ZÄÖÜ][a-zäöüéèê]+(?:strasse|weg|gasse|platz|allee)\s*\d+[a-z]?)/i);
-    if (strasseMatch) {
-      result.strasse = strasseMatch[1];
-    }
-
-    // Alternative: "Strasse Nr" Format
-    if (!result.strasse) {
-      const altStrasse = body.match(/([A-ZÄÖÜ][a-zäöüéèê\-]+\s+\d+[a-z]?)\s*[\r\n,]/);
-      if (altStrasse) {
-        result.strasse = altStrasse[1];
-      }
-    }
-  }
+  // Bemerkung
+  result.bemerkung = bemerkungLines.join(' ');
 
   return result;
 }
 
 /**
- * Bestimmt den HMQ-Standort basierend auf PLZ
- * zh: Zürich-Opfikon (PLZ 80xx-89xx)
- * gr: Chur (PLZ 70xx-79xx)
- * ag: Zofingen (Rest)
+ * Extrahiert PLZ und Ort aus dem Standort-String
+ * z.B. "6003 Luzern Gst. 3576" -> { plz: "6003", ort: "Luzern" }
  */
-export function parseStandort(plz: string): string {
-  if (!plz) return 'zh';
-
-  const plzNum = parseInt(plz, 10);
-
-  if (plzNum >= 7000 && plzNum < 8000) {
-    return 'gr'; // Graubünden → Chur
+export function parseStandort(standort: string): { plz: string; ort: string; zusatz: string } {
+  const match = standort.match(/^(\d{4})\s+(\S+)\s*(.*)$/);
+  if (match) {
+    return {
+      plz: match[1],
+      ort: match[2],
+      zusatz: match[3] || '',
+    };
   }
-  if (plzNum >= 8000 && plzNum < 9000) {
-    return 'zh'; // Zürich
-  }
-
-  // Aargau/Zentralschweiz
-  if (plzNum >= 4000 && plzNum < 5000) {
-    return 'ag'; // Zofingen
-  }
-  if (plzNum >= 5000 && plzNum < 6000) {
-    return 'ag'; // Aargau
-  }
-  if (plzNum >= 6000 && plzNum < 7000) {
-    return 'ag'; // Zentralschweiz
-  }
-
-  return 'zh'; // Default
-}
-
-/**
- * Verarbeitet alle Dateien eines importierten Ordners
- */
-export async function processImportedFolder(
-  folderName: string,
-  files: { name: string; content: string }[]
-): Promise<{
-  folder: ParsedFolder;
-  email: ParsedEmail | null;
-  standortId: string;
-}> {
-  // Ordnername parsen
-  const folder = parseFolderName(folderName);
-
-  // .eml Datei suchen und parsen
-  let email: ParsedEmail | null = null;
-  const emlFile = files.find(f => f.name.toLowerCase().endsWith('.eml'));
-  if (emlFile) {
-    email = parseEmailContent(emlFile.content);
-  }
-
-  // Standort bestimmen
-  const standortId = parseStandort(email?.plz || '');
-
-  return { folder, email, standortId };
+  return { plz: '', ort: standort, zusatz: '' };
 }
