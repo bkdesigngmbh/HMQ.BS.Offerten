@@ -14,6 +14,9 @@ export interface ParsedMailData {
 
   // Zusatz
   bemerkung: string;
+
+  // Datum (aus Mail-Header)
+  datum: string; // ISO-Format für Anfragedatum
 }
 
 export interface ParsedFolderData {
@@ -139,7 +142,21 @@ export function parseEmailContent(emlContent: string): ParsedMailData {
     ort: '',
     email: '',
     bemerkung: '',
+    datum: '',
   };
+
+  // Datum aus Mail-Header extrahieren
+  const dateMatch = emlContent.match(/^Date:\s*(.+)$/m);
+  if (dateMatch) {
+    try {
+      const mailDate = new Date(dateMatch[1].trim());
+      if (!isNaN(mailDate.getTime())) {
+        result.datum = mailDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      }
+    } catch {
+      // Datum konnte nicht geparst werden
+    }
+  }
 
   let section = '';
   let empfaengerLines: string[] = [];

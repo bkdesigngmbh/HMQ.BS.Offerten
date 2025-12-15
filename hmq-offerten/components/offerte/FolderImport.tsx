@@ -12,6 +12,12 @@ interface FolderImportProps {
 export default function FolderImport({ offerte, onChange }: FolderImportProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [status, setStatus] = useState<string>('');
+  const [loadedFolder, setLoadedFolder] = useState<string>('');
+
+  const clearFolder = useCallback(() => {
+    setLoadedFolder('');
+    setStatus('');
+  }, []);
 
   const processFiles = useCallback(async (items: DataTransferItemList | FileList) => {
     setStatus('Verarbeite...');
@@ -125,6 +131,15 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
         changes.push('Empfänger');
       }
 
+      // Anfragedatum aus Mail (Datum der Zustellung)
+      if (mailData.datum) {
+        updatedOfferte.projekt = {
+          ...updatedOfferte.projekt,
+          anfrageDatum: mailData.datum,
+        };
+        changes.push('Anfragedatum');
+      }
+
       // WICHTIG: Projekt IMMER aus Ordnername, NIEMALS aus Mail!
       // Die Mail enthält nur die ursprüngliche Anfrage,
       // der Ordnername enthält die finale/angepasste Version.
@@ -132,6 +147,7 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
 
     if (changes.length > 0) {
       onChange(updatedOfferte);
+      setLoadedFolder(folderName);
       setStatus(`✓ Importiert: ${changes.join(', ')}`);
     } else {
       setStatus('Keine Daten gefunden');
@@ -164,6 +180,28 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
 
   return (
     <div className="mb-6">
+      {/* Geladener Ordner anzeigen */}
+      {loadedFolder && (
+        <div className="mb-3 flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            <span className="text-sm font-medium text-green-800">{loadedFolder}</span>
+          </div>
+          <button
+            onClick={clearFolder}
+            className="text-green-600 hover:text-green-800 p-1"
+            title="Ordner entfernen"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Drop-Zone */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -184,7 +222,7 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
             <span className="font-medium">Projektordner hierhin ziehen</span>
             <br />
             <span className="text-xs text-gray-500">
-              Ordnername + Mail (.eml/.msg) werden automatisch ausgelesen
+              Ordnername + Mail (.eml) werden automatisch ausgelesen
             </span>
           </p>
         </div>

@@ -95,6 +95,10 @@ function generiereEinsatzTexte(anzahl: number): { z1: string; z2: string; wort: 
 function setCheckboxen(xml: string, offerte: Offerte): string {
   const cb = offerte.checkboxen;
 
+  // Strassen-Logik: Wenn Strassen aktiv, automatisch auch Belag und Rand
+  const strassenBelag = cb.erstaufnahme.strassen ? true : cb.erstaufnahme.strassenBelag;
+  const strassenRand = cb.erstaufnahme.strassen ? true : cb.erstaufnahme.strassenRand;
+
   const states: boolean[] = [
     cb.artBauvorhaben.neubau,
     cb.artBauvorhaben.umbau,
@@ -122,8 +126,8 @@ function setCheckboxen(xml: string, offerte: Offerte): string {
     !!cb.koordination.sonstiges,
     cb.erstaufnahme.fassaden,
     cb.erstaufnahme.strassen,
-    cb.erstaufnahme.strassenBelag,
-    cb.erstaufnahme.strassenRand,
+    strassenBelag,
+    strassenRand,
     cb.erstaufnahme.innenraeume,
     cb.erstaufnahme.aussenanlagen,
     !!cb.erstaufnahme.sonstiges,

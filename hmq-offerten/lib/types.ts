@@ -150,12 +150,12 @@ export function createEmptyOfferte(): Offerte {
     vorlaufzeit: '3 Wochen',
     einsatzpauschalen: 2,
     checkboxen: {
-      artBauvorhaben: { neubau: false, umbau: false, rueckbau: false, sonstiges: '' },
-      artGebaeude: { efhFreistehend: false, reihenhaus: false, terrassenhaus: false, mfh: false, strassen: false, kunstbauten: false, sonstiges1: '', sonstiges2: '' },
-      taetigkeiten: { aushub: false, rammarbeiten: false, mikropfaehle: false, baustellenverkehr: false, schwereMaschinen: false, sprengungen: false, diverses: false, sonstiges: '' },
-      koordination: { schriftlicheInfo: false, terminvereinbarung: false, durchAuftraggeber: false, sonstiges: '' },
-      erstaufnahme: { fassaden: false, strassen: false, strassenBelag: false, strassenRand: false, innenraeume: false, aussenanlagen: false, sonstiges: '' },
-      dokumentation: { rissprotokoll: false, fotoAussen: false, fotoInnen: false, fotoStrasse: false, zustellbestaetigung: false, datenabgabe: false },
+      artBauvorhaben: { neubau: true, umbau: false, rueckbau: false, sonstiges: '' },
+      artGebaeude: { efhFreistehend: false, reihenhaus: false, terrassenhaus: false, mfh: true, strassen: false, kunstbauten: false, sonstiges1: '', sonstiges2: '' },
+      taetigkeiten: { aushub: true, rammarbeiten: false, mikropfaehle: false, baustellenverkehr: true, schwereMaschinen: true, sprengungen: false, diverses: true, sonstiges: '' },
+      koordination: { schriftlicheInfo: true, terminvereinbarung: true, durchAuftraggeber: false, sonstiges: '' },
+      erstaufnahme: { fassaden: true, strassen: true, strassenBelag: true, strassenRand: true, innenraeume: true, aussenanlagen: true, sonstiges: '' },
+      dokumentation: { rissprotokoll: true, fotoAussen: true, fotoInnen: true, fotoStrasse: true, zustellbestaetigung: true, datenabgabe: true },
     },
     planbeilage: null,
   };
