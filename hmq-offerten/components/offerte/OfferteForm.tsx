@@ -7,9 +7,30 @@ import Button from '@/components/ui/Button';
 import Tab1Daten from './Tab1Daten';
 import Tab2Kosten from './Tab2Kosten';
 
+const TABS = [
+  {
+    id: 'daten',
+    label: 'Offertdaten',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'kosten',
+    label: 'Kosten',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+];
+
 export default function OfferteForm() {
   const [offerte, setOfferte] = useState<Offerte>(createEmptyOfferte());
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState('daten');
   const [isGenerating, setIsGenerating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -29,9 +50,9 @@ export default function OfferteForm() {
 
     if (Object.keys(newErrors).length > 0) {
       if (newErrors['kosten.leistungspreis']) {
-        setActiveTab(1);
+        setActiveTab('kosten');
       } else {
-        setActiveTab(0);
+        setActiveTab('daten');
       }
     }
 
@@ -72,26 +93,49 @@ export default function OfferteForm() {
     if (confirm('Möchten Sie das Formular wirklich zurücksetzen?')) {
       setOfferte(createEmptyOfferte());
       setErrors({});
-      setActiveTab(0);
+      setActiveTab('daten');
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <Tabs tabs={['Offertdaten', 'Kosten']} activeIndex={activeTab} onChange={setActiveTab} />
+    <div className="bg-white shadow-card rounded-2xl overflow-hidden">
+      <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
 
-        {activeTab === 0 && <Tab1Daten offerte={offerte} onChange={setOfferte} errors={errors} />}
-        {activeTab === 1 && <Tab2Kosten offerte={offerte} onChange={setOfferte} errors={errors} />}
+      <div className="p-6 sm:p-8">
+        <div className="animate-in fade-in duration-200">
+          {activeTab === 'daten' && <Tab1Daten offerte={offerte} onChange={setOfferte} errors={errors} />}
+          {activeTab === 'kosten' && <Tab2Kosten offerte={offerte} onChange={setOfferte} errors={errors} />}
+        </div>
 
-        <div className="mt-8 pt-6 border-t flex justify-between items-center">
-          <Button variant="secondary" onClick={handleReset}>Zurücksetzen</Button>
+        <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <Button variant="ghost" onClick={handleReset}>
+            Zurücksetzen
+          </Button>
 
           <div className="flex gap-3">
-            {activeTab === 0 && (
-              <Button variant="secondary" onClick={() => setActiveTab(1)}>Weiter zu Kosten →</Button>
+            {activeTab === 'daten' && (
+              <Button
+                variant="secondary"
+                onClick={() => setActiveTab('kosten')}
+                rightIcon={
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                }
+              >
+                Weiter zu Kosten
+              </Button>
             )}
-            <Button variant="primary" onClick={handleGenerate} isLoading={isGenerating}>
+            <Button
+              variant="primary"
+              onClick={handleGenerate}
+              isLoading={isGenerating}
+              leftIcon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            >
               Word-Offerte generieren
             </Button>
           </div>
