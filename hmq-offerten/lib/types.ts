@@ -17,10 +17,10 @@ export interface Ansprechpartner {
 
 export interface Empfaenger {
   firma: string;
-  anrede: string;        // "Herr" | "Frau" | ""
+  anrede: string;
   vorname: string;
   nachname: string;
-  funktion: string;      // z.B. "dipl. Ingenieur ETH/SIA"
+  funktion: string;
   strasse: string;
   plzOrt: string;
 }
@@ -115,7 +115,7 @@ export interface Offerte {
   projekt: Projekt;
   kosten: Kosten;
   vorlaufzeit: string;
-  einsatzpauschalen: number;  // 1, 2, 3 oder 4
+  einsatzpauschalen: number;
   checkboxen: Checkboxen;
   planbeilage: Planbeilage | null;
 }
@@ -146,7 +146,7 @@ export function createEmptyOfferte(): Offerte {
       rabattProzent: 0,
     },
     vorlaufzeit: '3 Wochen',
-    einsatzpauschalen: 2,  // Default: 2 Einsätze
+    einsatzpauschalen: 2,
     checkboxen: {
       artBauvorhaben: { neubau: false, umbau: false, rueckbau: false, sonstiges: '' },
       artGebaeude: { efhFreistehend: false, reihenhaus: false, terrassenhaus: false, mfh: false, strassen: false, kunstbauten: false, sonstiges1: '', sonstiges2: '' },
