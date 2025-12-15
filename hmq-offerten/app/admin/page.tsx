@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import AppLayout from '@/components/layout/AppLayout';
 import {
   KostenKategorie,
   KostenBasiswerte,
@@ -21,35 +22,60 @@ type TabId = 'kategorien' | 'basiswerte' | 'einstellungen';
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>('kategorien');
 
-  return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Administration</h1>
-
-      {/* Links zu Stammdaten */}
-      <div className="mb-8 flex gap-4">
-        <Link
-          href="/admin/standorte"
-          className="px-4 py-2 bg-white rounded-lg shadow-sm border hover:border-blue-500 transition-colors"
-        >
-          Standorte
-        </Link>
-        <Link
-          href="/admin/ansprechpartner"
-          className="px-4 py-2 bg-white rounded-lg shadow-sm border hover:border-blue-500 transition-colors"
-        >
-          Ansprechpartner
-        </Link>
+  // Sidebar with quick links
+  const sidebar = (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-sm font-semibold text-gray-900">Stammdaten</h3>
+        </div>
+        <div className="p-2">
+          <Link
+            href="/admin/standorte"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Standorte
+          </Link>
+          <Link
+            href="/admin/ansprechpartner"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Ansprechpartner
+          </Link>
+        </div>
       </div>
 
+      <div className="bg-blue-50 rounded-xl p-4">
+        <h4 className="text-sm font-medium text-[#1e3a5f] mb-2">Info</h4>
+        <p className="text-xs text-gray-600">
+          Hier können Sie die Basiswerte für die Kostenberechnung und die Kategorien verwalten.
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <AppLayout
+      sidebar={sidebar}
+      title="Einstellungen"
+      subtitle="Verwalten Sie Kategorien, Basiswerte und App-Einstellungen."
+    >
       {/* Tabs für Supabase-Daten */}
-      <div className="bg-white rounded-lg shadow-sm border">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         {/* Tab-Header */}
         <div className="flex border-b">
           <button
             onClick={() => setActiveTab('kategorien')}
             className={`px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === 'kategorien'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-[#1e3a5f] border-b-2 border-[#1e3a5f]'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -59,7 +85,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab('basiswerte')}
             className={`px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === 'basiswerte'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-[#1e3a5f] border-b-2 border-[#1e3a5f]'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -69,7 +95,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab('einstellungen')}
             className={`px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === 'einstellungen'
-                ? 'text-blue-600 border-b-2 border-blue-600'
+                ? 'text-[#1e3a5f] border-b-2 border-[#1e3a5f]'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -84,7 +110,7 @@ export default function AdminPage() {
           {activeTab === 'einstellungen' && <EinstellungenTab />}
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 
