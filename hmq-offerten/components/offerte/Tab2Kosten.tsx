@@ -72,6 +72,19 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
     });
   }
 
+  function handleOverrideChange(field: 'stundenEnd' | 'bindemengeEnd', value: number | null) {
+    onChange({
+      ...offerte,
+      kostenBerechnung: {
+        ...offerte.kostenBerechnung,
+        overrides: {
+          ...offerte.kostenBerechnung.overrides,
+          [field]: value,
+        },
+      },
+    });
+  }
+
   function handleRabattChange(rabattProzent: number) {
     onChange({ ...offerte, kosten: { ...offerte.kosten, rabattProzent } });
   }
@@ -181,6 +194,45 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
             </div>
           </div>
         </div>
+
+        {/* Manuelle Korrekturen */}
+        {ergebnis && ergebnis.totalN > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Manuelle Korrekturen (optional)</h4>
+            <p className="text-xs text-gray-500 mb-3">Überschreiben Sie die berechneten Werte, falls nötig</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+                <label className="block text-xs text-amber-700 mb-2">
+                  Stunden Aufnahme
+                  {ergebnis && <span className="text-amber-500 ml-1">(berechnet: {ergebnis.aufnahme.stundenRoh.toFixed(1)})</span>}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={offerte.kostenBerechnung.overrides.stundenEnd ?? ''}
+                  onChange={(e) => handleOverrideChange('stundenEnd', e.target.value ? parseFloat(e.target.value) : null)}
+                  className={`${inputClass} bg-white border border-amber-200`}
+                  placeholder="Auto"
+                />
+              </div>
+              <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+                <label className="block text-xs text-amber-700 mb-2">
+                  Bindemenge (Stk)
+                  {ergebnis && <span className="text-amber-500 ml-1">(berechnet: {ergebnis.binden.mengeStandard})</span>}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={offerte.kostenBerechnung.overrides.bindemengeEnd ?? ''}
+                  onChange={(e) => handleOverrideChange('bindemengeEnd', e.target.value ? parseInt(e.target.value) : null)}
+                  className={`${inputClass} bg-white border border-amber-200`}
+                  placeholder="Auto"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Spalte 3: Zusammenfassung */}
