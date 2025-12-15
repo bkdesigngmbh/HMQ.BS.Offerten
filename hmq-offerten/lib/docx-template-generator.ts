@@ -1,43 +1,39 @@
 import PizZip from 'pizzip';
-import Docxtemplater from 'docxtemplater';
 import { Offerte } from './types';
 import fs from 'fs';
 import path from 'path';
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
-
-// Stammdaten
-const STANDORTE: Record<string, { ort: string }> = {
-  zh: { ort: 'Zürich-Opfikon' },
-  gr: { ort: 'Chur' },
-  ag: { ort: 'Zofingen' },
-};
 
 const MWST_SATZ = 8.1;
 
-// Datum formatieren: "15. Januar 2025"
-function formatDatumLang(isoDate: string): string {
-  if (!isoDate) return '';
-  const date = new Date(isoDate);
-  const monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  return `${date.getDate()}. ${monate[date.getMonth()]} ${date.getFullYear()}`;
-}
+const STANDORTE: Record<string, string> = {
+  zh: 'Zürich-Opfikon',
+  gr: 'Chur',
+  ag: 'Zofingen',
+};
 
-// Datum formatieren: "15.01.2025"
+// === HELPER FUNKTIONEN ===
+
 function formatDatumKurz(isoDate: string): string {
   if (!isoDate) return '';
-  const date = new Date(isoDate);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${day}.${month}.${date.getFullYear()}`;
+  const d = new Date(isoDate);
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 }
 
-// Schweizer Währungsformat: 6'690.00
+function formatDatumTeile(isoDate: string): { tag: string; monat: string; jahr: string } {
+  if (!isoDate) return { tag: '', monat: '', jahr: '' };
+  const d = new Date(isoDate);
+  const monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  return {
+    tag: `${d.getDate()}.`,
+    monat: monate[d.getMonth()],
+    jahr: d.getFullYear().toString(),
+  };
+}
+
 function formatCHF(amount: number): string {
   return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, "'");
 }
 
-// Kosten berechnen
 function berechneKosten(leistungspreis: number, rabattProzent: number) {
   const rabattBetrag = leistungspreis * (rabattProzent / 100);
   const zwischentotal = leistungspreis - rabattBetrag;
@@ -46,298 +42,284 @@ function berechneKosten(leistungspreis: number, rabattProzent: number) {
   return { rabattBetrag, zwischentotal, mwstBetrag, total };
 }
 
-// Offertnummer parsen: "51.25.405" → { nr1: "51", nr2: "2", nr3: "5", nr4: "405" }
-function parseOffertnummer(nr: string): { nr1: string; nr2: string; nr3: string; nr4: string } {
-  const parts = nr.split('.');
-  if (parts.length === 3) {
-    // Format: 51.25.405
-    const teil2 = parts[1]; // "25"
-    return {
-      nr1: parts[0] + '.', // "51."
-      nr2: teil2[0],       // "2"
-      nr3: teil2[1],       // "5"
-      nr4: parts[2],       // "405"
-    };
+function generiereAnrede(empfaenger: Offerte['empfaenger']): string {
+  if (empfaenger.anrede && empfaenger.nachname) {
+    return empfaenger.anrede === 'Herr'
+      ? `Sehr geehrter Herr ${empfaenger.nachname}`
+      : `Sehr geehrte Frau ${empfaenger.nachname}`;
   }
-  return { nr1: nr, nr2: '', nr3: '', nr4: '' };
+  return 'Sehr geehrte Damen und Herren';
 }
 
-// Anfragedatum parsen
-function parseAnfrageDatum(isoDate: string): { tag: string; monat: string; jahr: string } {
-  if (!isoDate) return { tag: '', monat: '', jahr: '' };
-  const date = new Date(isoDate);
-  const monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-  return {
-    tag: date.getDate() + '.',
-    monat: monate[date.getMonth()],
-    jahr: date.getFullYear().toString(),
-  };
-}
+// === CHECKBOX FUNKTIONEN ===
 
-export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  // Template laden
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template.docx');
-  const templateContent = fs.readFileSync(templatePath, 'binary');
+function setCheckboxen(xml: string, offerte: Offerte): string {
+  // Checkbox-Reihenfolge im Dokument (37 Stück)
+  const states: boolean[] = [
+    // 1.1 Art Bauvorhaben (0-3)
+    offerte.checkboxen.artBauvorhaben.neubau,
+    offerte.checkboxen.artBauvorhaben.umbau,
+    offerte.checkboxen.artBauvorhaben.rueckbau,
+    !!offerte.checkboxen.artBauvorhaben.sonstiges,
+    // Art Gebäude (4-11)
+    offerte.checkboxen.artGebaeude.efhFreistehend,
+    offerte.checkboxen.artGebaeude.reihenhaus,
+    offerte.checkboxen.artGebaeude.terrassenhaus,
+    offerte.checkboxen.artGebaeude.mfh,
+    offerte.checkboxen.artGebaeude.strassen,
+    offerte.checkboxen.artGebaeude.kunstbauten,
+    !!offerte.checkboxen.artGebaeude.sonstiges1,
+    !!offerte.checkboxen.artGebaeude.sonstiges2,
+    // 1.2 Tätigkeiten (12-19)
+    offerte.checkboxen.taetigkeiten.aushub,
+    offerte.checkboxen.taetigkeiten.rammarbeiten,
+    offerte.checkboxen.taetigkeiten.mikropfaehle,
+    offerte.checkboxen.taetigkeiten.baustellenverkehr,
+    offerte.checkboxen.taetigkeiten.schwereMaschinen,
+    offerte.checkboxen.taetigkeiten.sprengungen,
+    offerte.checkboxen.taetigkeiten.diverses,
+    !!offerte.checkboxen.taetigkeiten.sonstiges,
+    // 2.1 Koordination (20-23)
+    offerte.checkboxen.koordination.schriftlicheInfo,
+    offerte.checkboxen.koordination.terminvereinbarung,
+    offerte.checkboxen.koordination.durchAuftraggeber,
+    !!offerte.checkboxen.koordination.sonstiges,
+    // 2.2 Erstaufnahme (24-30)
+    offerte.checkboxen.erstaufnahme.fassaden,
+    offerte.checkboxen.erstaufnahme.strassen,
+    offerte.checkboxen.erstaufnahme.strassenBelag,
+    offerte.checkboxen.erstaufnahme.strassenRand,
+    offerte.checkboxen.erstaufnahme.innenraeume,
+    offerte.checkboxen.erstaufnahme.aussenanlagen,
+    !!offerte.checkboxen.erstaufnahme.sonstiges,
+    // 2.3 Dokumentation (31-36)
+    offerte.checkboxen.dokumentation.rissprotokoll,
+    offerte.checkboxen.dokumentation.fotoAussen,
+    offerte.checkboxen.dokumentation.fotoInnen,
+    offerte.checkboxen.dokumentation.fotoStrasse,
+    offerte.checkboxen.dokumentation.zustellbestaetigung,
+    offerte.checkboxen.dokumentation.datenabgabe,
+  ];
 
-  const zip = new PizZip(templateContent);
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true,
-    delimiters: { start: '{{', end: '}}' },
-  });
+  // Ersetze w14:checked val="0" durch val="1" für aktivierte Checkboxen
+  let checkboxIndex = 0;
+  xml = xml.replace(/<w14:checkbox>([\s\S]*?)<\/w14:checkbox>/g, (match) => {
+    const shouldBeChecked = states[checkboxIndex] || false;
+    checkboxIndex++;
 
-  // Kosten berechnen
-  const kosten = berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
-
-  // Offertnummer parsen
-  const offertNr = parseOffertnummer(offerte.offertnummer);
-
-  // Anfragedatum parsen
-  const anfrage = parseAnfrageDatum(offerte.projekt.anfrageDatum);
-
-  // Standort
-  const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
-
-  // Empfänger aufbereiten
-  const empfaengerZeile1 = offerte.empfaenger.anrede
-    ? `${offerte.empfaenger.anrede} ${offerte.empfaenger.name}`
-    : offerte.empfaenger.name;
-
-  // Zusatz aufteilen (falls "dipl. Ingenieur ETH/SIA" Format)
-  let zusatz1 = '';
-  let zusatz2 = '';
-  if (offerte.empfaenger.zusatz) {
-    const zusatzParts = offerte.empfaenger.zusatz.split(' ');
-    if (zusatzParts.length > 1) {
-      zusatz1 = zusatzParts[0]; // "dipl."
-      zusatz2 = ' ' + zusatzParts.slice(1).join(' '); // " Ingenieur ETH/SIA"
-    } else {
-      zusatz1 = offerte.empfaenger.zusatz;
-    }
-  }
-
-  // Daten für Template
-  const data = {
-    // Empfänger
-    EMPFAENGER_ANREDE_NAME: empfaengerZeile1,
-    EMPFAENGER_ZUSATZ_1: zusatz1,
-    EMPFAENGER_ZUSATZ_2: zusatz2,
-    EMPFAENGER_STRASSE: offerte.empfaenger.strasse,
-    EMPFAENGER_PLZORT: offerte.empfaenger.plzOrt,
-
-    // Standort & Datum
-    STANDORT_ORT: standort.ort,
-    DATUM: formatDatumKurz(offerte.datum),
-
-    // Offertnummer (aufgeteilt)
-    OFFERT_NR_1: offertNr.nr1,
-    OFFERT_NR_2: offertNr.nr2,
-    OFFERT_NR_3: offertNr.nr3,
-    OFFERT_NR_4: offertNr.nr4,
-
-    // Projekt
-    PROJEKT_ORT: offerte.projekt.ort,
-    PROJEKT_STRASSE: '', // Wird aus bezeichnung extrahiert falls nötig
-    PROJEKT_BEZEICHNUNG: offerte.projekt.bezeichnung,
-
-    // Anfragedatum (aufgeteilt)
-    ANFRAGE_TAG: anfrage.tag,
-    ANFRAGE_MONAT: anfrage.monat,
-    ANFRAGE_JAHR: anfrage.jahr,
-
-    // Kosten
-    PREIS_LEISTUNG: formatCHF(offerte.kosten.leistungspreis),
-    PREIS_RABATT_BETRAG: '-' + formatCHF(kosten.rabattBetrag),
-    PREIS_ZWISCHEN: formatCHF(kosten.zwischentotal),
-    PREIS_MWST: formatCHF(kosten.mwstBetrag),
-    PREIS_TOTAL: formatCHF(kosten.total),
-    RABATT_PROZENT: offerte.kosten.rabattProzent.toFixed(1) + '%',
-
-    // Termine
-    VORLAUFZEIT: offerte.vorlaufzeit,
-  };
-
-  // Template rendern
-  doc.render(data);
-
-  // Buffer generieren
-  const buf = doc.getZip().generate({
-    type: 'nodebuffer',
-    compression: 'DEFLATE',
-  });
-
-  return buf;
-}
-
-// Checkbox im XML setzen
-function setCheckboxInXml(xmlContent: string, checkboxIndex: number, checked: boolean): string {
-  // Checkbox-Symbol: ☐ (unchecked) oder ☒ (checked)
-  const uncheckedSymbol = '☐';
-  const checkedSymbol = '☒';
-
-  // Finde alle w14:checkbox Elemente
-  const checkboxPattern = /<w14:checkbox>[\s\S]*?<\/w14:checkbox>/g;
-  const matches = xmlContent.match(checkboxPattern);
-
-  if (matches && matches[checkboxIndex]) {
-    const originalCheckbox = matches[checkboxIndex];
-    let newCheckbox = originalCheckbox;
-
-    if (checked) {
-      // Setze w14:checked auf 1
-      newCheckbox = newCheckbox.replace(
+    if (shouldBeChecked) {
+      // Setze checked auf 1
+      return match.replace(
         /<w14:checked w14:val="0"\/>/,
         '<w14:checked w14:val="1"/>'
       );
-      // Falls kein checked Element existiert, füge es hinzu
-      if (!newCheckbox.includes('w14:checked')) {
-        newCheckbox = newCheckbox.replace(
-          '<w14:checkbox>',
-          '<w14:checkbox><w14:checked w14:val="1"/>'
-        );
-      }
-    } else {
-      newCheckbox = newCheckbox.replace(
-        /<w14:checked w14:val="1"\/>/,
-        '<w14:checked w14:val="0"/>'
-      );
     }
-
-    xmlContent = xmlContent.replace(originalCheckbox, newCheckbox);
-  }
-
-  // Auch das Symbol im Text ersetzen
-  let symbolCount = 0;
-  xmlContent = xmlContent.replace(new RegExp(uncheckedSymbol, 'g'), (match) => {
-    if (symbolCount === checkboxIndex) {
-      symbolCount++;
-      return checked ? checkedSymbol : uncheckedSymbol;
-    }
-    symbolCount++;
     return match;
   });
 
-  return xmlContent;
+  // Ersetze auch die Symbole ☐ durch ☒
+  checkboxIndex = 0;
+  xml = xml.replace(/<w:t>☐<\/w:t>/g, () => {
+    const shouldBeChecked = states[checkboxIndex] || false;
+    checkboxIndex++;
+    return shouldBeChecked ? '<w:t>☒</w:t>' : '<w:t>☐</w:t>';
+  });
+
+  return xml;
 }
 
-// Erweiterte Generierung mit Checkbox-Support
-export async function generateOfferteFromTemplateWithCheckboxes(offerte: Offerte): Promise<Buffer> {
-  // Erst normale Platzhalter ersetzen
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template.docx');
-  const templateContent = fs.readFileSync(templatePath);
+// === RABATT-ZEILE ENTFERNEN ===
 
+function entferneRabattZeile(xml: string, rabattProzent: number): string {
+  if (rabattProzent > 0) return xml;
+
+  // Finde und entferne die Tabellenzeile mit "Rabatt" oder {{RABATT_ZEILE}}
+  // Pattern: <w:tr>...(Rabatt|{{RABATT_ZEILE}})...</w:tr>
+  xml = xml.replace(
+    /<w:tr[^>]*>(?:(?!<\/w:tr>).)*(?:Rabatt|\{\{RABATT_ZEILE\}\})(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
+    ''
+  );
+
+  return xml;
+}
+
+// === BILD EINFÜGEN ===
+
+function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
+  if (!offerte.planbeilage) {
+    // Platzhalter entfernen wenn kein Bild
+    let xml = zip.file('word/document.xml')?.asText() || '';
+    xml = xml.replace(/\{\{PLANBEILAGE_BILD\}\}/g, '');
+    return xml;
+  }
+
+  const ext = offerte.planbeilage.mimeType === 'image/png' ? 'png' : 'jpeg';
+  const imageData = Buffer.from(offerte.planbeilage.base64, 'base64');
+
+  // Bild hinzufügen
+  zip.file(`word/media/planbeilage.${ext}`, imageData);
+
+  // Relationship hinzufügen
+  const relsPath = 'word/_rels/document.xml.rels';
+  let rels = zip.file(relsPath)?.asText() || '';
+
+  // Nächste freie rId finden
+  const rIdMatches = rels.match(/Id="rId(\d+)"/g) || [];
+  const maxId = Math.max(0, ...rIdMatches.map(m => parseInt(m.match(/\d+/)?.[0] || '0')));
+  const newRId = `rId${maxId + 1}`;
+
+  // Neue Relationship einfügen
+  rels = rels.replace(
+    '</Relationships>',
+    `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/planbeilage.${ext}"/></Relationships>`
+  );
+  zip.file(relsPath, rels);
+
+  // Bild-XML erstellen
+  const imageXml = `</w:t></w:r></w:p><w:p>
+    <w:r>
+      <w:drawing>
+        <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+          <wp:extent cx="5400000" cy="3600000"/>
+          <wp:docPr id="1" name="Planbeilage"/>
+          <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:nvPicPr>
+                  <pic:cNvPr id="0" name="planbeilage.${ext}"/>
+                  <pic:cNvPicPr/>
+                </pic:nvPicPr>
+                <pic:blipFill>
+                  <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${newRId}"/>
+                  <a:stretch><a:fillRect/></a:stretch>
+                </pic:blipFill>
+                <pic:spPr>
+                  <a:xfrm><a:off x="0" y="0"/><a:ext cx="5400000" cy="3600000"/></a:xfrm>
+                  <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                </pic:spPr>
+              </pic:pic>
+            </a:graphicData>
+          </a:graphic>
+        </wp:inline>
+      </w:drawing>
+    </w:r>
+  </w:p><w:p><w:r><w:t>`;
+
+  // Platzhalter ersetzen
+  let xml = zip.file('word/document.xml')?.asText() || '';
+  xml = xml.replace('{{PLANBEILAGE_BILD}}', imageXml);
+
+  return xml;
+}
+
+// === HAUPTFUNKTION ===
+
+export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
+  // Template laden
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V2.docx');
+
+  if (!fs.existsSync(templatePath)) {
+    throw new Error(`Template nicht gefunden: ${templatePath}`);
+  }
+
+  const templateContent = fs.readFileSync(templatePath);
   const zip = new PizZip(templateContent);
 
   // document.xml lesen
-  let documentXml = zip.file('word/document.xml')?.asText() || '';
+  let xml = zip.file('word/document.xml')?.asText() || '';
 
-  // Platzhalter ersetzen (wie oben)
-  const kosten = berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
-  const offertNr = parseOffertnummer(offerte.offertnummer);
-  const anfrage = parseAnfrageDatum(offerte.projekt.anfrageDatum);
+  // Daten vorbereiten
   const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
+  const kosten = berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
+  const anfrage = formatDatumTeile(offerte.projekt.anfrageDatum);
 
-  const empfaengerZeile1 = offerte.empfaenger.anrede
-    ? `${offerte.empfaenger.anrede} ${offerte.empfaenger.name}`
-    : offerte.empfaenger.name;
+  // Kontaktzeile
+  let kontaktZeile = '';
+  if (offerte.empfaenger.anrede && offerte.empfaenger.nachname) {
+    kontaktZeile = `${offerte.empfaenger.anrede} ${offerte.empfaenger.vorname} ${offerte.empfaenger.nachname}`.trim();
+  }
 
+  // Funktion aufteilen
+  const funktionTeile = offerte.empfaenger.funktion?.split(' ') || ['', ''];
+  const funktion1 = funktionTeile[0] || '';
+  const funktion2 = funktionTeile.slice(1).join(' ') || '';
+
+  // Offertnummer parsen (Format: 51.25.405)
+  const offertNrTeile = offerte.offertnummer.split('.');
+  const offertNr1 = offertNrTeile[0] ? `${offertNrTeile[0]}.` : '';
+
+  // === PLATZHALTER ERSETZEN ===
   const replacements: [string, string][] = [
-    ['{{EMPFAENGER_ANREDE_NAME}}', empfaengerZeile1],
-    ['{{EMPFAENGER_ZUSATZ_1}}', offerte.empfaenger.zusatz?.split(' ')[0] || ''],
-    ['{{EMPFAENGER_ZUSATZ_2}}', offerte.empfaenger.zusatz ? ' ' + offerte.empfaenger.zusatz.split(' ').slice(1).join(' ') : ''],
-    ['{{EMPFAENGER_STRASSE}}', offerte.empfaenger.strasse],
-    ['{{EMPFAENGER_PLZORT}}', offerte.empfaenger.plzOrt],
-    ['{{STANDORT_ORT}}', standort.ort],
+    // Empfänger
+    ['{{FIRMA}}', offerte.empfaenger.firma],
+    ['{{KONTAKT_ZEILE}}', kontaktZeile],
+    ['{{FUNKTION_1}}', funktion1],
+    ['{{FUNKTION_2}}', funktion2 ? ` ${funktion2}` : ''],
+    ['{{STRASSE}}', offerte.empfaenger.strasse],
+    ['{{PLZ_ORT}}', offerte.empfaenger.plzOrt],
+
+    // Anrede
+    ['{{ANREDE}}', generiereAnrede(offerte.empfaenger)],
+
+    // Datum & Standort
     ['{{DATUM}}', formatDatumKurz(offerte.datum)],
-    ['{{OFFERT_NR_1}}', offertNr.nr1],
-    ['{{OFFERT_NR_2}}', offertNr.nr2],
-    ['{{OFFERT_NR_3}}', offertNr.nr3],
-    ['{{OFFERT_NR_4}}', offertNr.nr4 || ''],
+    ['{{STANDORT_ORT}}', standort],
+
+    // Offertnummer
+    ['{{OFFERT_NR}}', offerte.offertnummer],
+    ['{{OFFERT_NR_1}}', offertNr1],
+
+    // Projekt
     ['{{PROJEKT_ORT}}', offerte.projekt.ort],
-    ['{{PROJEKT_STRASSE}}', ''],
-    ['{{PROJEKT_BEZEICHNUNG}}', offerte.projekt.bezeichnung],
+    ['{{PROJEKT_STRASSE}}', offerte.projekt.bezeichnung.split(' ')[0] || ''],
+    ['{{PROJEKT_REST}}', offerte.projekt.bezeichnung.split(' ').slice(1).join(' ') || ''],
+
+    // Anfragedatum
     ['{{ANFRAGE_TAG}}', anfrage.tag],
     ['{{ANFRAGE_MONAT}}', anfrage.monat],
     ['{{ANFRAGE_JAHR}}', anfrage.jahr],
+
+    // Kosten
     ['{{PREIS_LEISTUNG}}', formatCHF(offerte.kosten.leistungspreis)],
-    ['{{PREIS_RABATT_BETRAG}}', '-' + formatCHF(kosten.rabattBetrag)],
+    ['{{PREIS_RABATT}}', `-${formatCHF(kosten.rabattBetrag)}`],
     ['{{PREIS_ZWISCHEN}}', formatCHF(kosten.zwischentotal)],
     ['{{PREIS_MWST}}', formatCHF(kosten.mwstBetrag)],
     ['{{PREIS_TOTAL}}', formatCHF(kosten.total)],
-    ['{{RABATT_PROZENT}}', offerte.kosten.rabattProzent.toFixed(1) + '%'],
+    ['{{RABATT_ZEILE}}', `Rabatt ${offerte.kosten.rabattProzent.toFixed(1)}%`],
+    ['{{RABATT_PROZENT}}', `${offerte.kosten.rabattProzent.toFixed(1)}%`],
+
+    // Vorlaufzeit
     ['{{VORLAUFZEIT}}', offerte.vorlaufzeit],
   ];
 
   for (const [placeholder, value] of replacements) {
-    documentXml = documentXml.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
+    xml = xml.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
   }
 
-  // Checkboxen setzen (Index-basiert)
-  const checkboxMapping: [number, boolean][] = [
-    // 1.1 Art des Bauvorhabens
-    [0, offerte.checkboxen.artBauvorhaben.neubau],
-    [1, offerte.checkboxen.artBauvorhaben.umbau],
-    [2, offerte.checkboxen.artBauvorhaben.rueckbau],
-    [3, !!offerte.checkboxen.artBauvorhaben.sonstiges],
+  // Checkboxen setzen
+  xml = setCheckboxen(xml, offerte);
 
-    // Art des Gebäudes
-    [4, offerte.checkboxen.artGebaeude.efhFreistehend],
-    [5, offerte.checkboxen.artGebaeude.reihenhaus],
-    [6, offerte.checkboxen.artGebaeude.terrassenhaus],
-    [7, offerte.checkboxen.artGebaeude.mfh],
-    [8, offerte.checkboxen.artGebaeude.strassen],
-    [9, offerte.checkboxen.artGebaeude.kunstbauten],
-    [10, !!offerte.checkboxen.artGebaeude.sonstiges1],
-    [11, !!offerte.checkboxen.artGebaeude.sonstiges2],
+  // Rabatt-Zeile entfernen wenn 0%
+  xml = entferneRabattZeile(xml, offerte.kosten.rabattProzent);
 
-    // 1.2 Tätigkeiten
-    [12, offerte.checkboxen.taetigkeiten.aushub],
-    [13, offerte.checkboxen.taetigkeiten.rammarbeiten],
-    [14, offerte.checkboxen.taetigkeiten.mikropfaehle],
-    [15, offerte.checkboxen.taetigkeiten.baustellenverkehr],
-    [16, offerte.checkboxen.taetigkeiten.schwereMaschinen],
-    [17, offerte.checkboxen.taetigkeiten.sprengungen],
-    [18, offerte.checkboxen.taetigkeiten.diverses],
-    [19, !!offerte.checkboxen.taetigkeiten.sonstiges],
+  // XML speichern (vor Bild-Einfügung)
+  zip.file('word/document.xml', xml);
 
-    // 2.1 Koordination
-    [20, offerte.checkboxen.koordination.schriftlicheInfo],
-    [21, offerte.checkboxen.koordination.terminvereinbarung],
-    [22, offerte.checkboxen.koordination.durchAuftraggeber],
-    [23, !!offerte.checkboxen.koordination.sonstiges],
-
-    // 2.2 Erstaufnahme
-    [24, offerte.checkboxen.erstaufnahme.fassaden],
-    [25, offerte.checkboxen.erstaufnahme.strassen],
-    [26, offerte.checkboxen.erstaufnahme.strassenBelag],
-    [27, offerte.checkboxen.erstaufnahme.strassenRand],
-    [28, offerte.checkboxen.erstaufnahme.innenraeume],
-    [29, offerte.checkboxen.erstaufnahme.aussenanlagen],
-    [30, !!offerte.checkboxen.erstaufnahme.sonstiges],
-
-    // 2.3 Dokumentation
-    [31, offerte.checkboxen.dokumentation.rissprotokoll],
-    [32, offerte.checkboxen.dokumentation.fotoAussen],
-    [33, offerte.checkboxen.dokumentation.fotoInnen],
-    [34, offerte.checkboxen.dokumentation.fotoStrasse],
-    [35, offerte.checkboxen.dokumentation.zustellbestaetigung],
-    [36, offerte.checkboxen.dokumentation.datenabgabe],
-  ];
-
-  // Checkboxen im XML setzen
-  for (const [index, checked] of checkboxMapping) {
-    documentXml = setCheckboxInXml(documentXml, index, checked);
+  // Planbeilage einfügen
+  if (offerte.planbeilage) {
+    xml = insertPlanbeilage(zip, offerte);
+    zip.file('word/document.xml', xml);
+  } else {
+    // Platzhalter entfernen
+    xml = xml.replace(/\{\{PLANBEILAGE_BILD\}\}/g, '');
+    zip.file('word/document.xml', xml);
   }
-
-  // Aktualisierte document.xml speichern
-  zip.file('word/document.xml', documentXml);
 
   // Buffer generieren
-  const buf = zip.generate({
+  const buffer = zip.generate({
     type: 'nodebuffer',
     compression: 'DEFLATE',
   });
 
-  return Buffer.from(buf);
+  return Buffer.from(buffer);
 }

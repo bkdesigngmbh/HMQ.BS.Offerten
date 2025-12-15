@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server';
-import { generateOfferteFromTemplateWithCheckboxes } from '@/lib/docx-template-generator';
+import { generateOfferteFromTemplate } from '@/lib/docx-template-generator';
 
 export async function POST(request: Request) {
   try {
     const offerte = await request.json();
 
     // Validierung
-    if (!offerte.offertnummer || !offerte.empfaenger?.name) {
-      return NextResponse.json({ error: 'Pflichtfelder fehlen' }, { status: 400 });
+    if (!offerte.offertnummer?.trim()) {
+      return NextResponse.json({ error: 'Offertnummer fehlt' }, { status: 400 });
+    }
+    if (!offerte.empfaenger?.firma?.trim()) {
+      return NextResponse.json({ error: 'Firma fehlt' }, { status: 400 });
     }
 
-    // Word generieren
-    const buffer = await generateOfferteFromTemplateWithCheckboxes(offerte);
+    console.log('Generiere Offerte:', offerte.offertnummer);
 
-    // Als Download zurückgeben (Buffer zu Uint8Array für Next.js 16)
+    const buffer = await generateOfferteFromTemplate(offerte);
+
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -21,7 +24,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Fehler bei Word-Generierung:', error);
-    return NextResponse.json({ error: 'Fehler beim Generieren der Offerte' }, { status: 500 });
+    console.error('Fehler:', error);
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
