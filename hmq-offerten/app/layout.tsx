@@ -1,29 +1,63 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'HMQ Offerten-Generator',
-  description: 'Offerten für Beweissicherung erstellen',
+  description: 'Professionelle Offerten für Beweissicherung erstellen',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de">
-      <body className="bg-gray-100 min-h-screen font-sans">
-        <nav className="bg-white border-b shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <Link href="/offerte" className="flex items-center gap-2">
-              <span className="text-xl font-bold text-blue-600">HMQ</span>
-              <span className="text-gray-600">Offerten-Generator</span>
-            </Link>
-            <div className="flex gap-4">
-              <Link href="/offerte" className="text-sm text-gray-600 hover:text-blue-600">Neue Offerte</Link>
-              <Link href="/admin" className="text-sm text-gray-600 hover:text-blue-600">Admin</Link>
+      <body className="min-h-screen bg-[#f8f9fa]">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <a href="/offerte" className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#1e3a5f] rounded-lg flex items-center justify-center">
+                  <span className="text-white font-display font-bold text-lg">H</span>
+                </div>
+                <div>
+                  <span className="font-display font-semibold text-[#1e3a5f] text-lg">HMQ</span>
+                  <span className="hidden sm:inline text-gray-400 mx-2">|</span>
+                  <span className="hidden sm:inline text-gray-600 text-sm">Offerten-Generator</span>
+                </div>
+              </a>
+
+              {/* Navigation */}
+              <nav className="flex items-center gap-1">
+                <a
+                  href="/offerte"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#1e3a5f] hover:bg-[#1e3a5f]/5 rounded-lg transition-colors"
+                >
+                  Neue Offerte
+                </a>
+                <a
+                  href="/admin"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#1e3a5f] hover:bg-[#1e3a5f]/5 rounded-lg transition-colors"
+                >
+                  Einstellungen
+                </a>
+              </nav>
             </div>
           </div>
-        </nav>
-        <main className="py-8 px-4">{children}</main>
+        </header>
+
+        {/* Main Content */}
+        <main className="py-8">
+          {children}
+        </main>
+
+        {/* Footer */}
+        <footer className="mt-auto py-6 border-t border-gray-200 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-center text-sm text-gray-500">
+              © {new Date().getFullYear()} HMQ AG — Beweissicherung
+            </p>
+          </div>
+        </footer>
       </body>
     </html>
   );
