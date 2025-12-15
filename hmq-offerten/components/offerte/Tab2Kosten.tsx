@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Offerte, KategorieEingabe } from '@/lib/types';
 import { getKategorien, getBasiswerte, KostenKategorie, KostenBasiswerte } from '@/lib/supabase';
-import { berechneKosten, KostenErgebnis, rundeAuf5Rappen } from '@/lib/kosten-berechnung';
+import { berechneKosten, KostenErgebnis, rundeAuf5Rappen } from '@/lib/kosten-rechner';
 
 interface Tab2KostenProps {
   offerte: Offerte;
