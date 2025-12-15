@@ -1,9 +1,25 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Lazy initialization to avoid build-time errors
+let _supabase: SupabaseClient | null = null;
+
+export function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase environment variables not configured');
+    }
+    _supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return _supabase;
+}
+
+// For backwards compatibility (but will throw at runtime if env vars missing)
+export const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null as unknown as SupabaseClient;
 
 // =====================================================
 // TYPEN
@@ -70,7 +86,7 @@ export interface AppEinstellungen {
 // --- KATEGORIEN ---
 
 export async function getKategorien(): Promise<KostenKategorie[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('kosten_kategorien')
     .select('*')
     .order('sortierung', { ascending: true });
@@ -80,7 +96,7 @@ export async function getKategorien(): Promise<KostenKategorie[]> {
 }
 
 export async function createKategorie(kategorie: Omit<KostenKategorie, 'id' | 'created_at' | 'updated_at'>): Promise<KostenKategorie> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('kosten_kategorien')
     .insert(kategorie)
     .select()
@@ -91,7 +107,7 @@ export async function createKategorie(kategorie: Omit<KostenKategorie, 'id' | 'c
 }
 
 export async function updateKategorie(id: string, kategorie: Partial<KostenKategorie>): Promise<KostenKategorie> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('kosten_kategorien')
     .update(kategorie)
     .eq('id', id)
@@ -103,7 +119,7 @@ export async function updateKategorie(id: string, kategorie: Partial<KostenKateg
 }
 
 export async function deleteKategorie(id: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('kosten_kategorien')
     .delete()
     .eq('id', id);
@@ -114,7 +130,7 @@ export async function deleteKategorie(id: string): Promise<void> {
 // --- BASISWERTE ---
 
 export async function getBasiswerte(): Promise<KostenBasiswerte> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('kosten_basiswerte')
     .select('*')
     .single();
@@ -124,7 +140,7 @@ export async function getBasiswerte(): Promise<KostenBasiswerte> {
 }
 
 export async function updateBasiswerte(basiswerte: Partial<KostenBasiswerte>): Promise<KostenBasiswerte> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('kosten_basiswerte')
     .update(basiswerte)
     .eq('id', 1)
@@ -138,7 +154,7 @@ export async function updateBasiswerte(basiswerte: Partial<KostenBasiswerte>): P
 // --- OFFERTEN HISTORIE ---
 
 export async function getOffertenListe(): Promise<Pick<OfferteHistorie, 'id' | 'offertnummer' | 'projekt_ort' | 'projekt_bezeichnung' | 'updated_at'>[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('offerten_historie')
     .select('id, offertnummer, projekt_ort, projekt_bezeichnung, updated_at')
     .order('updated_at', { ascending: false });
@@ -148,7 +164,7 @@ export async function getOffertenListe(): Promise<Pick<OfferteHistorie, 'id' | '
 }
 
 export async function getOfferte(offertnummer: string): Promise<OfferteHistorie | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('offerten_historie')
     .select('*')
     .eq('offertnummer', offertnummer)
@@ -168,7 +184,7 @@ export async function saveOfferte(offerte: any): Promise<OfferteHistorie> {
   };
 
   // Upsert: Insert oder Update basierend auf offertnummer
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('offerten_historie')
     .upsert(payload, { onConflict: 'offertnummer' })
     .select()
@@ -179,7 +195,7 @@ export async function saveOfferte(offerte: any): Promise<OfferteHistorie> {
 }
 
 export async function deleteOfferte(offertnummer: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('offerten_historie')
     .delete()
     .eq('offertnummer', offertnummer);
@@ -190,7 +206,7 @@ export async function deleteOfferte(offertnummer: string): Promise<void> {
 // --- APP EINSTELLUNGEN ---
 
 export async function getEinstellungen(): Promise<AppEinstellungen> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('app_einstellungen')
     .select('*')
     .single();
@@ -200,7 +216,7 @@ export async function getEinstellungen(): Promise<AppEinstellungen> {
 }
 
 export async function updateEinstellungen(einstellungen: Partial<AppEinstellungen>): Promise<AppEinstellungen> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('app_einstellungen')
     .update(einstellungen)
     .eq('id', 1)
