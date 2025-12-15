@@ -6,7 +6,8 @@ import {
   getKategorien, createKategorie, updateKategorie, deleteKategorie,
   getBasiswerte, updateBasiswerte,
   getEinstellungen, updateEinstellungen,
-  KostenKategorie, KostenBasiswerte, AppEinstellungen,
+  getStandorte, updateStandort,
+  KostenKategorie, KostenBasiswerte, AppEinstellungen, Standort,
 } from '@/lib/supabase';
 
 type AdminTab = 'kategorien' | 'basiswerte' | 'standorte' | 'ansprechpartner' | 'einstellungen';
@@ -20,6 +21,7 @@ export default function AdminPage() {
   const [kategorien, setKategorien] = useState<KostenKategorie[]>([]);
   const [basiswerte, setBasiswerte] = useState<KostenBasiswerte | null>(null);
   const [einstellungen, setEinstellungen] = useState<AppEinstellungen | null>(null);
+  const [standorte, setStandorte] = useState<Standort[]>([]);
   const [editingKat, setEditingKat] = useState<KostenKategorie | null>(null);
 
   useEffect(() => {
@@ -29,10 +31,16 @@ export default function AdminPage() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [k, b, e] = await Promise.all([getKategorien(), getBasiswerte(), getEinstellungen()]);
+      const [k, b, e, s] = await Promise.all([
+        getKategorien(),
+        getBasiswerte(),
+        getEinstellungen(),
+        getStandorte(),
+      ]);
       setKategorien(k);
       setBasiswerte(b);
       setEinstellungen(e);
+      setStandorte(s);
     } catch (err) {
       console.error(err);
     }
@@ -96,6 +104,26 @@ export default function AdminPage() {
       showMessage('error', 'Fehler beim Speichern');
     }
     setSaving(false);
+  }
+
+  async function handleSaveStandort(id: string) {
+    const standort = standorte.find(s => s.id === id);
+    if (!standort) return;
+    setSaving(true);
+    try {
+      await updateStandort(id, standort);
+      showMessage('success', 'Standort gespeichert');
+      await loadAll();
+    } catch (err) {
+      showMessage('error', 'Fehler beim Speichern');
+    }
+    setSaving(false);
+  }
+
+  function handleStandortChange(id: string, field: keyof Standort, value: string) {
+    setStandorte(standorte.map(s =>
+      s.id === id ? { ...s, [field]: value } : s
+    ));
   }
 
   const tabs: { id: AdminTab; label: string }[] = [
@@ -430,22 +458,82 @@ export default function AdminPage() {
         {activeTab === 'standorte' && (
           <div>
             <h2 className="text-lg font-semibold mb-6">HMQ Standorte</h2>
-            <div className="space-y-4">
-              {[
-                { id: 'zh', name: 'Zürich-Opfikon', adresse: 'Thurgauerstrasse 54, 8050 Zürich' },
-                { id: 'gr', name: 'Chur', adresse: 'Comercialstrasse 20, 7000 Chur' },
-                { id: 'ag', name: 'Zofingen', adresse: 'Untere Grabenstrasse 1, 4800 Zofingen' },
-              ].map((s) => (
-                <div key={s.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                  <div className="w-12 h-12 bg-[#1e3a5f]/10 rounded-xl flex items-center justify-center">
-                    <span className="font-bold text-[#1e3a5f] uppercase">{s.id}</span>
+            <div className="space-y-6">
+              {standorte.map((s) => (
+                <div key={s.id} className="bg-gray-50 rounded-xl p-5">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-[#1e3a5f]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="font-bold text-[#1e3a5f] uppercase">{s.id}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{s.name}</h3>
+                      <p className="text-sm text-gray-500">ID: {s.id}</p>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium text-gray-900">{s.name}</div>
-                    <div className="text-sm text-gray-500">{s.adresse}</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Firma</label>
+                      <input
+                        type="text"
+                        value={s.firma || 'HMQ AG'}
+                        disabled
+                        className={`${inputClass} opacity-60 cursor-not-allowed`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={s.name}
+                        onChange={(e) => handleStandortChange(s.id, 'name', e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs text-gray-500 mb-1">Strasse</label>
+                      <input
+                        type="text"
+                        value={s.strasse}
+                        onChange={(e) => handleStandortChange(s.id, 'strasse', e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">PLZ</label>
+                      <input
+                        type="text"
+                        value={s.plz}
+                        onChange={(e) => handleStandortChange(s.id, 'plz', e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Ort</label>
+                      <input
+                        type="text"
+                        value={s.ort}
+                        onChange={(e) => handleStandortChange(s.id, 'ort', e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="md:col-span-2 flex items-end">
+                      <button
+                        onClick={() => handleSaveStandort(s.id)}
+                        disabled={saving}
+                        className="px-6 py-2.5 bg-[#1e3a5f] text-white text-sm font-medium rounded-xl hover:bg-[#162b47] disabled:opacity-50 transition-colors"
+                      >
+                        {saving ? 'Speichern...' : 'Speichern'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
+              {standorte.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Keine Standorte gefunden.</p>
+                  <p className="text-sm mt-1">Bitte erstellen Sie die Tabelle &quot;standorte&quot; in Supabase.</p>
+                </div>
+              )}
             </div>
           </div>
         )}

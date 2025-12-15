@@ -79,6 +79,17 @@ export interface AppEinstellungen {
   updated_at: string;
 }
 
+export interface Standort {
+  id: string;
+  name: string;
+  firma: string;
+  strasse: string;
+  plz: string;
+  ort: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // =====================================================
 // API FUNKTIONEN
 // =====================================================
@@ -246,6 +257,37 @@ export async function updateEinstellungen(einstellungen: Partial<AppEinstellunge
     .from('app_einstellungen')
     .update(einstellungen)
     .eq('id', 1)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// --- STANDORTE ---
+
+export async function getStandorte(): Promise<Standort[]> {
+  const { data, error } = await getSupabase()
+    .from('standorte')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updateStandort(id: string, standort: Partial<Standort>): Promise<Standort> {
+  const { data, error } = await getSupabase()
+    .from('standorte')
+    .update({
+      name: standort.name,
+      firma: standort.firma,
+      strasse: standort.strasse,
+      plz: standort.plz,
+      ort: standort.ort,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
     .select()
     .single();
 
