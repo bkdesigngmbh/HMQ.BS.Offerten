@@ -159,31 +159,53 @@ export default function Tab1Daten({ offerte, onChange, errors }: Tab1DatenProps)
       {/* === PROJEKT === */}
       <section>
         <h2 className="text-lg font-semibold mb-4 text-gray-800">Projekt</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Input
             label="Projektort"
-            placeholder="z.B. Zürich"
+            placeholder="Zürich"
             value={offerte.projekt.ort}
             onChange={(e) => updateProjekt('ort', e.target.value)}
             error={errors['projekt.ort']}
             required
           />
-          <Input
-            label="Anfrage vom"
-            type="date"
-            value={offerte.projekt.anfrageDatum}
-            onChange={(e) => updateProjekt('anfrageDatum', e.target.value)}
-          />
-          <div className="md:col-span-2">
+          <div className="lg:col-span-2">
             <Input
               label="Projektbezeichnung"
-              placeholder="z.B. Wehntalerstrasse 47, Neubau MFH"
+              placeholder="Neubau MFH Wehntalerstrasse 47"
               value={offerte.projekt.bezeichnung}
               onChange={(e) => updateProjekt('bezeichnung', e.target.value)}
               error={errors['projekt.bezeichnung']}
               required
             />
           </div>
+          <Input
+            label="Anfragedatum"
+            type="date"
+            value={offerte.projekt.anfrageDatum}
+            onChange={(e) => updateProjekt('anfrageDatum', e.target.value)}
+          />
+          <Select
+            label="Vorlaufzeit"
+            value={offerte.vorlaufzeit}
+            onChange={(e) => updateField('vorlaufzeit', e.target.value)}
+            options={[
+              { value: '2 Wochen', label: '2 Wochen' },
+              { value: '3 Wochen', label: '3 Wochen' },
+              { value: '4 Wochen', label: '4 Wochen' },
+              { value: '6 Wochen', label: '6 Wochen' },
+            ]}
+          />
+          <Select
+            label="Einsatzpauschalen"
+            value={offerte.einsatzpauschalen.toString()}
+            onChange={(e) => updateField('einsatzpauschalen', parseInt(e.target.value))}
+            options={[
+              { value: '1', label: '1 Einsatz (max. 1 Tag)' },
+              { value: '2', label: '2 Einsätze (max. 2 Tage)' },
+              { value: '3', label: '3 Einsätze (max. 3 Tage)' },
+              { value: '4', label: '4 Einsätze (max. 4 Tage)' },
+            ]}
+          />
         </div>
       </section>
 
@@ -285,35 +307,6 @@ export default function Tab1Daten({ offerte, onChange, errors }: Tab1DatenProps)
           ]}
           onChange={(key, val) => updateCheckbox('dokumentation', key, val)}
         />
-      </section>
-
-      {/* === VORLAUFZEIT & EINSATZPAUSCHALEN === */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">Termine & Einsätze</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Select
-            label="Vorlaufzeit"
-            value={offerte.vorlaufzeit}
-            onChange={(e) => updateField('vorlaufzeit', e.target.value)}
-            options={[
-              { value: '2 Wochen', label: '2 Wochen' },
-              { value: '3 Wochen', label: '3 Wochen' },
-              { value: '4 Wochen', label: '4 Wochen' },
-              { value: '5 Wochen', label: '5 Wochen' },
-            ]}
-          />
-          <Select
-            label="Einsatzpauschalen"
-            value={String(offerte.einsatzpauschalen)}
-            onChange={(e) => updateField('einsatzpauschalen', parseInt(e.target.value))}
-            options={[
-              { value: '1', label: '1 Einsatz (Erstaufnahme)' },
-              { value: '2', label: '2 Einsätze (Standard)' },
-              { value: '3', label: '3 Einsätze' },
-              { value: '4', label: '4 Einsätze' },
-            ]}
-          />
-        </div>
       </section>
 
       {/* === PLANBEILAGE === */}

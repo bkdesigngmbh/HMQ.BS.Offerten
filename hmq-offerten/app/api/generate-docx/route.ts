@@ -5,7 +5,6 @@ export async function POST(request: Request) {
   try {
     const offerte = await request.json();
 
-    // Validierung
     if (!offerte.offertnummer?.trim()) {
       return NextResponse.json({ error: 'Offertnummer fehlt' }, { status: 400 });
     }
@@ -14,6 +13,7 @@ export async function POST(request: Request) {
     }
 
     console.log('Generiere Offerte:', offerte.offertnummer);
+    console.log('Planbeilage:', offerte.planbeilage ? 'Ja' : 'Nein');
 
     const buffer = await generateOfferteFromTemplate(offerte);
 
