@@ -6,9 +6,11 @@ import { Planbeilage } from '@/lib/types';
 interface PlanUploadProps {
   value: Planbeilage | null;
   onChange: (planbeilage: Planbeilage | null) => void;
+  gisLink?: string;
+  onGisLinkChange?: (link: string) => void;
 }
 
-export default function PlanUpload({ value, onChange }: PlanUploadProps) {
+export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkChange }: PlanUploadProps) {
   const [dragActive, setDragActive] = useState(false);
 
   const handleFile = useCallback((file: File) => {
@@ -19,12 +21,21 @@ export default function PlanUpload({ value, onChange }: PlanUploadProps) {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      onChange({
-        dateiname: file.name,
-        base64: base64.split(',')[1],
-        mimeType: file.type as 'image/png' | 'image/jpeg',
-      });
+      const base64Full = e.target?.result as string;
+      const base64Data = base64Full.split(',')[1];
+
+      // Bildgrösse auslesen
+      const img = new Image();
+      img.onload = () => {
+        onChange({
+          dateiname: file.name,
+          base64: base64Data,
+          mimeType: file.type as 'image/png' | 'image/jpeg',
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      };
+      img.src = base64Full;
     };
     reader.readAsDataURL(file);
   }, [onChange]);
@@ -44,7 +55,7 @@ export default function PlanUpload({ value, onChange }: PlanUploadProps) {
   };
 
   return (
-    <div>
+    <div className="space-y-4">
       {value ? (
         <div className="relative bg-gray-50 border border-gray-200 rounded-xl p-4 group">
           <img
@@ -58,6 +69,9 @@ export default function PlanUpload({ value, onChange }: PlanUploadProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span className="truncate max-w-xs">{value.dateiname}</span>
+              {value.width && value.height && (
+                <span className="text-gray-400 text-xs">({value.width}×{value.height}px)</span>
+              )}
             </div>
             <button
               type="button"
@@ -97,7 +111,7 @@ export default function PlanUpload({ value, onChange }: PlanUploadProps) {
               transition-colors
             `}>
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
@@ -108,6 +122,25 @@ export default function PlanUpload({ value, onChange }: PlanUploadProps) {
               <p className="text-xs text-gray-500 mt-1">PNG oder JPG, max. 10 MB</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* GIS-Link Eingabe */}
+      {onGisLinkChange && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            GIS-Link (optional)
+          </label>
+          <input
+            type="url"
+            value={gisLink}
+            onChange={(e) => onGisLinkChange(e.target.value)}
+            placeholder="https://map.geo.admin.ch/..."
+            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Link zu map.geo.admin.ch oder anderem GIS (wird nur gespeichert, nicht ins Word eingefügt)
+          </p>
         </div>
       )}
     </div>

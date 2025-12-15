@@ -202,6 +202,49 @@ function entferneRabatt(xml: string, rabattProzent: number): string {
 
 // === PLANBEILAGE ===
 
+// EMU Konvertierung: 1 cm = 360000 EMUs
+const EMU_PER_CM = 360000;
+const MAX_WIDTH_CM = 16;  // Maximale Breite in cm
+const MAX_HEIGHT_CM = 10; // Maximale Höhe in cm
+
+function calculateProportionalSize(
+  originalWidth: number,
+  originalHeight: number,
+  maxWidthCm: number = MAX_WIDTH_CM,
+  maxHeightCm: number = MAX_HEIGHT_CM
+): { widthEmu: number; heightEmu: number } {
+  // Wenn keine Dimensionen vorhanden, Standardgrösse verwenden
+  if (!originalWidth || !originalHeight) {
+    return {
+      widthEmu: maxWidthCm * EMU_PER_CM,
+      heightEmu: maxHeightCm * EMU_PER_CM,
+    };
+  }
+
+  const aspectRatio = originalWidth / originalHeight;
+  const maxWidthEmu = maxWidthCm * EMU_PER_CM;
+  const maxHeightEmu = maxHeightCm * EMU_PER_CM;
+
+  let finalWidthEmu: number;
+  let finalHeightEmu: number;
+
+  // Prüfe ob Breite oder Höhe limitierend ist
+  if (originalWidth / maxWidthCm > originalHeight / maxHeightCm) {
+    // Breite ist limitierend
+    finalWidthEmu = maxWidthEmu;
+    finalHeightEmu = maxWidthEmu / aspectRatio;
+  } else {
+    // Höhe ist limitierend
+    finalHeightEmu = maxHeightEmu;
+    finalWidthEmu = maxHeightEmu * aspectRatio;
+  }
+
+  return {
+    widthEmu: Math.round(finalWidthEmu),
+    heightEmu: Math.round(finalHeightEmu),
+  };
+}
+
 function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
   let xml = zip.file('word/document.xml')?.asText() || '';
 
@@ -215,6 +258,7 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
 
   zip.file(`word/media/planbeilage_custom.${ext}`, imageData);
 
+  // Relationship hinzufügen
   const relsPath = 'word/_rels/document.xml.rels';
   let rels = zip.file(relsPath)?.asText() || '';
 
@@ -226,7 +270,25 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
   rels = rels.replace('</Relationships>', `${newRel}</Relationships>`);
   zip.file(relsPath, rels);
 
+  // RID ersetzen
   xml = xml.replace(/\{\{PLAN_RID\}\}/g, newRId);
+
+  // Proportionale Bildgrösse berechnen
+  const { widthEmu, heightEmu } = calculateProportionalSize(
+    offerte.planbeilage.width || 0,
+    offerte.planbeilage.height || 0
+  );
+
+  // Bildgrösse im XML anpassen
+  // wp:extent und a:ext haben beide cx (Breite) und cy (Höhe) Attribute
+  xml = xml.replace(
+    /(<wp:extent\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
+    `$1${widthEmu}$3${heightEmu}$5`
+  );
+  xml = xml.replace(
+    /(<a:ext\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
+    `$1${widthEmu}$3${heightEmu}$5`
+  );
 
   return xml;
 }
