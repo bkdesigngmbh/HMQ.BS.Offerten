@@ -287,20 +287,33 @@ export default function Tab1Daten({ offerte, onChange, errors }: Tab1DatenProps)
         />
       </section>
 
-      {/* === VORLAUFZEIT === */}
+      {/* === VORLAUFZEIT & EINSATZPAUSCHALEN === */}
       <section>
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">Termine</h2>
-        <Select
-          label="Vorlaufzeit"
-          value={offerte.vorlaufzeit}
-          onChange={(e) => updateField('vorlaufzeit', e.target.value)}
-          options={[
-            { value: '2 Wochen', label: '2 Wochen' },
-            { value: '3 Wochen', label: '3 Wochen' },
-            { value: '4 Wochen', label: '4 Wochen' },
-            { value: '5 Wochen', label: '5 Wochen' },
-          ]}
-        />
+        <h2 className="text-lg font-semibold mb-4 text-gray-800">Termine & Einsätze</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Select
+            label="Vorlaufzeit"
+            value={offerte.vorlaufzeit}
+            onChange={(e) => updateField('vorlaufzeit', e.target.value)}
+            options={[
+              { value: '2 Wochen', label: '2 Wochen' },
+              { value: '3 Wochen', label: '3 Wochen' },
+              { value: '4 Wochen', label: '4 Wochen' },
+              { value: '5 Wochen', label: '5 Wochen' },
+            ]}
+          />
+          <Select
+            label="Einsatzpauschalen"
+            value={String(offerte.einsatzpauschalen)}
+            onChange={(e) => updateField('einsatzpauschalen', parseInt(e.target.value))}
+            options={[
+              { value: '1', label: '1 Einsatz (Erstaufnahme)' },
+              { value: '2', label: '2 Einsätze (Standard)' },
+              { value: '3', label: '3 Einsätze' },
+              { value: '4', label: '4 Einsätze' },
+            ]}
+          />
+        </div>
       </section>
 
       {/* === PLANBEILAGE === */}

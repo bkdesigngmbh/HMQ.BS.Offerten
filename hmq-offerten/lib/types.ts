@@ -115,6 +115,7 @@ export interface Offerte {
   projekt: Projekt;
   kosten: Kosten;
   vorlaufzeit: string;
+  einsatzpauschalen: number;  // 1, 2, 3 oder 4
   checkboxen: Checkboxen;
   planbeilage: Planbeilage | null;
 }
@@ -145,6 +146,7 @@ export function createEmptyOfferte(): Offerte {
       rabattProzent: 0,
     },
     vorlaufzeit: '3 Wochen',
+    einsatzpauschalen: 2,  // Default: 2 Einsätze
     checkboxen: {
       artBauvorhaben: { neubau: false, umbau: false, rueckbau: false, sonstiges: '' },
       artGebaeude: { efhFreistehend: false, reihenhaus: false, terrassenhaus: false, mfh: false, strassen: false, kunstbauten: false, sonstiges1: '', sonstiges2: '' },

@@ -51,6 +51,16 @@ function generiereAnrede(empfaenger: Offerte['empfaenger']): string {
   return 'Sehr geehrte Damen und Herren';
 }
 
+function getEinsatzpauschaleText(anzahl: number): string {
+  switch (anzahl) {
+    case 1: return 'eine Einsatzpauschale';
+    case 2: return 'zwei Einsatzpauschalen';
+    case 3: return 'drei Einsatzpauschalen';
+    case 4: return 'vier Einsatzpauschalen';
+    default: return 'zwei Einsatzpauschalen';
+  }
+}
+
 // === CHECKBOX FUNKTIONEN ===
 
 function setCheckboxen(xml: string, offerte: Offerte): string {
@@ -143,80 +153,106 @@ function entferneRabattZeile(xml: string, rabattProzent: number): string {
   return xml;
 }
 
-// === BILD EINFÜGEN ===
+// === GELBE HIGHLIGHTS ENTFERNEN ===
 
-function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
+function entferneGelbeHighlights(xml: string): string {
+  // Entferne alle <w:highlight w:val="yellow"/> Tags
+  xml = xml.replace(/<w:highlight w:val="yellow"\/>/g, '');
+  return xml;
+}
+
+// === LEERE FUNKTION-ZEILE ENTFERNEN ===
+
+function entferneLeereFunktionZeile(xml: string, empfaenger: Offerte['empfaenger']): string {
+  // Wenn keine Funktion angegeben ist, entferne die Zeile komplett
+  if (!empfaenger.funktion || !empfaenger.funktion.trim()) {
+    // Entferne den ganzen Absatz der die Funktion enthält
+    xml = xml.replace(
+      /<w:p[^>]*>(?:(?!<\/w:p>).)*\{\{FUNKTION\}\}(?:(?!<\/w:p>).)*<\/w:p>/gs,
+      ''
+    );
+  }
+  return xml;
+}
+
+// === LEERE KONTAKT-ZEILE ENTFERNEN ===
+
+function entferneLeereKontaktZeile(xml: string, empfaenger: Offerte['empfaenger']): string {
+  // Wenn keine Kontaktperson angegeben ist, entferne die Zeile komplett
+  if (!empfaenger.anrede || !empfaenger.nachname) {
+    xml = xml.replace(
+      /<w:p[^>]*>(?:(?!<\/w:p>).)*\{\{KONTAKT_ZEILE\}\}(?:(?!<\/w:p>).)*<\/w:p>/gs,
+      ''
+    );
+  }
+  return xml;
+}
+
+// === BILD ERSETZEN ===
+
+function ersetzePlanbeilage(zip: PizZip, offerte: Offerte): void {
   if (!offerte.planbeilage) {
-    // Platzhalter entfernen wenn kein Bild
-    let xml = zip.file('word/document.xml')?.asText() || '';
-    xml = xml.replace(/\{\{PLANBEILAGE_BILD\}\}/g, '');
-    return xml;
+    return; // Placeholder-Bild bleibt
   }
 
-  const ext = offerte.planbeilage.mimeType === 'image/png' ? 'png' : 'jpeg';
   const imageData = Buffer.from(offerte.planbeilage.base64, 'base64');
 
-  // Bild hinzufügen
-  zip.file(`word/media/planbeilage.${ext}`, imageData);
+  // Finde das existierende Planbeilage-Bild im Template und ersetze es
+  // Das Template hat ein Placeholder-Bild, wir müssen herausfinden welches
+  const mediaFiles = Object.keys(zip.files).filter(f => f.startsWith('word/media/'));
 
-  // Relationship hinzufügen
+  // Suche in document.xml.rels nach dem Bild mit "Planbeilage" oder dem letzten Bild
   const relsPath = 'word/_rels/document.xml.rels';
-  let rels = zip.file(relsPath)?.asText() || '';
+  const rels = zip.file(relsPath)?.asText() || '';
 
-  // Nächste freie rId finden
-  const rIdMatches = rels.match(/Id="rId(\d+)"/g) || [];
-  const maxId = Math.max(0, ...rIdMatches.map(m => parseInt(m.match(/\d+/)?.[0] || '0')));
-  const newRId = `rId${maxId + 1}`;
+  // Finde alle Bild-Relationships
+  const imageRels = rels.match(/Relationship[^>]*Target="media\/[^"]+"/g) || [];
 
-  // Neue Relationship einfügen
-  rels = rels.replace(
-    '</Relationships>',
-    `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/planbeilage.${ext}"/></Relationships>`
-  );
-  zip.file(relsPath, rels);
+  if (imageRels.length > 0) {
+    // Nimm das letzte Bild (typischerweise das Planbeilage-Bild)
+    const lastImageRel = imageRels[imageRels.length - 1];
+    const targetMatch = lastImageRel.match(/Target="(media\/[^"]+)"/);
 
-  // Bild-XML erstellen
-  const imageXml = `</w:t></w:r></w:p><w:p>
-    <w:r>
-      <w:drawing>
-        <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-          <wp:extent cx="5400000" cy="3600000"/>
-          <wp:docPr id="1" name="Planbeilage"/>
-          <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                <pic:nvPicPr>
-                  <pic:cNvPr id="0" name="planbeilage.${ext}"/>
-                  <pic:cNvPicPr/>
-                </pic:nvPicPr>
-                <pic:blipFill>
-                  <a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${newRId}"/>
-                  <a:stretch><a:fillRect/></a:stretch>
-                </pic:blipFill>
-                <pic:spPr>
-                  <a:xfrm><a:off x="0" y="0"/><a:ext cx="5400000" cy="3600000"/></a:xfrm>
-                  <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-                </pic:spPr>
-              </pic:pic>
-            </a:graphicData>
-          </a:graphic>
-        </wp:inline>
-      </w:drawing>
-    </w:r>
-  </w:p><w:p><w:r><w:t>`;
+    if (targetMatch) {
+      const targetPath = `word/${targetMatch[1]}`;
+      const ext = offerte.planbeilage.mimeType === 'image/png' ? 'png' : 'jpeg';
 
-  // Platzhalter ersetzen
-  let xml = zip.file('word/document.xml')?.asText() || '';
-  xml = xml.replace('{{PLANBEILAGE_BILD}}', imageXml);
+      // Lösche das alte Bild
+      if (zip.files[targetPath]) {
+        delete zip.files[targetPath];
+      }
 
-  return xml;
+      // Erstelle neuen Pfad mit korrekter Erweiterung
+      const newTargetPath = targetPath.replace(/\.[^.]+$/, `.${ext}`);
+
+      // Füge neues Bild hinzu
+      zip.file(newTargetPath, imageData);
+
+      // Update die Relationship wenn sich die Erweiterung geändert hat
+      if (newTargetPath !== targetPath) {
+        const newRels = rels.replace(targetMatch[1], targetMatch[1].replace(/\.[^.]+$/, `.${ext}`));
+        zip.file(relsPath, newRels);
+
+        // Update auch [Content_Types].xml
+        let contentTypes = zip.file('[Content_Types].xml')?.asText() || '';
+        if (!contentTypes.includes(`Extension="${ext}"`)) {
+          const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+          contentTypes = contentTypes.replace(
+            '</Types>',
+            `<Default Extension="${ext}" ContentType="${mimeType}"/></Types>`
+          );
+          zip.file('[Content_Types].xml', contentTypes);
+        }
+      }
+    }
+  }
 }
 
 // === HAUPTFUNKTION ===
 
 export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  // Template laden
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V2.docx');
+  // Template laden (Original-Template, nicht V2)
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template.docx');
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
@@ -227,6 +263,9 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
 
   // document.xml lesen
   let xml = zip.file('word/document.xml')?.asText() || '';
+
+  // Gelbe Highlights entfernen
+  xml = entferneGelbeHighlights(xml);
 
   // Daten vorbereiten
   const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
@@ -239,22 +278,21 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     kontaktZeile = `${offerte.empfaenger.anrede} ${offerte.empfaenger.vorname} ${offerte.empfaenger.nachname}`.trim();
   }
 
-  // Funktion aufteilen
-  const funktionTeile = offerte.empfaenger.funktion?.split(' ') || ['', ''];
-  const funktion1 = funktionTeile[0] || '';
-  const funktion2 = funktionTeile.slice(1).join(' ') || '';
-
   // Offertnummer parsen (Format: 51.25.405)
   const offertNrTeile = offerte.offertnummer.split('.');
   const offertNr1 = offertNrTeile[0] ? `${offertNrTeile[0]}.` : '';
+
+  // Total-Zeile Text (mit oder ohne Rabatt-Hinweis)
+  const totalZeileText = offerte.kosten.rabattProzent > 0
+    ? `Total inkl. MwSt. ${MWST_SATZ}% (inkl. Rabatt ${offerte.kosten.rabattProzent.toFixed(1)}%)`
+    : `Total inkl. MwSt. ${MWST_SATZ}%`;
 
   // === PLATZHALTER ERSETZEN ===
   const replacements: [string, string][] = [
     // Empfänger
     ['{{FIRMA}}', offerte.empfaenger.firma],
     ['{{KONTAKT_ZEILE}}', kontaktZeile],
-    ['{{FUNKTION_1}}', funktion1],
-    ['{{FUNKTION_2}}', funktion2 ? ` ${funktion2}` : ''],
+    ['{{FUNKTION}}', offerte.empfaenger.funktion || ''],
     ['{{STRASSE}}', offerte.empfaenger.strasse],
     ['{{PLZ_ORT}}', offerte.empfaenger.plzOrt],
 
@@ -269,15 +307,15 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     ['{{OFFERT_NR}}', offerte.offertnummer],
     ['{{OFFERT_NR_1}}', offertNr1],
 
-    // Projekt
+    // Projekt - Bezeichnung nicht mehr aufteilen!
     ['{{PROJEKT_ORT}}', offerte.projekt.ort],
-    ['{{PROJEKT_STRASSE}}', offerte.projekt.bezeichnung.split(' ')[0] || ''],
-    ['{{PROJEKT_REST}}', offerte.projekt.bezeichnung.split(' ').slice(1).join(' ') || ''],
+    ['{{PROJEKT_BEZEICHNUNG}}', offerte.projekt.bezeichnung],
 
-    // Anfragedatum
+    // Anfragedatum - alle Varianten
     ['{{ANFRAGE_TAG}}', anfrage.tag],
     ['{{ANFRAGE_MONAT}}', anfrage.monat],
     ['{{ANFRAGE_JAHR}}', anfrage.jahr],
+    ['{{ANFRAGE_DATUM}}', formatDatumKurz(offerte.projekt.anfrageDatum)],
 
     // Kosten
     ['{{PREIS_LEISTUNG}}', formatCHF(offerte.kosten.leistungspreis)],
@@ -287,14 +325,30 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     ['{{PREIS_TOTAL}}', formatCHF(kosten.total)],
     ['{{RABATT_ZEILE}}', `Rabatt ${offerte.kosten.rabattProzent.toFixed(1)}%`],
     ['{{RABATT_PROZENT}}', `${offerte.kosten.rabattProzent.toFixed(1)}%`],
+    ['{{TOTAL_ZEILE}}', totalZeileText],
 
     // Vorlaufzeit
     ['{{VORLAUFZEIT}}', offerte.vorlaufzeit],
+
+    // Einsatzpauschalen
+    ['{{EINSATZPAUSCHALEN}}', getEinsatzpauschaleText(offerte.einsatzpauschalen)],
+
+    // Sonstiges-Felder für Checkboxen
+    ['{{SONSTIGES_ART_BAUVORHABEN}}', offerte.checkboxen.artBauvorhaben.sonstiges || ''],
+    ['{{SONSTIGES_ART_GEBAEUDE_1}}', offerte.checkboxen.artGebaeude.sonstiges1 || ''],
+    ['{{SONSTIGES_ART_GEBAEUDE_2}}', offerte.checkboxen.artGebaeude.sonstiges2 || ''],
+    ['{{SONSTIGES_TAETIGKEITEN}}', offerte.checkboxen.taetigkeiten.sonstiges || ''],
+    ['{{SONSTIGES_KOORDINATION}}', offerte.checkboxen.koordination.sonstiges || ''],
+    ['{{SONSTIGES_ERSTAUFNAHME}}', offerte.checkboxen.erstaufnahme.sonstiges || ''],
   ];
 
   for (const [placeholder, value] of replacements) {
     xml = xml.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
   }
+
+  // Leere Zeilen entfernen
+  xml = entferneLeereFunktionZeile(xml, offerte.empfaenger);
+  xml = entferneLeereKontaktZeile(xml, offerte.empfaenger);
 
   // Checkboxen setzen
   xml = setCheckboxen(xml, offerte);
@@ -302,18 +356,11 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   // Rabatt-Zeile entfernen wenn 0%
   xml = entferneRabattZeile(xml, offerte.kosten.rabattProzent);
 
-  // XML speichern (vor Bild-Einfügung)
+  // XML speichern
   zip.file('word/document.xml', xml);
 
-  // Planbeilage einfügen
-  if (offerte.planbeilage) {
-    xml = insertPlanbeilage(zip, offerte);
-    zip.file('word/document.xml', xml);
-  } else {
-    // Platzhalter entfernen
-    xml = xml.replace(/\{\{PLANBEILAGE_BILD\}\}/g, '');
-    zip.file('word/document.xml', xml);
-  }
+  // Planbeilage ersetzen (wenn vorhanden)
+  ersetzePlanbeilage(zip, offerte);
 
   // Buffer generieren
   const buffer = zip.generate({
