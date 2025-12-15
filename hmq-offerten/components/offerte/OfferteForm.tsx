@@ -2,10 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { Offerte, createEmptyOfferte } from '@/lib/types';
+import { saveOfferte } from '@/lib/supabase';
 import Tabs from '@/components/ui/Tabs';
 import Button from '@/components/ui/Button';
 import Tab1Daten from './Tab1Daten';
 import Tab2Kosten from './Tab2Kosten';
+import AppToolbar from './AppToolbar';
+import OffertenHistorie from './OffertenHistorie';
 
 const TABS = [
   {
@@ -33,6 +36,7 @@ export default function OfferteForm() {
   const [activeTab, setActiveTab] = useState('daten');
   const [isGenerating, setIsGenerating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showHistorie, setShowHistorie] = useState(false);
 
   const validate = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
@@ -64,6 +68,10 @@ export default function OfferteForm() {
 
     setIsGenerating(true);
     try {
+      // Zuerst in Supabase speichern
+      await saveOfferte(offerte);
+
+      // Dann Word generieren
       const response = await fetch('/api/generate-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,50 +105,77 @@ export default function OfferteForm() {
     }
   };
 
+  const handleNeueOfferte = () => {
+    if (confirm('Aktuelle Änderungen verwerfen und neue Offerte beginnen?')) {
+      setOfferte(createEmptyOfferte());
+      setErrors({});
+      setActiveTab('daten');
+    }
+  };
+
+  const handleLoadOfferte = (loadedOfferte: Offerte) => {
+    setOfferte(loadedOfferte);
+    setErrors({});
+    setActiveTab('daten');
+  };
+
   return (
-    <div className="bg-white shadow-card rounded-2xl overflow-hidden">
-      <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
+    <>
+      <AppToolbar
+        onNeueOfferte={handleNeueOfferte}
+        onHistorie={() => setShowHistorie(true)}
+      />
 
-      <div className="p-6 sm:p-8">
-        <div className="animate-in fade-in duration-200">
-          {activeTab === 'daten' && <Tab1Daten offerte={offerte} onChange={setOfferte} errors={errors} />}
-          {activeTab === 'kosten' && <Tab2Kosten offerte={offerte} onChange={setOfferte} errors={errors} />}
-        </div>
+      <div className="bg-white shadow-card rounded-2xl overflow-hidden">
+        <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
 
-        <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <Button variant="ghost" onClick={handleReset}>
-            Zurücksetzen
-          </Button>
+        <div className="p-6 sm:p-8">
+          <div className="animate-in fade-in duration-200">
+            {activeTab === 'daten' && <Tab1Daten offerte={offerte} onChange={setOfferte} errors={errors} />}
+            {activeTab === 'kosten' && <Tab2Kosten offerte={offerte} onChange={setOfferte} errors={errors} />}
+          </div>
 
-          <div className="flex gap-3">
-            {activeTab === 'daten' && (
+          <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <Button variant="ghost" onClick={handleReset}>
+              Zurücksetzen
+            </Button>
+
+            <div className="flex gap-3">
+              {activeTab === 'daten' && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setActiveTab('kosten')}
+                  rightIcon={
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  }
+                >
+                  Weiter zu Kosten
+                </Button>
+              )}
               <Button
-                variant="secondary"
-                onClick={() => setActiveTab('kosten')}
-                rightIcon={
+                variant="primary"
+                onClick={handleGenerate}
+                isLoading={isGenerating}
+                leftIcon={
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 }
               >
-                Weiter zu Kosten
+                Word-Offerte generieren
               </Button>
-            )}
-            <Button
-              variant="primary"
-              onClick={handleGenerate}
-              isLoading={isGenerating}
-              leftIcon={
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              }
-            >
-              Word-Offerte generieren
-            </Button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <OffertenHistorie
+        isOpen={showHistorie}
+        onClose={() => setShowHistorie(false)}
+        onLoad={handleLoadOfferte}
+      />
+    </>
   );
 }
