@@ -5,6 +5,7 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import CheckboxGruppe from './CheckboxGruppe';
 import PlanUpload from './PlanUpload';
+import FolderImport from './FolderImport';
 
 interface Tab1DatenProps {
   offerte: Offerte;
@@ -32,6 +33,12 @@ export default function Tab1Daten({ offerte, onChange, errors }: Tab1DatenProps)
 
   return (
     <div className="space-y-8">
+      {/* Ordner-Import */}
+      <section>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Schnell-Import</h3>
+        <FolderImport offerte={offerte} onChange={onChange} />
+      </section>
+
       {/* Basis-Daten */}
       <section>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Offert-Grunddaten</h3>
