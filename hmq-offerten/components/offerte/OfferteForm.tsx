@@ -19,7 +19,8 @@ export default function OfferteForm() {
     if (!offerte.offertnummer.trim()) newErrors.offertnummer = 'Offertnummer ist erforderlich';
     if (!offerte.empfaenger.firma.trim()) newErrors['empfaenger.firma'] = 'Firma ist erforderlich';
     if (!offerte.empfaenger.strasse.trim()) newErrors['empfaenger.strasse'] = 'Strasse ist erforderlich';
-    if (!offerte.empfaenger.plzOrt.trim()) newErrors['empfaenger.plzOrt'] = 'PLZ/Ort ist erforderlich';
+    if (!offerte.empfaenger.plz.trim()) newErrors['empfaenger.plz'] = 'PLZ ist erforderlich';
+    if (!offerte.empfaenger.ort.trim()) newErrors['empfaenger.ort'] = 'Ort ist erforderlich';
     if (!offerte.projekt.ort.trim()) newErrors['projekt.ort'] = 'Projektort ist erforderlich';
     if (!offerte.projekt.bezeichnung.trim()) newErrors['projekt.bezeichnung'] = 'Projektbezeichnung ist erforderlich';
     if (offerte.kosten.leistungspreis <= 0) newErrors['kosten.leistungspreis'] = 'Leistungspreis muss grösser als 0 sein';
