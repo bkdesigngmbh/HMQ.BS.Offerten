@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@kenjiuno/msgreader": "^1.27.1-alpha.1",
+    "@supabase/supabase-js": "^2.87.1",
     "@xmldom/xmldom": "^0.9.8",
     "docx": "^9.5.1",
     "docxtemplater": "^3.67.6",
