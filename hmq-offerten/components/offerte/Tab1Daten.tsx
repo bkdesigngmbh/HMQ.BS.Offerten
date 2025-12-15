@@ -89,30 +89,55 @@ export default function Tab1Daten({ offerte, onChange, errors }: Tab1DatenProps)
       <section>
         <h2 className="text-lg font-semibold mb-4 text-gray-800">Empfänger</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <Input
+              label="Firma"
+              placeholder="z.B. Müller Bau AG"
+              value={offerte.empfaenger.firma}
+              onChange={(e) => updateEmpfaenger('firma', e.target.value)}
+              error={errors['empfaenger.firma']}
+              required
+            />
+          </div>
+
           <Select
-            label="Anrede"
+            label="Anrede Kontaktperson"
             value={offerte.empfaenger.anrede}
             onChange={(e) => updateEmpfaenger('anrede', e.target.value)}
             options={[
+              { value: '', label: '— Keine Kontaktperson —' },
               { value: 'Herr', label: 'Herr' },
               { value: 'Frau', label: 'Frau' },
-              { value: 'Firma', label: 'Firma' },
             ]}
           />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Vorname"
+              placeholder="Max"
+              value={offerte.empfaenger.vorname}
+              onChange={(e) => updateEmpfaenger('vorname', e.target.value)}
+              disabled={!offerte.empfaenger.anrede}
+            />
+            <Input
+              label="Nachname"
+              placeholder="Mustermann"
+              value={offerte.empfaenger.nachname}
+              onChange={(e) => updateEmpfaenger('nachname', e.target.value)}
+              disabled={!offerte.empfaenger.anrede}
+            />
+          </div>
+
           <Input
-            label="Name / Firma"
-            value={offerte.empfaenger.name}
-            onChange={(e) => updateEmpfaenger('name', e.target.value)}
-            error={errors['empfaenger.name']}
-            required
-          />
-          <Input
-            label="Zusatz (Titel, Funktion)"
+            label="Funktion / Titel"
             placeholder="z.B. dipl. Ingenieur ETH/SIA"
-            value={offerte.empfaenger.zusatz}
-            onChange={(e) => updateEmpfaenger('zusatz', e.target.value)}
+            value={offerte.empfaenger.funktion}
+            onChange={(e) => updateEmpfaenger('funktion', e.target.value)}
+            disabled={!offerte.empfaenger.anrede}
           />
+
           <div></div>
+
           <Input
             label="Strasse, Nr."
             value={offerte.empfaenger.strasse}

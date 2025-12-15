@@ -17,7 +17,7 @@ export default function OfferteForm() {
     const newErrors: Record<string, string> = {};
 
     if (!offerte.offertnummer.trim()) newErrors.offertnummer = 'Offertnummer ist erforderlich';
-    if (!offerte.empfaenger.name.trim()) newErrors['empfaenger.name'] = 'Name ist erforderlich';
+    if (!offerte.empfaenger.firma.trim()) newErrors['empfaenger.firma'] = 'Firma ist erforderlich';
     if (!offerte.empfaenger.strasse.trim()) newErrors['empfaenger.strasse'] = 'Strasse ist erforderlich';
     if (!offerte.empfaenger.plzOrt.trim()) newErrors['empfaenger.plzOrt'] = 'PLZ/Ort ist erforderlich';
     if (!offerte.projekt.ort.trim()) newErrors['projekt.ort'] = 'Projektort ist erforderlich';
