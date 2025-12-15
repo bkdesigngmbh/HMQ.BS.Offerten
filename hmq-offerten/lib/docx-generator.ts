@@ -3,6 +3,7 @@ import Docxtemplater from 'docxtemplater';
 import { Offerte } from './types';
 import fs from 'fs';
 import path from 'path';
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 
 // Stammdaten
 const STANDORTE: Record<string, { ort: string }> = {
@@ -167,4 +168,176 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   });
 
   return buf;
+}
+
+// Checkbox im XML setzen
+function setCheckboxInXml(xmlContent: string, checkboxIndex: number, checked: boolean): string {
+  // Checkbox-Symbol: ☐ (unchecked) oder ☒ (checked)
+  const uncheckedSymbol = '☐';
+  const checkedSymbol = '☒';
+
+  // Finde alle w14:checkbox Elemente
+  const checkboxPattern = /<w14:checkbox>[\s\S]*?<\/w14:checkbox>/g;
+  const matches = xmlContent.match(checkboxPattern);
+
+  if (matches && matches[checkboxIndex]) {
+    const originalCheckbox = matches[checkboxIndex];
+    let newCheckbox = originalCheckbox;
+
+    if (checked) {
+      // Setze w14:checked auf 1
+      newCheckbox = newCheckbox.replace(
+        /<w14:checked w14:val="0"\/>/,
+        '<w14:checked w14:val="1"/>'
+      );
+      // Falls kein checked Element existiert, füge es hinzu
+      if (!newCheckbox.includes('w14:checked')) {
+        newCheckbox = newCheckbox.replace(
+          '<w14:checkbox>',
+          '<w14:checkbox><w14:checked w14:val="1"/>'
+        );
+      }
+    } else {
+      newCheckbox = newCheckbox.replace(
+        /<w14:checked w14:val="1"\/>/,
+        '<w14:checked w14:val="0"/>'
+      );
+    }
+
+    xmlContent = xmlContent.replace(originalCheckbox, newCheckbox);
+  }
+
+  // Auch das Symbol im Text ersetzen
+  let symbolCount = 0;
+  xmlContent = xmlContent.replace(new RegExp(uncheckedSymbol, 'g'), (match) => {
+    if (symbolCount === checkboxIndex) {
+      symbolCount++;
+      return checked ? checkedSymbol : uncheckedSymbol;
+    }
+    symbolCount++;
+    return match;
+  });
+
+  return xmlContent;
+}
+
+// Erweiterte Generierung mit Checkbox-Support
+export async function generateOfferteFromTemplateWithCheckboxes(offerte: Offerte): Promise<Buffer> {
+  // Erst normale Platzhalter ersetzen
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template.docx');
+  const templateContent = fs.readFileSync(templatePath);
+
+  const zip = new PizZip(templateContent);
+
+  // document.xml lesen
+  let documentXml = zip.file('word/document.xml')?.asText() || '';
+
+  // Platzhalter ersetzen (wie oben)
+  const kosten = berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
+  const offertNr = parseOffertnummer(offerte.offertnummer);
+  const anfrage = parseAnfrageDatum(offerte.projekt.anfrageDatum);
+  const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
+
+  const empfaengerZeile1 = offerte.empfaenger.anrede
+    ? `${offerte.empfaenger.anrede} ${offerte.empfaenger.name}`
+    : offerte.empfaenger.name;
+
+  const replacements: [string, string][] = [
+    ['{{EMPFAENGER_ANREDE_NAME}}', empfaengerZeile1],
+    ['{{EMPFAENGER_ZUSATZ_1}}', offerte.empfaenger.zusatz?.split(' ')[0] || ''],
+    ['{{EMPFAENGER_ZUSATZ_2}}', offerte.empfaenger.zusatz ? ' ' + offerte.empfaenger.zusatz.split(' ').slice(1).join(' ') : ''],
+    ['{{EMPFAENGER_STRASSE}}', offerte.empfaenger.strasse],
+    ['{{EMPFAENGER_PLZORT}}', offerte.empfaenger.plzOrt],
+    ['{{STANDORT_ORT}}', standort.ort],
+    ['{{DATUM}}', formatDatumKurz(offerte.datum)],
+    ['{{OFFERT_NR_1}}', offertNr.nr1],
+    ['{{OFFERT_NR_2}}', offertNr.nr2],
+    ['{{OFFERT_NR_3}}', offertNr.nr3],
+    ['{{OFFERT_NR_4}}', offertNr.nr4 || ''],
+    ['{{PROJEKT_ORT}}', offerte.projekt.ort],
+    ['{{PROJEKT_STRASSE}}', ''],
+    ['{{PROJEKT_BEZEICHNUNG}}', offerte.projekt.bezeichnung],
+    ['{{ANFRAGE_TAG}}', anfrage.tag],
+    ['{{ANFRAGE_MONAT}}', anfrage.monat],
+    ['{{ANFRAGE_JAHR}}', anfrage.jahr],
+    ['{{PREIS_LEISTUNG}}', formatCHF(offerte.kosten.leistungspreis)],
+    ['{{PREIS_RABATT_BETRAG}}', '-' + formatCHF(kosten.rabattBetrag)],
+    ['{{PREIS_ZWISCHEN}}', formatCHF(kosten.zwischentotal)],
+    ['{{PREIS_MWST}}', formatCHF(kosten.mwstBetrag)],
+    ['{{PREIS_TOTAL}}', formatCHF(kosten.total)],
+    ['{{RABATT_PROZENT}}', offerte.kosten.rabattProzent.toFixed(1) + '%'],
+    ['{{VORLAUFZEIT}}', offerte.vorlaufzeit],
+  ];
+
+  for (const [placeholder, value] of replacements) {
+    documentXml = documentXml.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
+  }
+
+  // Checkboxen setzen (Index-basiert)
+  const checkboxMapping: [number, boolean][] = [
+    // 1.1 Art des Bauvorhabens
+    [0, offerte.checkboxen.artBauvorhaben.neubau],
+    [1, offerte.checkboxen.artBauvorhaben.umbau],
+    [2, offerte.checkboxen.artBauvorhaben.rueckbau],
+    [3, !!offerte.checkboxen.artBauvorhaben.sonstiges],
+
+    // Art des Gebäudes
+    [4, offerte.checkboxen.artGebaeude.efhFreistehend],
+    [5, offerte.checkboxen.artGebaeude.reihenhaus],
+    [6, offerte.checkboxen.artGebaeude.terrassenhaus],
+    [7, offerte.checkboxen.artGebaeude.mfh],
+    [8, offerte.checkboxen.artGebaeude.strassen],
+    [9, offerte.checkboxen.artGebaeude.kunstbauten],
+    [10, !!offerte.checkboxen.artGebaeude.sonstiges1],
+    [11, !!offerte.checkboxen.artGebaeude.sonstiges2],
+
+    // 1.2 Tätigkeiten
+    [12, offerte.checkboxen.taetigkeiten.aushub],
+    [13, offerte.checkboxen.taetigkeiten.rammarbeiten],
+    [14, offerte.checkboxen.taetigkeiten.mikropfaehle],
+    [15, offerte.checkboxen.taetigkeiten.baustellenverkehr],
+    [16, offerte.checkboxen.taetigkeiten.schwereMaschinen],
+    [17, offerte.checkboxen.taetigkeiten.sprengungen],
+    [18, offerte.checkboxen.taetigkeiten.diverses],
+    [19, !!offerte.checkboxen.taetigkeiten.sonstiges],
+
+    // 2.1 Koordination
+    [20, offerte.checkboxen.koordination.schriftlicheInfo],
+    [21, offerte.checkboxen.koordination.terminvereinbarung],
+    [22, offerte.checkboxen.koordination.durchAuftraggeber],
+    [23, !!offerte.checkboxen.koordination.sonstiges],
+
+    // 2.2 Erstaufnahme
+    [24, offerte.checkboxen.erstaufnahme.fassaden],
+    [25, offerte.checkboxen.erstaufnahme.strassen],
+    [26, offerte.checkboxen.erstaufnahme.strassenBelag],
+    [27, offerte.checkboxen.erstaufnahme.strassenRand],
+    [28, offerte.checkboxen.erstaufnahme.innenraeume],
+    [29, offerte.checkboxen.erstaufnahme.aussenanlagen],
+    [30, !!offerte.checkboxen.erstaufnahme.sonstiges],
+
+    // 2.3 Dokumentation
+    [31, offerte.checkboxen.dokumentation.rissprotokoll],
+    [32, offerte.checkboxen.dokumentation.fotoAussen],
+    [33, offerte.checkboxen.dokumentation.fotoInnen],
+    [34, offerte.checkboxen.dokumentation.fotoStrasse],
+    [35, offerte.checkboxen.dokumentation.zustellbestaetigung],
+    [36, offerte.checkboxen.dokumentation.datenabgabe],
+  ];
+
+  // Checkboxen im XML setzen
+  for (const [index, checked] of checkboxMapping) {
+    documentXml = setCheckboxInXml(documentXml, index, checked);
+  }
+
+  // Aktualisierte document.xml speichern
+  zip.file('word/document.xml', documentXml);
+
+  // Buffer generieren
+  const buf = zip.generate({
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+  });
+
+  return Buffer.from(buf);
 }

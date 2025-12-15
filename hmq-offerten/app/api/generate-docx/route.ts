@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateOfferteFromTemplate } from '@/lib/docx-generator';
+import { generateOfferteFromTemplateWithCheckboxes } from '@/lib/docx-generator';
 
 export async function POST(request: Request) {
   try {
@@ -10,8 +10,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Pflichtfelder fehlen' }, { status: 400 });
     }
 
-    // Word generieren
-    const buffer = await generateOfferteFromTemplate(offerte);
+    // Word generieren mit Checkbox-Support
+    const buffer = await generateOfferteFromTemplateWithCheckboxes(offerte);
 
     // Als Download zurückgeben (Buffer zu Uint8Array konvertieren für Next.js 16)
     return new NextResponse(new Uint8Array(buffer), {
