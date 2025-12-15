@@ -10,10 +10,10 @@ import FolderImport from './FolderImport';
 interface Tab1DatenProps {
   offerte: Offerte;
   onChange: (offerte: Offerte) => void;
-  errors: Record<string, string>;
+  errors?: Record<string, string>;
 }
 
-export default function Tab1Daten({ offerte, onChange, errors }: Tab1DatenProps) {
+export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenProps) {
   const updateField = (path: string, value: any) => {
     const keys = path.split('.');
     const newOfferte = JSON.parse(JSON.stringify(offerte));

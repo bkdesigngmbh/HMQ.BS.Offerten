@@ -153,10 +153,10 @@ export async function updateBasiswerte(basiswerte: Partial<KostenBasiswerte>): P
 
 // --- OFFERTEN HISTORIE ---
 
-export async function getOffertenListe(): Promise<Pick<OfferteHistorie, 'id' | 'offertnummer' | 'projekt_ort' | 'projekt_bezeichnung' | 'updated_at'>[]> {
+export async function getOffertenListe(): Promise<Pick<OfferteHistorie, 'id' | 'offertnummer' | 'projekt_ort' | 'projekt_bezeichnung' | 'empfaenger_firma' | 'updated_at'>[]> {
   const { data, error } = await getSupabase()
     .from('offerten_historie')
-    .select('id, offertnummer, projekt_ort, projekt_bezeichnung, updated_at')
+    .select('id, offertnummer, projekt_ort, projekt_bezeichnung, empfaenger_firma, updated_at')
     .order('updated_at', { ascending: false });
 
   if (error) throw error;
