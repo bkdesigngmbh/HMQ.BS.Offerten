@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateOfferte } from '@/lib/docx-generator';
+import { generateOfferteFromTemplateWithCheckboxes } from '@/lib/docx-template-generator';
 
 export async function POST(request: Request) {
   try {
@@ -11,9 +11,9 @@ export async function POST(request: Request) {
     }
 
     // Word generieren
-    const buffer = await generateOfferte(offerte);
+    const buffer = await generateOfferteFromTemplateWithCheckboxes(offerte);
 
-    // Als Download zurückgeben (Buffer zu Uint8Array konvertieren für Next.js 16)
+    // Als Download zurückgeben (Buffer zu Uint8Array für Next.js 16)
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
