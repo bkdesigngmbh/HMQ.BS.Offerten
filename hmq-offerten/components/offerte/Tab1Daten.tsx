@@ -408,6 +408,8 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
         <PlanUpload
           value={offerte.planbeilage}
           onChange={(planbeilage) => onChange({ ...offerte, planbeilage })}
+          gisLink={offerte.planbeilageGisLink || ''}
+          onGisLinkChange={(link) => onChange({ ...offerte, planbeilageGisLink: link })}
         />
       </div>
     </div>

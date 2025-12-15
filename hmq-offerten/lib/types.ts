@@ -41,6 +41,8 @@ export interface Planbeilage {
   dateiname: string;
   base64: string;
   mimeType: 'image/png' | 'image/jpeg';
+  width?: number;  // Original-Breite in Pixeln
+  height?: number; // Original-Höhe in Pixeln
 }
 
 export interface CheckboxenArtBauvorhaben {
@@ -148,6 +150,7 @@ export interface Offerte {
   einsatzpauschalen: number;
   checkboxen: Checkboxen;
   planbeilage: Planbeilage | null;
+  planbeilageGisLink?: string; // GIS-Link (optional, wird nicht ins Word eingefügt)
 }
 
 export function createEmptyOfferte(): Offerte {
@@ -200,5 +203,6 @@ export function createEmptyOfferte(): Offerte {
       dokumentation: { rissprotokoll: true, fotoAussen: true, fotoInnen: true, fotoStrasse: true, zustellbestaetigung: true, datenabgabe: true },
     },
     planbeilage: null,
+    planbeilageGisLink: '',
   };
 }
