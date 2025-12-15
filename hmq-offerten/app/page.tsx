@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Offerte, createEmptyOfferte } from '@/lib/types';
 import { saveOfferte, getOffertenListe, getOfferte, deleteOfferte } from '@/lib/supabase';
 import AppLayout from '@/components/layout/AppLayout';
@@ -8,7 +8,6 @@ import Tabs from '@/components/ui/Tabs';
 import Button from '@/components/ui/Button';
 import Tab1Daten from '@/components/offerte/Tab1Daten';
 import Tab2Kosten from '@/components/offerte/Tab2Kosten';
-import { useEffect } from 'react';
 
 interface OfferteListItem {
   id: string;
@@ -45,15 +44,11 @@ export default function HomePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Sidebar state
+  // Offerten modal state
+  const [showOffertenModal, setShowOffertenModal] = useState(false);
   const [offerten, setOfferten] = useState<OfferteListItem[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-
-  // Load history on mount
-  useEffect(() => {
-    loadOfferten();
-  }, []);
 
   async function loadOfferten() {
     try {
@@ -75,6 +70,7 @@ export default function HomePage() {
         setOfferte(data.offerte_data as Offerte);
         setErrors({});
         setActiveTab('daten');
+        setShowOffertenModal(false);
       }
     } catch (err) {
       console.error('Fehler beim Laden:', err);
@@ -124,7 +120,6 @@ export default function HomePage() {
     setIsGenerating(true);
     try {
       await saveOfferte(offerte);
-      await loadOfferten(); // Refresh history
 
       const response = await fetch('/api/generate-docx', {
         method: 'POST',
@@ -159,6 +154,11 @@ export default function HomePage() {
     }
   };
 
+  const handleOpenOfferten = () => {
+    loadOfferten();
+    setShowOffertenModal(true);
+  };
+
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr);
     return date.toLocaleDateString('de-CH', {
@@ -168,89 +168,20 @@ export default function HomePage() {
     });
   }
 
-  // Sidebar component
-  const sidebar = (
-    <div className="space-y-4">
-      {/* New Quote Button */}
-      <button
-        onClick={handleReset}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-[#1e3a5f] hover:bg-[#2a4a6f] rounded-lg transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        Neue Offerte
-      </button>
-
-      {/* History Section */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-900">Letzte Offerten</h3>
-        </div>
-
-        <div className="max-h-[400px] overflow-y-auto">
-          {loadingHistory ? (
-            <div className="p-4 text-center text-sm text-gray-500">Laden...</div>
-          ) : offerten.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-500">Keine Offerten vorhanden</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {offerten.slice(0, 10).map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3 hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <button
-                        onClick={() => handleLoadOfferte(item.offertnummer)}
-                        disabled={loadingId === item.offertnummer}
-                        className="text-sm font-medium text-[#1e3a5f] hover:underline text-left"
-                      >
-                        {loadingId === item.offertnummer ? 'Laden...' : item.offertnummer}
-                      </button>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
-                        {item.projekt_ort || item.projekt_bezeichnung || '-'}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {formatDate(item.updated_at)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteOfferte(item.offertnummer)}
-                      className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Löschen"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Info */}
-      <div className="bg-blue-50 rounded-xl p-4">
-        <h4 className="text-sm font-medium text-[#1e3a5f] mb-2">Schnellhilfe</h4>
-        <ul className="text-xs text-gray-600 space-y-1">
-          <li>• Ordnerstruktur per Drag & Drop importieren</li>
-          <li>• Alle Felder mit * sind Pflichtfelder</li>
-          <li>• Kosten werden automatisch berechnet</li>
-        </ul>
-      </div>
-    </div>
-  );
-
   return (
     <AppLayout
-      sidebar={sidebar}
-      title="Offerte erstellen"
-      subtitle="Füllen Sie die Angaben aus und generieren Sie eine professionelle Word-Offerte."
+      onOffertenClick={handleOpenOfferten}
+      showNeueOfferte={offerte.offertnummer !== ''}
+      onNeueOfferteClick={handleReset}
+      currentOffertnummer={offerte.offertnummer || undefined}
     >
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Offerte erstellen</h1>
+        <p className="mt-1 text-gray-500">Füllen Sie die Angaben aus und generieren Sie eine professionelle Word-Offerte.</p>
+      </div>
+
+      {/* Main Form Card */}
       <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
         <Tabs tabs={TABS} activeId={activeTab} onChange={setActiveTab} />
 
@@ -295,6 +226,69 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Offerten Modal */}
+      {showOffertenModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowOffertenModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Gespeicherte Offerten</h2>
+              <button
+                onClick={() => setShowOffertenModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto">
+              {loadingHistory ? (
+                <div className="p-8 text-center text-gray-500">Laden...</div>
+              ) : offerten.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">Keine Offerten vorhanden</div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {offerten.map((item) => (
+                    <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors group">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <button
+                            onClick={() => handleLoadOfferte(item.offertnummer)}
+                            disabled={loadingId === item.offertnummer}
+                            className="text-base font-medium text-[#1e3a5f] hover:underline text-left"
+                          >
+                            {loadingId === item.offertnummer ? 'Laden...' : item.offertnummer}
+                          </button>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {item.projekt_ort && <span>{item.projekt_ort}</span>}
+                            {item.projekt_ort && item.projekt_bezeichnung && <span> — </span>}
+                            {item.projekt_bezeichnung && <span>{item.projekt_bezeichnung}</span>}
+                            {!item.projekt_ort && !item.projekt_bezeichnung && <span className="text-gray-400">Kein Projekt</span>}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Zuletzt geändert: {formatDate(item.updated_at)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteOfferte(item.offertnummer)}
+                          className="p-2 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-red-50"
+                          title="Löschen"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
