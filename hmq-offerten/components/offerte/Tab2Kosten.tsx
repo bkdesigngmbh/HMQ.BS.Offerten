@@ -7,12 +7,11 @@ import { berechneKosten, KostenErgebnis, rundeAuf5Rappen } from '@/lib/kosten-re
 
 interface Tab2KostenProps {
   offerte: Offerte;
- interface Tab2KostenProps {
-  offerte: Offerte;
   onChange: (offerte: Offerte) => void;
   errors?: Record<string, string>;
 }
-export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
+
+export default function Tab2Kosten({ offerte, onChange, errors }: Tab2KostenProps) {
   const [kategorienConfig, setKategorienConfig] = useState<KostenKategorie[]>([]);
   const [basiswerte, setBasiswerte] = useState<KostenBasiswerte | null>(null);
   const [loading, setLoading] = useState(true);
