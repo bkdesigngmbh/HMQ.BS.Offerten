@@ -24,6 +24,7 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
 
     let folderName = '';
     let mailContent = '';
+    let mailDatum = ''; // Datum aus MSG
 
     // Verarbeite die Dateien
     const fileList = items instanceof FileList ? items : null;
@@ -47,7 +48,9 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
         // MSG-Datei suchen
         if (file.name.endsWith('.msg')) {
           const arrayBuffer = await file.arrayBuffer();
-          mailContent = await parseMsgFile(arrayBuffer);
+          const msgData = await parseMsgFile(arrayBuffer);
+          mailContent = msgData.body;
+          mailDatum = msgData.datum;
         }
       }
     } else {
@@ -73,13 +76,17 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
       // Rekursiv nach EML oder MSG suchen
       for (const entry of entries) {
         if (entry.isDirectory) {
-          mailContent = await findMailInDirectory(entry as FileSystemDirectoryEntry);
+          const result = await findMailInDirectory(entry as FileSystemDirectoryEntry);
+          mailContent = result.content;
+          mailDatum = result.datum;
           if (mailContent) break;
         } else if (entry.name.endsWith('.eml')) {
           mailContent = await readFileEntry(entry as FileSystemFileEntry);
         } else if (entry.name.endsWith('.msg')) {
           const arrayBuffer = await readFileEntryAsArrayBuffer(entry as FileSystemFileEntry);
-          mailContent = await parseMsgFile(arrayBuffer);
+          const msgData = await parseMsgFile(arrayBuffer);
+          mailContent = msgData.body;
+          mailDatum = msgData.datum;
         }
       }
     }
@@ -131,11 +138,12 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
         changes.push('Empfänger');
       }
 
-      // Anfragedatum aus Mail (Datum der Zustellung)
-      if (mailData.datum) {
+      // Anfragedatum: Priorität MSG-Datum, dann EML-Header-Datum
+      const anfrageDatum = mailDatum || mailData.datum;
+      if (anfrageDatum) {
         updatedOfferte.projekt = {
           ...updatedOfferte.projekt,
-          anfrageDatum: mailData.datum,
+          anfrageDatum: anfrageDatum,
         };
         changes.push('Anfragedatum');
       }
@@ -239,7 +247,7 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
 
 // Hilfsfunktionen für FileSystem API
 
-async function findMailInDirectory(dirEntry: FileSystemDirectoryEntry): Promise<string> {
+async function findMailInDirectory(dirEntry: FileSystemDirectoryEntry): Promise<{ content: string; datum: string }> {
   return new Promise((resolve) => {
     const reader = dirEntry.createReader();
 
@@ -248,28 +256,28 @@ async function findMailInDirectory(dirEntry: FileSystemDirectoryEntry): Promise<
         // EML-Datei
         if (entry.isFile && entry.name.endsWith('.eml')) {
           const content = await readFileEntry(entry as FileSystemFileEntry);
-          resolve(content);
+          resolve({ content, datum: '' }); // Datum wird aus EML-Header extrahiert
           return;
         }
 
         // MSG-Datei
         if (entry.isFile && entry.name.endsWith('.msg')) {
           const arrayBuffer = await readFileEntryAsArrayBuffer(entry as FileSystemFileEntry);
-          const content = await parseMsgFile(arrayBuffer);
-          resolve(content);
+          const msgData = await parseMsgFile(arrayBuffer);
+          resolve({ content: msgData.body, datum: msgData.datum });
           return;
         }
 
         if (entry.isDirectory) {
           // Rekursiv suchen (auch in "99 Offerte Unterlagen")
-          const content = await findMailInDirectory(entry as FileSystemDirectoryEntry);
-          if (content) {
-            resolve(content);
+          const result = await findMailInDirectory(entry as FileSystemDirectoryEntry);
+          if (result.content) {
+            resolve(result);
             return;
           }
         }
       }
-      resolve('');
+      resolve({ content: '', datum: '' });
     });
   });
 }

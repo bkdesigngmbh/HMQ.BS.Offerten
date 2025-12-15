@@ -60,9 +60,9 @@ export function parseFolderName(folderName: string): ParsedFolderData {
 }
 
 /**
- * Parst eine MSG-Datei (Outlook-Format) und extrahiert den Body
+ * Parst eine MSG-Datei (Outlook-Format) und extrahiert Body + Datum
  */
-export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<string> {
+export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<{ body: string; datum: string }> {
   // Dynamischer Import für Client-Side
   const MsgReader = (await import('@kenjiuno/msgreader')).default;
 
@@ -77,7 +77,46 @@ export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<string> {
     body = fileData.bodyHtml;
   }
 
-  return body;
+  // Datum extrahieren (verschiedene mögliche Felder)
+  let datum = '';
+
+  // messageDeliveryTime ist das Zustelldatum
+  if ((fileData as any).messageDeliveryTime) {
+    try {
+      const d = new Date((fileData as any).messageDeliveryTime);
+      if (!isNaN(d.getTime())) {
+        datum = d.toISOString().split('T')[0]; // YYYY-MM-DD
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // Fallback: clientSubmitTime (Sendedatum)
+  if (!datum && (fileData as any).clientSubmitTime) {
+    try {
+      const d = new Date((fileData as any).clientSubmitTime);
+      if (!isNaN(d.getTime())) {
+        datum = d.toISOString().split('T')[0];
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // Fallback: creationTime
+  if (!datum && (fileData as any).creationTime) {
+    try {
+      const d = new Date((fileData as any).creationTime);
+      if (!isNaN(d.getTime())) {
+        datum = d.toISOString().split('T')[0];
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return { body, datum };
 }
 
 /**
