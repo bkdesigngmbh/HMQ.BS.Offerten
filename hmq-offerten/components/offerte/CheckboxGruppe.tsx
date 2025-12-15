@@ -25,13 +25,15 @@ export default function CheckboxGruppe({
   onSonstigesChange,
 }: CheckboxGruppeProps) {
   return (
-    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-      <h3 className="font-semibold text-gray-800 mb-1">{titel}</h3>
-      {untertitel && (
-        <p className="text-sm text-gray-500 mb-3">{untertitel}</p>
-      )}
+    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-5 space-y-4">
+      <div>
+        <h4 className="font-medium text-gray-900">{titel}</h4>
+        {untertitel && (
+          <p className="text-sm text-gray-500 mt-0.5">{untertitel}</p>
+        )}
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {checkboxen.map((item) => (
           <Checkbox
             key={item.key}
@@ -43,17 +45,18 @@ export default function CheckboxGruppe({
       </div>
 
       {sonstigesItems.length > 0 && (
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-          {sonstigesItems.map((item) => (
-            <Input
-              key={item.key}
-              label=""
-              placeholder={item.placeholder || 'Sonstiges...'}
-              value={item.value}
-              onChange={(e) => onSonstigesChange?.(item.key, e.target.value)}
-              className="text-sm"
-            />
-          ))}
+        <div className="pt-2 border-t border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {sonstigesItems.map((item) => (
+              <Input
+                key={item.key}
+                label="Sonstiges"
+                placeholder={item.placeholder || 'Eingabe...'}
+                value={item.value}
+                onChange={(e) => onSonstigesChange?.(item.key, e.target.value)}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
