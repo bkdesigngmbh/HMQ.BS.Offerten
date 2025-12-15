@@ -245,21 +245,31 @@ export default function AdminPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Faktoren</label>
                       <div className="grid grid-cols-3 gap-3">
-                        {['grundlagen', 'termin', 'aufnahme', 'bericht', 'kontrolle', 'abschluss'].map((f) => (
-                          <div key={f}>
-                            <label className="block text-xs text-gray-500 mb-1 capitalize">{f}</label>
-                            <input
-                              type="number"
-                              step="0.1"
-                              value={(editingKat as any)[`faktor_${f}`] ?? 1}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                setEditingKat({ ...editingKat, [`faktor_${f}`]: isNaN(val) ? 1 : val });
-                              }}
-                              className={inputClass}
-                            />
-                          </div>
-                        ))}
+                        {['grundlagen', 'termin', 'aufnahme', 'bericht', 'kontrolle', 'abschluss'].map((f) => {
+                          const faktorValue = (editingKat as any)[`faktor_${f}`];
+                          const displayValue = Number.isFinite(faktorValue) ? faktorValue : 1;
+                          return (
+                            <div key={f}>
+                              <label className="block text-xs text-gray-500 mb-1 capitalize">{f}</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={displayValue}
+                                onChange={(e) => {
+                                  const inputVal = e.target.value;
+                                  // Leeres Feld erlauben während Eingabe, aber als 1 speichern
+                                  if (inputVal === '') {
+                                    setEditingKat({ ...editingKat, [`faktor_${f}`]: 1 });
+                                    return;
+                                  }
+                                  const val = parseFloat(inputVal);
+                                  setEditingKat({ ...editingKat, [`faktor_${f}`]: Number.isFinite(val) ? val : 1 });
+                                }}
+                                className={inputClass}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                     <div className="flex gap-3 pt-4">
