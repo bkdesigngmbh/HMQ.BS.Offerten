@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "docx": "^9.5.1",
+    "docxtemplater": "^3.67.6",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "next": "16.0.10",
+    "pizzip": "^3.2.0",
     "react": "19.2.1",
     "react-dom": "19.2.1"
   },
