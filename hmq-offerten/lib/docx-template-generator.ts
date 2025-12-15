@@ -5,7 +5,7 @@ import path from 'path';
 
 const MWST_SATZ = 8.1;
 
-// HMQ Standorte mit Absender-Adresse
+// HMQ Standorte
 const STANDORTE: Record<string, { name: string; adresse: string }> = {
   zh: {
     name: 'Zürich-Opfikon',
@@ -33,11 +33,16 @@ function formatCHF(amount: number): string {
   return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, "'");
 }
 
+// 5-Rappen-Rundung (Schweizer Standard)
+function rundeAuf5Rappen(betrag: number): number {
+  return Math.round(betrag * 20) / 20;
+}
+
 function berechneKosten(leistungspreis: number, rabattProzent: number) {
-  const rabattBetrag = leistungspreis * (rabattProzent / 100);
-  const zwischentotal = leistungspreis - rabattBetrag;
-  const mwstBetrag = zwischentotal * (MWST_SATZ / 100);
-  const total = zwischentotal + mwstBetrag;
+  const rabattBetrag = rundeAuf5Rappen(leistungspreis * (rabattProzent / 100));
+  const zwischentotal = rundeAuf5Rappen(leistungspreis - rabattBetrag);
+  const mwstBetrag = rundeAuf5Rappen(zwischentotal * (MWST_SATZ / 100));
+  const total = rundeAuf5Rappen(zwischentotal + mwstBetrag);
   return { rabattBetrag, zwischentotal, mwstBetrag, total };
 }
 
@@ -61,7 +66,6 @@ function formatAnfrageDatum(isoDate: string): { tag: string; monat: string; jahr
   };
 }
 
-// Offertnummer aufteilen: "51.25.405" -> { a: "51.", b: "2", c: "5", d: ".405" }
 function parseOffertnummer(nr: string): { a: string; b: string; c: string; d: string } {
   const parts = nr.split('.');
   if (parts.length >= 3) {
@@ -73,17 +77,15 @@ function parseOffertnummer(nr: string): { a: string; b: string; c: string; d: st
       d: '.' + parts[2],
     };
   }
-  // Fallback: alles in a
   return { a: nr, b: '', c: '', d: '' };
 }
 
-// Einsatzpauschalen-Texte generieren
-function generiereEinsatzTexte(anzahl: number): { z1: string; z2: string; wort: string; tage: string } {
-  const daten: Record<number, { z1: string; z2: string; wort: string; tage: string }> = {
-    1: { z1: 'ei', z2: 'ne', wort: 'Einsatzpauschale', tage: 'einem Tag' },
-    2: { z1: 'zw', z2: 'ei', wort: 'Einsatzpauschalen', tage: 'zwei verschiedenen Tagen' },
-    3: { z1: 'dr', z2: 'ei', wort: 'Einsatzpauschalen', tage: 'drei verschiedenen Tagen' },
-    4: { z1: 'vi', z2: 'er', wort: 'Einsatzpauschalen', tage: 'vier verschiedenen Tagen' },
+function generiereEinsatzTexte(anzahl: number): { z1: string; z2: string; wort: string; tage1: string; tage2: string } {
+  const daten: Record<number, { z1: string; z2: string; wort: string; tage1: string; tage2: string }> = {
+    1: { z1: 'ei', z2: 'ne', wort: 'Einsatzpauschale', tage1: 'Einsätze an maximal ', tage2: 'einem Tag' },
+    2: { z1: 'zw', z2: 'ei', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'zwei verschiedenen Tagen' },
+    3: { z1: 'dr', z2: 'ei', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'drei verschiedenen Tagen' },
+    4: { z1: 'vi', z2: 'er', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'vier verschiedenen Tagen' },
   };
   return daten[anzahl] || daten[2];
 }
@@ -155,13 +157,25 @@ function setCheckboxen(xml: string, offerte: Offerte): string {
 
 function entferneLeereFunktion(xml: string, funktion: string): string {
   if (funktion && funktion.trim()) return xml;
-  xml = xml.replace(/<w:p[^>]*>(?:(?!<\/w:p>).)*\{\{FUNKTION_1\}\}(?:(?!<\/w:p>).)*<\/w:p>/gs, '');
+
+  // Entferne den kompletten Paragraphen mit {{FUNKTION_1}}
+  xml = xml.replace(
+    /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{FUNKTION_1\}\}(?:(?!<\/w:p>).)*?<\/w:p>/gs,
+    ''
+  );
+
   return xml;
 }
 
 function entferneLeerenKontakt(xml: string, hatKontakt: boolean): string {
   if (hatKontakt) return xml;
-  xml = xml.replace(/<w:p[^>]*>(?:(?!<\/w:p>).)*\{\{KONTAKT_ZEILE\}\}(?:(?!<\/w:p>).)*<\/w:p>/gs, '');
+
+  // Entferne den kompletten Paragraphen mit {{KONTAKT_ZEILE}}
+  xml = xml.replace(
+    /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{KONTAKT_ZEILE\}\}(?:(?!<\/w:p>).)*?<\/w:p>/gs,
+    ''
+  );
+
   return xml;
 }
 
@@ -170,9 +184,14 @@ function entferneLeerenKontakt(xml: string, hatKontakt: boolean): string {
 function entferneRabatt(xml: string, rabattProzent: number): string {
   if (rabattProzent > 0) return xml;
 
-  // Entferne Zeile mit {{RABATT_LABEL}} und {{PREIS_RABATT}}
-  xml = xml.replace(/<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{RABATT_LABEL\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs, '');
-  xml = xml.replace(/<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{PREIS_RABATT\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs, '');
+  xml = xml.replace(
+    /<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{RABATT_LABEL\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
+    ''
+  );
+  xml = xml.replace(
+    /<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{PREIS_RABATT\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
+    ''
+  );
 
   return xml;
 }
@@ -211,7 +230,7 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
 // === HAUPTFUNKTION ===
 
 export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V5.docx');
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V6.docx');
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
@@ -220,33 +239,43 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   const zip = new PizZip(fs.readFileSync(templatePath));
   let xml = zip.file('word/document.xml')?.asText() || '';
 
-  // Daten
+  // Daten vorbereiten
   const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
   const kosten = berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
   const anfrage = formatAnfrageDatum(offerte.projekt.anfrageDatum);
   const offNr = parseOffertnummer(offerte.offertnummer);
   const einsatz = generiereEinsatzTexte(offerte.einsatzpauschalen);
 
-  // Kontakt
+  // Kontakt prüfen
   const hatKontakt = !!(offerte.empfaenger.anrede && offerte.empfaenger.nachname);
   let kontaktZeile = '';
   if (hatKontakt) {
     kontaktZeile = `${offerte.empfaenger.anrede} ${offerte.empfaenger.vorname} ${offerte.empfaenger.nachname}`.trim();
   }
 
-  // Funktion
-  const funktion1 = offerte.empfaenger.funktion?.split(' ')[0] || '';
-  const funktion2 = offerte.empfaenger.funktion?.split(' ').slice(1).join(' ') || '';
+  // Funktion aufteilen
+  const funktionTeile = offerte.empfaenger.funktion?.split(' ') || [];
+  const funktion1 = funktionTeile[0] || '';
+  const funktion2 = funktionTeile.slice(1).join(' ') || '';
 
   // PLZ/Ort mit CH-
   const plzOrt = `CH-${offerte.empfaenger.plz} ${offerte.empfaenger.ort}`;
 
-  // Total-Text
+  // Total-Text (mit/ohne Rabatt)
   const total2 = offerte.kosten.rabattProzent > 0
     ? `l (inkl. ${offerte.kosten.rabattProzent.toFixed(1)}% Rabatt und inkl. `
     : 'l (inkl. ';
 
-  // === PLATZHALTER ===
+  // =====================================================
+  // WICHTIG: ZUERST leere Zeilen entfernen (vor Ersetzung!)
+  // =====================================================
+  xml = entferneLeereFunktion(xml, offerte.empfaenger.funktion);
+  xml = entferneLeerenKontakt(xml, hatKontakt);
+  xml = entferneRabatt(xml, offerte.kosten.rabattProzent);
+
+  // =====================================================
+  // DANN Platzhalter ersetzen
+  // =====================================================
   const replacements: Record<string, string> = {
     '{{ABSENDER_ADRESSE}}': standort.adresse,
     '{{FIRMA}}': offerte.empfaenger.firma,
@@ -282,21 +311,15 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{EIN_Z1}}': einsatz.z1,
     '{{EIN_Z2}}': einsatz.z2,
     '{{EIN_WORT}}': einsatz.wort,
-    '{{EIN_TAGE_2}}': einsatz.tage,
+    '{{EIN_TAGE_1}}': einsatz.tage1,
+    '{{EIN_TAGE_2}}': einsatz.tage2,
   };
 
   for (const [ph, val] of Object.entries(replacements)) {
     xml = xml.split(ph).join(val);
   }
 
-  // Leere Zeilen
-  xml = entferneLeereFunktion(xml, offerte.empfaenger.funktion);
-  xml = entferneLeerenKontakt(xml, hatKontakt);
-
-  // Rabatt
-  xml = entferneRabatt(xml, offerte.kosten.rabattProzent);
-
-  // Checkboxen
+  // Checkboxen setzen
   xml = setCheckboxen(xml, offerte);
 
   // Speichern
