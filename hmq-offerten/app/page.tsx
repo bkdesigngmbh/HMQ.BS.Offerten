@@ -23,6 +23,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabId>('daten');
   const [isSaved, setIsSaved] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Offerten-Liste Modal
   const [offertenOpen, setOffertenOpen] = useState(false);
@@ -125,6 +126,24 @@ export default function HomePage() {
     setGenerating(false);
   }
 
+  async function handleSave() {
+    if (!offerte.offertnummer) {
+      alert('Bitte Offertnummer eingeben');
+      setActiveTab('daten');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await saveOfferte(offerte);
+      setIsSaved(true);
+    } catch (error) {
+      console.error('Fehler beim Speichern:', error);
+      alert('Fehler beim Speichern');
+    }
+    setSaving(false);
+  }
+
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString('de-CH', {
       day: '2-digit', month: '2-digit', year: 'numeric'
@@ -188,8 +207,9 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Generate Button */}
+      {/* Footer mit Buttons */}
       <div className="flex items-center justify-between py-6 border-t border-gray-200">
+        {/* Links: Status */}
         <div className="flex items-center gap-3">
           {offerte.offertnummer && (
             <div className="flex items-center gap-2 text-sm">
@@ -208,25 +228,50 @@ export default function HomePage() {
           )}
         </div>
 
-        <button
-          onClick={handleGenerateWord}
-          disabled={generating || !offerte.offertnummer}
-          className="flex items-center gap-3 px-8 py-3 bg-[#1e3a5f] text-white font-semibold rounded-xl hover:bg-[#162b47] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#1e3a5f]/20"
-        >
-          {generating ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              Generiere...
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Word generieren
-            </>
-          )}
-        </button>
+        {/* Rechts: Buttons */}
+        <div className="flex items-center gap-3">
+          {/* Speichern Button */}
+          <button
+            onClick={handleSave}
+            disabled={saving || !offerte.offertnummer}
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                Speichern...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                Speichern
+              </>
+            )}
+          </button>
+
+          {/* Word generieren Button */}
+          <button
+            onClick={handleGenerateWord}
+            disabled={generating || !offerte.offertnummer}
+            className="flex items-center gap-3 px-8 py-3 bg-[#1e3a5f] text-white font-semibold rounded-xl hover:bg-[#162b47] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#1e3a5f]/20"
+          >
+            {generating ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Generiere...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Word generieren
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* OFFERTEN MODAL */}
