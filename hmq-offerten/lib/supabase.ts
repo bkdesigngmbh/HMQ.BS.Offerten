@@ -95,10 +95,21 @@ export async function getKategorien(): Promise<KostenKategorie[]> {
   return data || [];
 }
 
-export async function createKategorie(kategorie: Omit<KostenKategorie, 'id' | 'created_at' | 'updated_at'>): Promise<KostenKategorie> {
+export async function createKategorie(kategorie: Partial<KostenKategorie>): Promise<KostenKategorie> {
+  // Nur die benötigten Felder senden - OHNE id, created_at, updated_at (Supabase generiert die)
   const { data, error } = await getSupabase()
     .from('kosten_kategorien')
-    .insert(kategorie)
+    .insert({
+      titel: kategorie.titel,
+      beschreibung: kategorie.beschreibung || null,
+      sortierung: kategorie.sortierung || 0,
+      faktor_grundlagen: Number.isFinite(kategorie.faktor_grundlagen) ? kategorie.faktor_grundlagen : 1,
+      faktor_termin: Number.isFinite(kategorie.faktor_termin) ? kategorie.faktor_termin : 1,
+      faktor_aufnahme: Number.isFinite(kategorie.faktor_aufnahme) ? kategorie.faktor_aufnahme : 1,
+      faktor_bericht: Number.isFinite(kategorie.faktor_bericht) ? kategorie.faktor_bericht : 1,
+      faktor_kontrolle: Number.isFinite(kategorie.faktor_kontrolle) ? kategorie.faktor_kontrolle : 1,
+      faktor_abschluss: Number.isFinite(kategorie.faktor_abschluss) ? kategorie.faktor_abschluss : 1,
+    })
     .select()
     .single();
 
@@ -107,9 +118,24 @@ export async function createKategorie(kategorie: Omit<KostenKategorie, 'id' | 'c
 }
 
 export async function updateKategorie(id: string, kategorie: Partial<KostenKategorie>): Promise<KostenKategorie> {
+  // Nur editierbare Felder senden - OHNE id, created_at, updated_at
+  const updateData: Record<string, any> = {};
+
+  if (kategorie.titel !== undefined) updateData.titel = kategorie.titel;
+  if (kategorie.beschreibung !== undefined) updateData.beschreibung = kategorie.beschreibung || null;
+  if (kategorie.sortierung !== undefined) updateData.sortierung = kategorie.sortierung;
+
+  // Faktoren nur wenn sie gültige Zahlen sind
+  if (Number.isFinite(kategorie.faktor_grundlagen)) updateData.faktor_grundlagen = kategorie.faktor_grundlagen;
+  if (Number.isFinite(kategorie.faktor_termin)) updateData.faktor_termin = kategorie.faktor_termin;
+  if (Number.isFinite(kategorie.faktor_aufnahme)) updateData.faktor_aufnahme = kategorie.faktor_aufnahme;
+  if (Number.isFinite(kategorie.faktor_bericht)) updateData.faktor_bericht = kategorie.faktor_bericht;
+  if (Number.isFinite(kategorie.faktor_kontrolle)) updateData.faktor_kontrolle = kategorie.faktor_kontrolle;
+  if (Number.isFinite(kategorie.faktor_abschluss)) updateData.faktor_abschluss = kategorie.faktor_abschluss;
+
   const { data, error } = await getSupabase()
     .from('kosten_kategorien')
-    .update(kategorie)
+    .update(updateData)
     .eq('id', id)
     .select()
     .single();
