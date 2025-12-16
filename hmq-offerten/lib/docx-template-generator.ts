@@ -266,31 +266,55 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
     offerte.planbeilage.height || 0
   );
 
-  // NUR das Planbeilage-Bild anpassen (das mit {{PLAN_RID}} Platzhalter)
-  // Finde den Drawing-Block mit dem Platzhalter und ersetze dort die Grössen
-  xml = xml.replace(
-    /(<w:drawing>[\s\S]*?)(\{\{PLAN_RID\}\})([\s\S]*?<\/w:drawing>)/g,
-    (match, before, placeholder, after) => {
+  // NUR das Planbeilage-Bild anpassen
+  // Finde alle Drawing-Blöcke einzeln und bearbeite nur den mit {{PLAN_RID}}
+  const drawingBlocks: { start: number; end: number; content: string }[] = [];
+  let searchPos = 0;
+
+  while (true) {
+    const startIdx = xml.indexOf('<w:drawing>', searchPos);
+    if (startIdx === -1) break;
+
+    const endIdx = xml.indexOf('</w:drawing>', startIdx);
+    if (endIdx === -1) break;
+
+    const blockEnd = endIdx + '</w:drawing>'.length;
+    drawingBlocks.push({
+      start: startIdx,
+      end: blockEnd,
+      content: xml.substring(startIdx, blockEnd)
+    });
+
+    searchPos = blockEnd;
+  }
+
+  // Finde den Block mit {{PLAN_RID}} und ersetze nur dort die Grössen
+  for (const block of drawingBlocks) {
+    if (block.content.includes('{{PLAN_RID}}')) {
+      let newContent = block.content;
+
       // Ersetze den Platzhalter mit der neuen rId
-      let result = before + newRId + after;
+      newContent = newContent.replace(/\{\{PLAN_RID\}\}/g, newRId);
 
       // Ersetze wp:extent nur in diesem Block
-      result = result.replace(
+      newContent = newContent.replace(
         /(<wp:extent\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
         `$1${widthEmu}$3${heightEmu}$5`
       );
 
       // Ersetze a:ext nur in diesem Block
-      result = result.replace(
+      newContent = newContent.replace(
         /(<a:ext\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
         `$1${widthEmu}$3${heightEmu}$5`
       );
 
-      return result;
+      // Ersetze den Block im XML
+      xml = xml.substring(0, block.start) + newContent + xml.substring(block.end);
+      break; // Nur einen Block bearbeiten
     }
-  );
+  }
 
-  // Falls Platzhalter ausserhalb eines Drawing-Blocks (Fallback)
+  // Falls Platzhalter noch vorhanden (Fallback)
   xml = xml.replace(/\{\{PLAN_RID\}\}/g, newRId);
 
   return xml;
