@@ -733,7 +733,8 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{ANF_TAG}}': anfrage.tag,
     '{{ANF_MONAT}}': anfrage.monat,
     '{{ANF_JAHR}}': anfrage.jahr,
-    '{{PREIS_LEISTUNG}}': formatCHF(offerte.kosten.leistungspreis),
+    // Leistungspreis = Zwischentotal + Rabatt (Summe vor Rabattabzug)
+    '{{PREIS_LEISTUNG}}': formatCHF(kosten.zwischentotal + kosten.rabattBetrag),
     '{{PREIS_RABATT}}': `-${formatCHF(kosten.rabattBetrag)}`,
     '{{PREIS_ZWISCHEN}}': formatCHF(kosten.zwischentotal),
     '{{PREIS_MWST}}': formatCHF(kosten.mwstBetrag),
