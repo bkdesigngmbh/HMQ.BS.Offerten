@@ -323,6 +323,11 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
                   { key: 'kunstbauten', label: 'Kunstbauten', checked: offerte.checkboxen.artGebaeude.kunstbauten },
                 ]}
                 onChange={(key, value) => updateCheckbox('artGebaeude', key, value)}
+                sonstigesItems={[
+                  { key: 'sonstiges1', value: offerte.checkboxen.artGebaeude.sonstiges1, placeholder: 'Sonstiges 1...' },
+                  { key: 'sonstiges2', value: offerte.checkboxen.artGebaeude.sonstiges2, placeholder: 'Sonstiges 2...' },
+                ]}
+                onSonstigesChange={(key, value) => updateCheckbox('artGebaeude', key, value)}
               />
             </div>
           </div>
@@ -342,6 +347,8 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
                 { key: 'diverses', label: 'Diverses', checked: offerte.checkboxen.taetigkeiten.diverses },
               ]}
               onChange={(key, value) => updateCheckbox('taetigkeiten', key, value)}
+              sonstigesItems={[{ key: 'sonstiges', value: offerte.checkboxen.taetigkeiten.sonstiges, placeholder: 'Sonstiges...' }]}
+              onSonstigesChange={(key, value) => updateCheckbox('taetigkeiten', key, value)}
             />
           </div>
 

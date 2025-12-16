@@ -748,6 +748,11 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{EIN_WORT}}': einsatz.wort,
     '{{EIN_TAGE_1}}': einsatz.tage1,
     '{{EIN_TAGE_2}}': einsatz.tage2,
+    // Sonstiges-Textfelder (Text wenn vorhanden, sonst Punkte)
+    '{{BAUVORHABEN_SONSTIGES}}': offerte.checkboxen.artBauvorhaben.sonstiges?.trim() || '……………….',
+    '{{GEBAEUDE_SONSTIGES_1}}': offerte.checkboxen.artGebaeude.sonstiges1?.trim() || '……………….',
+    '{{GEBAEUDE_SONSTIGES_2}}': offerte.checkboxen.artGebaeude.sonstiges2?.trim() || '……………….',
+    '{{TAETIGKEITEN_SONSTIGES}}': offerte.checkboxen.taetigkeiten.sonstiges?.trim() || '……………….',
   };
 
   for (const [ph, val] of Object.entries(replacements)) {
