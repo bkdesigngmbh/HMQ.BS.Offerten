@@ -271,16 +271,16 @@ function createPng(width: number, height: number, r: number, g: number, b: numbe
   ]);
 }
 
-// Legende-Symbole als PNG erstellen
+// Legende-Symbole als PNG erstellen - ALLE 40px BREIT
 function createLegendSymbols(): { fassade: Buffer; innenraum: Buffer; strasse: Buffer } {
   // Fassade: Rote Linie (40x8 Pixel, #FF0000, 60% Opazität = 153)
   const fassade = createPng(40, 8, 255, 0, 0, 153);
 
-  // Innenaufnahmen: Blaues Rechteck (25x15 Pixel, #4F81BD, 60% Opazität)
-  const innenraum = createPng(25, 15, 79, 129, 189, 153);
+  // Innenaufnahmen: Blaues Rechteck (40x15 Pixel, #4F81BD, 60% Opazität)
+  const innenraum = createPng(40, 15, 79, 129, 189, 153);
 
-  // Strassen: Oranges Rechteck (25x15 Pixel, #FAC090, 60% Opazität)
-  const strasse = createPng(25, 15, 250, 192, 144, 153);
+  // Strassen: Oranges Rechteck (40x15 Pixel, #FAC090, 60% Opazität)
+  const strasse = createPng(40, 15, 250, 192, 144, 153);
 
   return { fassade, innenraum, strasse };
 }
@@ -346,10 +346,11 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
     });
 
     // Bildgrössen in EMU (1cm = 360000 EMU)
+    // Alle Symbole sind 40px breit → ca. 1cm = 360000 EMU
     // Fassade (Linie): 40x8px → ca. 1cm x 0.2cm
-    // Rechtecke: 25x15px → ca. 0.7cm x 0.4cm
-    const imgWidthEmu = isLine ? 360000 : 252000;  // 1cm oder 0.7cm
-    const imgHeightEmu = isLine ? 72000 : 144000;  // 0.2cm oder 0.4cm
+    // Rechtecke: 40x15px → ca. 1cm x 0.4cm
+    const imgWidthEmu = 360000;  // 1cm (alle gleich breit)
+    const imgHeightEmu = isLine ? 72000 : 135000;  // 0.2cm oder 0.375cm
 
     // Bild-XML (inline drawing)
     const bildXml = `<w:r>
@@ -376,8 +377,9 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
 <w:trPr><w:trHeight w:val="340" w:hRule="atLeast"/></w:trPr>
 <w:tc>
 <w:tcPr>
-<w:tcW w:w="680" w:type="dxa"/>
+<w:tcW w:w="700" w:type="dxa"/>
 <w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
+<w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tcMar>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -387,54 +389,55 @@ ${bildXml}
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:w="4320" w:type="dxa"/>
+<w:tcW w:w="5800" w:type="dxa"/>
 <w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
-<w:tcMar><w:left w:w="113" w:type="dxa"/></w:tcMar>
+<w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
 <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/></w:rPr><w:t>${eintrag.text}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Univers" w:hAnsi="Univers"/><w:sz w:val="18"/></w:rPr><w:t>${eintrag.text}</w:t></w:r>
 </w:p>
 </w:tc>
 </w:tr>`;
   }).join('\n');
 
   // Komplette Legende-Tabelle mit Titel und Rahmen
-  // Breite: ca. 8.8cm = 5000 twips
+  // Breite: ca. 11.5cm = 6500 DXA (700 + 5800 = 6500)
   const legendeXml = `
 <w:p><w:pPr><w:spacing w:after="170"/></w:pPr></w:p>
 <w:tbl>
 <w:tblPr>
-<w:tblW w:w="5000" w:type="dxa"/>
+<w:tblW w:w="6500" w:type="dxa"/>
 <w:tblBorders>
-<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>
-<w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/>
-<w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/>
-<w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+<w:top w:val="single" w:sz="8" w:space="0" w:color="000000"/>
+<w:left w:val="single" w:sz="8" w:space="0" w:color="000000"/>
+<w:bottom w:val="single" w:sz="8" w:space="0" w:color="000000"/>
+<w:right w:val="single" w:sz="8" w:space="0" w:color="000000"/>
 <w:insideH w:val="nil"/>
 <w:insideV w:val="nil"/>
 </w:tblBorders>
 <w:tblCellMar>
-<w:top w:w="57" w:type="dxa"/>
-<w:left w:w="113" w:type="dxa"/>
-<w:bottom w:w="57" w:type="dxa"/>
-<w:right w:w="113" w:type="dxa"/>
+<w:top w:w="80" w:type="dxa"/>
+<w:left w:w="100" w:type="dxa"/>
+<w:bottom w:w="60" w:type="dxa"/>
+<w:right w:w="100" w:type="dxa"/>
 </w:tblCellMar>
 </w:tblPr>
 <w:tblGrid>
-<w:gridCol w:w="680"/>
-<w:gridCol w:w="4320"/>
+<w:gridCol w:w="700"/>
+<w:gridCol w:w="5800"/>
 </w:tblGrid>
 <w:tr>
 <w:tc>
 <w:tcPr>
 <w:gridSpan w:val="2"/>
 <w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
+<w:tcMar><w:top w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>
 </w:tcPr>
 <w:p>
 <w:pPr><w:spacing w:after="57"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/><w:u w:val="single"/></w:rPr><w:t>Legende</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Univers" w:hAnsi="Univers"/><w:sz w:val="20"/><w:u w:val="single"/></w:rPr><w:t>Legende</w:t></w:r>
 </w:p>
 </w:tc>
 </w:tr>
