@@ -57,6 +57,17 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
   // Track wenn Kategorien/Spesen geändert werden
   const prevKategorienRef = useRef<string>('');
   const prevSpesenRef = useRef<string>('');
+  const prevOffertnummerRef = useRef<string>('');
+
+  // Wenn eine neue Offerte geladen wird, Refs zurücksetzen um Neuberechnung zu triggern
+  useEffect(() => {
+    if (prevOffertnummerRef.current !== '' && prevOffertnummerRef.current !== offerte.offertnummer) {
+      // Neue Offerte geladen - Refs zurücksetzen
+      prevKategorienRef.current = '';
+      prevSpesenRef.current = '';
+    }
+    prevOffertnummerRef.current = offerte.offertnummer;
+  }, [offerte.offertnummer]);
 
   useEffect(() => {
     async function load() {

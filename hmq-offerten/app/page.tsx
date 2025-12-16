@@ -114,7 +114,22 @@ export default function HomePage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Offerte_${offerte.offertnummer.replace(/\./g, '-')}.docx`;
+
+      // Dateiname zusammenbauen
+      const projektOrt = offerte.projekt.ort || '';
+      const projektBezeichnung = offerte.projekt.bezeichnung || '';
+      let dateiname = `Beweissicherung ¦ ${offerte.offertnummer}`;
+      if (projektOrt) {
+        dateiname += ` ${projektOrt}`;
+      }
+      if (projektBezeichnung) {
+        dateiname += `, ${projektBezeichnung}`;
+      }
+      dateiname += '.docx';
+      // Ungültige Zeichen für Dateinamen entfernen (Windows-kompatibel)
+      dateiname = dateiname.replace(/[<>:"/\\|?*]/g, '');
+
+      a.download = dateiname;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
