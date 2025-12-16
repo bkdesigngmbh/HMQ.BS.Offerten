@@ -426,7 +426,7 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
 <w:tc>
 <w:tcPr>
 <w:tcW w:w="700" w:type="dxa"/>
-<w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tcMar>
+<w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:right w:w="150" w:type="dxa"/></w:tcMar>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -456,10 +456,10 @@ ${bildXml}
 <w:tblPr>
 <w:tblW w:w="6500" w:type="dxa"/>
 <w:tblBorders>
-<w:top w:val="single" w:sz="8" w:space="0" w:color="000000"/>
-<w:left w:val="single" w:sz="8" w:space="0" w:color="000000"/>
-<w:bottom w:val="single" w:sz="8" w:space="0" w:color="000000"/>
-<w:right w:val="single" w:sz="8" w:space="0" w:color="000000"/>
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+<w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+<w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+<w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/>
 <w:insideH w:val="nil"/>
 <w:insideV w:val="nil"/>
 </w:tblBorders>
