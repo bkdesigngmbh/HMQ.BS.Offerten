@@ -71,15 +71,48 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
         setKategorienConfig(kat);
         setBasiswerte(basis);
 
-        if (offerte.kostenBerechnung.kategorien.length === 0 && kat.length > 0) {
-          const initialKategorien: KategorieEingabe[] = kat.map(k => ({
-            kategorieId: k.id,
-            titel: k.titel,
-            anzahl: 0,
-          }));
+        // Merge: Gespeicherte Kategorien + neue Kategorien aus DB
+        // Damit neue Kategorien auch bei bereits gespeicherten Offerten erscheinen
+        const gespeicherteKategorien = offerte.kostenBerechnung.kategorien || [];
+
+        // Kategorien nach Sortierung aus DB ordnen und mit gespeicherten mergen
+        const gemergteKategorien: KategorieEingabe[] = kat
+          .sort((a, b) => a.sortierung - b.sortierung)
+          .map(dbKat => {
+            // Suche ob diese Kategorie bereits in der gespeicherten Offerte existiert
+            const gespeichert = gespeicherteKategorien.find(
+              gk => gk.kategorieId === dbKat.id
+            );
+
+            if (gespeichert) {
+              // Kategorie existiert -> übernehme gespeicherten Wert, aber aktuellen Titel
+              return {
+                kategorieId: dbKat.id,
+                titel: dbKat.titel,
+                anzahl: gespeichert.anzahl
+              };
+            } else {
+              // Neue Kategorie -> mit 0 initialisieren
+              return {
+                kategorieId: dbKat.id,
+                titel: dbKat.titel,
+                anzahl: 0
+              };
+            }
+          });
+
+        // Updaten wenn sich was geändert hat (neue Kategorien oder Reihenfolge)
+        const hatSichGeaendert =
+          gemergteKategorien.length !== gespeicherteKategorien.length ||
+          gemergteKategorien.some((gk, idx) =>
+            gespeicherteKategorien[idx]?.kategorieId !== gk.kategorieId ||
+            gespeicherteKategorien[idx]?.titel !== gk.titel
+          );
+
+        if (hatSichGeaendert) {
           onChange({
             ...offerte,
-            kostenBerechnung: { ...offerte.kostenBerechnung, kategorien: initialKategorien },
+            kostenBerechnung: { ...offerte.kostenBerechnung, kategorien: gemergteKategorien },
           });
         }
       } catch (error) {

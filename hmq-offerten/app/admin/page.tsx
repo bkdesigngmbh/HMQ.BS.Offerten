@@ -9,6 +9,74 @@ import {
   getStandorte, updateStandort,
   KostenKategorie, KostenBasiswerte, AppEinstellungen, Standort,
 } from '@/lib/supabase';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortierbare Zeile Komponente
+function SortableKategorieRow({
+  kategorie,
+  onEdit,
+  onDelete
+}: {
+  kategorie: KostenKategorie;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: kategorie.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 bg-white">
+      {/* Drag Handle */}
+      <td className="px-2 py-3 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        </svg>
+      </td>
+      <td className="px-4 py-3 font-medium text-gray-900">{kategorie.titel}</td>
+      <td className="px-4 py-3 text-gray-500">{kategorie.beschreibung || '—'}</td>
+      <td className="px-3 py-3 text-center font-mono">{kategorie.faktor_grundlagen}</td>
+      <td className="px-3 py-3 text-center font-mono">{kategorie.faktor_termin}</td>
+      <td className="px-3 py-3 text-center font-mono">{kategorie.faktor_aufnahme}</td>
+      <td className="px-3 py-3 text-center font-mono">{kategorie.faktor_bericht}</td>
+      <td className="px-3 py-3 text-center font-mono">{kategorie.faktor_kontrolle}</td>
+      <td className="px-3 py-3 text-center font-mono">{kategorie.faktor_abschluss}</td>
+      <td className="px-4 py-3">
+        <div className="flex gap-2 justify-end">
+          <button onClick={onEdit} className="text-[#1e3a5f] hover:underline">Bearbeiten</button>
+          <button onClick={onDelete} className="text-red-600 hover:underline">Löschen</button>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 type AdminTab = 'kategorien' | 'basiswerte' | 'standorte' | 'ansprechpartner' | 'einstellungen';
 
@@ -23,6 +91,40 @@ export default function AdminPage() {
   const [einstellungen, setEinstellungen] = useState<AppEinstellungen | null>(null);
   const [standorte, setStandorte] = useState<Standort[]>([]);
   const [editingKat, setEditingKat] = useState<KostenKategorie | null>(null);
+
+  // DnD Sensoren für Drag & Drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Drag & Drop Handler für Kategorien-Sortierung
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = kategorien.findIndex(k => k.id === active.id);
+      const newIndex = kategorien.findIndex(k => k.id === over.id);
+
+      const neueSortierung = arrayMove(kategorien, oldIndex, newIndex);
+      setKategorien(neueSortierung);
+
+      // Sortierung in DB speichern
+      try {
+        await Promise.all(
+          neueSortierung.map((kat, index) =>
+            updateKategorie(kat.id, { sortierung: (index + 1) * 10 })
+          )
+        );
+        showMessage('success', 'Reihenfolge gespeichert');
+      } catch (err) {
+        showMessage('error', 'Fehler beim Speichern der Reihenfolge');
+        await loadAll(); // Bei Fehler zurücksetzen
+      }
+    }
+  }
 
   useEffect(() => {
     loadAll();
@@ -203,43 +305,47 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-gray-200">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Titel</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-600">Beschreibung</th>
-                    <th className="text-center px-3 py-3 font-medium text-gray-600">Grundl.</th>
-                    <th className="text-center px-3 py-3 font-medium text-gray-600">Termin</th>
-                    <th className="text-center px-3 py-3 font-medium text-gray-600">Aufn.</th>
-                    <th className="text-center px-3 py-3 font-medium text-gray-600">Bericht</th>
-                    <th className="text-center px-3 py-3 font-medium text-gray-600">Kontr.</th>
-                    <th className="text-center px-3 py-3 font-medium text-gray-600">Abschl.</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {kategorien.map((k) => (
-                    <tr key={k.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{k.titel}</td>
-                      <td className="px-4 py-3 text-gray-500">{k.beschreibung || '—'}</td>
-                      <td className="px-3 py-3 text-center font-mono">{k.faktor_grundlagen}</td>
-                      <td className="px-3 py-3 text-center font-mono">{k.faktor_termin}</td>
-                      <td className="px-3 py-3 text-center font-mono">{k.faktor_aufnahme}</td>
-                      <td className="px-3 py-3 text-center font-mono">{k.faktor_bericht}</td>
-                      <td className="px-3 py-3 text-center font-mono">{k.faktor_kontrolle}</td>
-                      <td className="px-3 py-3 text-center font-mono">{k.faktor_abschluss}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2 justify-end">
-                          <button onClick={() => setEditingKat(k)} className="text-[#1e3a5f] hover:underline">Bearbeiten</button>
-                          <button onClick={() => handleDeleteKat(k.id)} className="text-red-600 hover:underline">Löschen</button>
-                        </div>
-                      </td>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="overflow-hidden rounded-xl border border-gray-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="w-10"></th>{/* Drag Handle Spalte */}
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Titel</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Beschreibung</th>
+                      <th className="text-center px-3 py-3 font-medium text-gray-600">Grundl.</th>
+                      <th className="text-center px-3 py-3 font-medium text-gray-600">Termin</th>
+                      <th className="text-center px-3 py-3 font-medium text-gray-600">Aufn.</th>
+                      <th className="text-center px-3 py-3 font-medium text-gray-600">Bericht</th>
+                      <th className="text-center px-3 py-3 font-medium text-gray-600">Kontr.</th>
+                      <th className="text-center px-3 py-3 font-medium text-gray-600">Abschl.</th>
+                      <th className="px-4 py-3"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <SortableContext
+                      items={kategorien.map(k => k.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {kategorien
+                        .sort((a, b) => a.sortierung - b.sortierung)
+                        .map((k) => (
+                          <SortableKategorieRow
+                            key={k.id}
+                            kategorie={k}
+                            onEdit={() => setEditingKat(k)}
+                            onDelete={() => handleDeleteKat(k.id)}
+                          />
+                        ))}
+                    </SortableContext>
+                  </tbody>
+                </table>
+              </div>
+            </DndContext>
 
             {/* Modal */}
             {editingKat && (
