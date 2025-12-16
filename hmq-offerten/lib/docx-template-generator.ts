@@ -2,6 +2,7 @@ import PizZip from 'pizzip';
 import { Offerte } from './types';
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 
 const MWST_SATZ = 8.1;
 
@@ -200,66 +201,195 @@ function entferneRabatt(xml: string, rabattProzent: number): string {
   return xml;
 }
 
-// === LEGENDE ===
+// === LEGENDE MIT PNG-BILDERN ===
+
+// PNG-Erstellung: Erzeugt ein einfaches PNG mit einer Farbe
+function createPng(width: number, height: number, r: number, g: number, b: number, alpha: number): Buffer {
+  // PNG Signatur
+  const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+  // CRC32 Berechnung
+  const crcTable: number[] = [];
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    crcTable[n] = c;
+  }
+  const crc32 = (data: Buffer): number => {
+    let crc = 0xffffffff;
+    for (let i = 0; i < data.length; i++) {
+      crc = crcTable[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+
+  // Chunk erstellen
+  const createChunk = (type: string, data: Buffer): Buffer => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length, 0);
+    const typeBuffer = Buffer.from(type);
+    const crcData = Buffer.concat([typeBuffer, data]);
+    const crcValue = Buffer.alloc(4);
+    crcValue.writeUInt32BE(crc32(crcData), 0);
+    return Buffer.concat([length, typeBuffer, data, crcValue]);
+  };
+
+  // IHDR Chunk (Image Header)
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);   // Breite
+  ihdr.writeUInt32BE(height, 4);  // Höhe
+  ihdr.writeUInt8(8, 8);          // Bit depth
+  ihdr.writeUInt8(6, 9);          // Color type (RGBA)
+  ihdr.writeUInt8(0, 10);         // Compression
+  ihdr.writeUInt8(0, 11);         // Filter
+  ihdr.writeUInt8(0, 12);         // Interlace
+
+  // Raw Bilddaten (RGBA für jeden Pixel, mit Filter-Byte pro Zeile)
+  const rawData: number[] = [];
+  for (let y = 0; y < height; y++) {
+    rawData.push(0); // Filter byte (none)
+    for (let x = 0; x < width; x++) {
+      rawData.push(r, g, b, alpha);
+    }
+  }
+  const rawBuffer = Buffer.from(rawData);
+  const compressed = zlib.deflateSync(rawBuffer);
+
+  // IDAT Chunk
+  const idatChunk = createChunk('IDAT', compressed);
+
+  // IEND Chunk
+  const iendChunk = createChunk('IEND', Buffer.alloc(0));
+
+  return Buffer.concat([
+    signature,
+    createChunk('IHDR', ihdr),
+    idatChunk,
+    iendChunk
+  ]);
+}
+
+// Legende-Symbole als PNG erstellen
+function createLegendSymbols(): { fassade: Buffer; innenraum: Buffer; strasse: Buffer } {
+  // Fassade: Rote Linie (40x8 Pixel, #FF0000, 60% Opazität = 153)
+  const fassade = createPng(40, 8, 255, 0, 0, 153);
+
+  // Innenaufnahmen: Blaues Rechteck (25x15 Pixel, #4F81BD, 60% Opazität)
+  const innenraum = createPng(25, 15, 79, 129, 189, 153);
+
+  // Strassen: Oranges Rechteck (25x15 Pixel, #FAC090, 60% Opazität)
+  const strasse = createPng(25, 15, 250, 192, 144, 153);
+
+  return { fassade, innenraum, strasse };
+}
 
 interface LegendeEintrag {
   text: string;
-  farbe: string;  // Hex ohne #, z.B. "FF0000"
-  istLinie: boolean;  // true = schmale Linie, false = breites Rechteck
+  symbolKey: 'fassade' | 'innenraum' | 'strasse';
+  rId: string;
 }
 
-function generiereLegendeXml(offerte: Offerte): string {
+interface LegendeResult {
+  xml: string;
+  symbols: { key: string; data: Buffer; rId: string }[];
+}
+
+function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult | null {
   const cb = offerte.checkboxen?.erstaufnahme;
-  if (!cb) return '';
+  if (!cb) return null;
 
   const eintraege: LegendeEintrag[] = [];
+  let rIdCounter = nextRIdStart;
 
   if (cb.fassaden) {
     eintraege.push({
       text: 'Fassaden inkl. Aussenanlagen (Mauern, Vorplätze, etc.)',
-      farbe: 'FF0000',
-      istLinie: true
+      symbolKey: 'fassade',
+      rId: `rId${rIdCounter++}`
     });
   }
 
   if (cb.innenraeume) {
     eintraege.push({
       text: 'Innenaufnahmen',
-      farbe: '4F81BD',
-      istLinie: false
+      symbolKey: 'innenraum',
+      rId: `rId${rIdCounter++}`
     });
   }
 
   if (cb.strassen) {
     eintraege.push({
       text: 'Strassen',
-      farbe: 'FAC090',
-      istLinie: false
+      symbolKey: 'strasse',
+      rId: `rId${rIdCounter++}`
     });
   }
 
   // Keine Einträge = keine Legende
-  if (eintraege.length === 0) return '';
+  if (eintraege.length === 0) return null;
 
-  // Generiere Zeilen für jeden Eintrag
-  // Verwende einfache Tabellenzellen mit Hintergrundfarbe (keine Shapes!)
-  const zeilen = eintraege.map(eintrag => {
-    // Zellenhöhe: Linie = schmal (100 twips = ~1.8mm), Fläche = normal (300 twips = ~5mm)
-    const zellenHoehe = eintrag.istLinie ? '100' : '300';
+  const symbols = createLegendSymbols();
+  const symbolsToAdd: { key: string; data: Buffer; rId: string }[] = [];
+
+  // Zeilen generieren mit eingebetteten Bildern
+  const zeilen = eintraege.map((eintrag, idx) => {
+    const symbolData = symbols[eintrag.symbolKey];
+    const isLine = eintrag.symbolKey === 'fassade';
+
+    // Symbol zur Liste hinzufügen
+    symbolsToAdd.push({
+      key: eintrag.symbolKey,
+      data: symbolData,
+      rId: eintrag.rId
+    });
+
+    // Bildgrössen in EMU (1cm = 360000 EMU)
+    // Fassade (Linie): 40x8px → ca. 1cm x 0.2cm
+    // Rechtecke: 25x15px → ca. 0.7cm x 0.4cm
+    const imgWidthEmu = isLine ? 360000 : 252000;  // 1cm oder 0.7cm
+    const imgHeightEmu = isLine ? 72000 : 144000;  // 0.2cm oder 0.4cm
+
+    // Bild-XML (inline drawing)
+    const bildXml = `<w:r>
+<w:rPr><w:noProof/></w:rPr>
+<w:drawing>
+<wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+<wp:extent cx="${imgWidthEmu}" cy="${imgHeightEmu}"/>
+<wp:docPr id="${1000 + idx}" name="Legende_${eintrag.symbolKey}"/>
+<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>
+<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<pic:nvPicPr><pic:cNvPr id="${1000 + idx}" name="Legende_${eintrag.symbolKey}"/><pic:cNvPicPr/></pic:nvPicPr>
+<pic:blipFill><a:blip r:embed="${eintrag.rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${imgWidthEmu}" cy="${imgHeightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+</pic:pic>
+</a:graphicData>
+</a:graphic>
+</wp:inline>
+</w:drawing>
+</w:r>`;
 
     return `<w:tr>
-<w:trPr><w:trHeight w:val="${zellenHoehe}" w:hRule="exact"/></w:trPr>
+<w:trPr><w:trHeight w:val="340" w:hRule="atLeast"/></w:trPr>
 <w:tc>
 <w:tcPr>
-<w:tcW w:w="850" w:type="dxa"/>
-<w:shd w:val="clear" w:color="auto" w:fill="${eintrag.farbe}"/>
+<w:tcW w:w="680" w:type="dxa"/>
+<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
 <w:vAlign w:val="center"/>
 </w:tcPr>
-<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+<w:p>
+<w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>
+${bildXml}
+</w:p>
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:w="5500" w:type="dxa"/>
+<w:tcW w:w="4320" w:type="dxa"/>
+<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
+<w:tcMar><w:left w:w="113" w:type="dxa"/></w:tcMar>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -270,35 +400,51 @@ function generiereLegendeXml(offerte: Offerte): string {
 </w:tr>`;
   }).join('\n');
 
-  // Tabelle ohne sichtbare Rahmen (nur die farbigen Zellen sind sichtbar)
+  // Komplette Legende-Tabelle mit Titel und Rahmen
+  // Breite: ca. 8.8cm = 5000 twips
   const legendeXml = `
-<w:p><w:pPr><w:spacing w:after="120"/></w:pPr></w:p>
+<w:p><w:pPr><w:spacing w:after="170"/></w:pPr></w:p>
 <w:tbl>
 <w:tblPr>
-<w:tblW w:w="0" w:type="auto"/>
+<w:tblW w:w="5000" w:type="dxa"/>
 <w:tblBorders>
-<w:top w:val="nil"/>
-<w:left w:val="nil"/>
-<w:bottom w:val="nil"/>
-<w:right w:val="nil"/>
+<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+<w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+<w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+<w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/>
 <w:insideH w:val="nil"/>
 <w:insideV w:val="nil"/>
 </w:tblBorders>
 <w:tblCellMar>
-<w:top w:w="40" w:type="dxa"/>
-<w:left w:w="80" w:type="dxa"/>
-<w:bottom w:w="40" w:type="dxa"/>
-<w:right w:w="80" w:type="dxa"/>
+<w:top w:w="57" w:type="dxa"/>
+<w:left w:w="113" w:type="dxa"/>
+<w:bottom w:w="57" w:type="dxa"/>
+<w:right w:w="113" w:type="dxa"/>
 </w:tblCellMar>
 </w:tblPr>
 <w:tblGrid>
-<w:gridCol w:w="850"/>
-<w:gridCol w:w="5500"/>
+<w:gridCol w:w="680"/>
+<w:gridCol w:w="4320"/>
 </w:tblGrid>
+<w:tr>
+<w:tc>
+<w:tcPr>
+<w:gridSpan w:val="2"/>
+<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
+</w:tcPr>
+<w:p>
+<w:pPr><w:spacing w:after="57"/></w:pPr>
+<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/><w:u w:val="single"/></w:rPr><w:t>Legende</w:t></w:r>
+</w:p>
+</w:tc>
+</w:tr>
 ${zeilen}
 </w:tbl>`;
 
-  return legendeXml;
+  return {
+    xml: legendeXml,
+    symbols: symbolsToAdd
+  };
 }
 
 // === PLANBEILAGE ===
@@ -336,112 +482,122 @@ function calculateProportionalSize(
   };
 }
 
-function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
+function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
   let xml = zip.file('word/document.xml')?.asText() || '';
-
-  // Legende generieren (wird nach dem Bild eingefügt)
-  const legendeXml = generiereLegendeXml(offerte);
-
-  if (!offerte.planbeilage) {
-    // Auch ohne Planbeilage kann die Legende eingefügt werden
-    if (legendeXml) {
-      // Finde den Paragraphen mit PLAN_RID und füge Legende danach ein
-      const planRidMatch = xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{PLAN_RID\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s);
-      if (planRidMatch && planRidMatch.index !== undefined) {
-        const insertPos = planRidMatch.index + planRidMatch[0].length;
-        xml = xml.substring(0, insertPos) + legendeXml + xml.substring(insertPos);
-      }
-    }
-    xml = xml.replace(/\{\{PLAN_RID\}\}/g, 'rId12');
-    return xml;
-  }
-
-  const ext = offerte.planbeilage.mimeType === 'image/png' ? 'png' : 'jpeg';
-  const imageData = Buffer.from(offerte.planbeilage.base64, 'base64');
-
-  zip.file(`word/media/planbeilage_custom.${ext}`, imageData);
-
-  // Relationship hinzufügen
   const relsPath = 'word/_rels/document.xml.rels';
   let rels = zip.file(relsPath)?.asText() || '';
 
+  // Aktuelle höchste rId ermitteln
   const rIdMatches = rels.match(/Id="rId(\d+)"/g) || [];
-  const maxId = Math.max(0, ...rIdMatches.map(m => parseInt(m.match(/\d+/)?.[0] || '0')));
-  const newRId = `rId${maxId + 1}`;
+  let maxId = Math.max(0, ...rIdMatches.map(m => parseInt(m.match(/\d+/)?.[0] || '0')));
 
-  const newRel = `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/planbeilage_custom.${ext}"/>`;
-  rels = rels.replace('</Relationships>', `${newRel}</Relationships>`);
-  zip.file(relsPath, rels);
+  // Planbeilage-Bild verarbeiten
+  let planRId = 'rId12'; // Fallback
+  if (offerte.planbeilage) {
+    const ext = offerte.planbeilage.mimeType === 'image/png' ? 'png' : 'jpeg';
+    const imageData = Buffer.from(offerte.planbeilage.base64, 'base64');
+    zip.file(`word/media/planbeilage_custom.${ext}`, imageData);
 
-  // Proportionale Bildgrösse berechnen
-  const { widthEmu, heightEmu } = calculateProportionalSize(
-    offerte.planbeilage.width || 0,
-    offerte.planbeilage.height || 0
-  );
-
-  // NUR das Planbeilage-Bild anpassen
-  // Finde alle Drawing-Blöcke einzeln und bearbeite nur den mit {{PLAN_RID}}
-  const drawingBlocks: { start: number; end: number; content: string }[] = [];
-  let searchPos = 0;
-
-  while (true) {
-    const startIdx = xml.indexOf('<w:drawing>', searchPos);
-    if (startIdx === -1) break;
-
-    const endIdx = xml.indexOf('</w:drawing>', startIdx);
-    if (endIdx === -1) break;
-
-    const blockEnd = endIdx + '</w:drawing>'.length;
-    drawingBlocks.push({
-      start: startIdx,
-      end: blockEnd,
-      content: xml.substring(startIdx, blockEnd)
-    });
-
-    searchPos = blockEnd;
+    planRId = `rId${++maxId}`;
+    const newRel = `<Relationship Id="${planRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/planbeilage_custom.${ext}"/>`;
+    rels = rels.replace('</Relationships>', `${newRel}</Relationships>`);
   }
 
-  // Finde den Block mit {{PLAN_RID}} und ersetze nur dort die Grössen
-  for (const block of drawingBlocks) {
-    if (block.content.includes('{{PLAN_RID}}')) {
-      let newContent = block.content;
+  // Legende generieren (startet mit nächster verfügbarer rId)
+  const legendeResult = generiereLegende(offerte, maxId + 1);
 
-      // Ersetze den Platzhalter mit der neuen rId
-      newContent = newContent.replace(/\{\{PLAN_RID\}\}/g, newRId);
+  // Legende-Symbole zum ZIP und Relationships hinzufügen
+  if (legendeResult) {
+    for (const symbol of legendeResult.symbols) {
+      // PNG-Datei zum ZIP hinzufügen
+      zip.file(`word/media/legende_${symbol.key}.png`, symbol.data);
 
-      // Ersetze wp:extent nur in diesem Block
-      newContent = newContent.replace(
-        /(<wp:extent\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
-        `$1${widthEmu}$3${heightEmu}$5`
-      );
-
-      // Ersetze a:ext nur in diesem Block
-      newContent = newContent.replace(
-        /(<a:ext\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
-        `$1${widthEmu}$3${heightEmu}$5`
-      );
-
-      // Ersetze den Block im XML
-      xml = xml.substring(0, block.start) + newContent + xml.substring(block.end);
-
-      // Legende NACH dem Paragraphen mit dem Bild einfügen
-      if (legendeXml) {
-        // Finde das Ende des umschliessenden Paragraphen (nach dem Drawing-Block)
-        // Der Drawing-Block ist innerhalb eines <w:p>...</w:p>
-        const afterBlock = block.start + newContent.length;
-        const closingPIdx = xml.indexOf('</w:p>', afterBlock);
-        if (closingPIdx !== -1) {
-          const insertPos = closingPIdx + '</w:p>'.length;
-          xml = xml.substring(0, insertPos) + legendeXml + xml.substring(insertPos);
-        }
-      }
-
-      break; // Nur einen Block bearbeiten
+      // Relationship hinzufügen
+      const symbolRel = `<Relationship Id="${symbol.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/legende_${symbol.key}.png"/>`;
+      rels = rels.replace('</Relationships>', `${symbolRel}</Relationships>`);
     }
   }
 
-  // Falls Platzhalter noch vorhanden (Fallback)
-  xml = xml.replace(/\{\{PLAN_RID\}\}/g, newRId);
+  // Relationships speichern
+  zip.file(relsPath, rels);
+
+  // Planbeilage-Bild Grösse anpassen
+  if (offerte.planbeilage) {
+    const { widthEmu, heightEmu } = calculateProportionalSize(
+      offerte.planbeilage.width || 0,
+      offerte.planbeilage.height || 0
+    );
+
+    // Finde alle Drawing-Blöcke einzeln
+    const drawingBlocks: { start: number; end: number; content: string }[] = [];
+    let searchPos = 0;
+
+    while (true) {
+      const startIdx = xml.indexOf('<w:drawing>', searchPos);
+      if (startIdx === -1) break;
+
+      const endIdx = xml.indexOf('</w:drawing>', startIdx);
+      if (endIdx === -1) break;
+
+      const blockEnd = endIdx + '</w:drawing>'.length;
+      drawingBlocks.push({
+        start: startIdx,
+        end: blockEnd,
+        content: xml.substring(startIdx, blockEnd)
+      });
+
+      searchPos = blockEnd;
+    }
+
+    // Finde den Block mit {{PLAN_RID}} und ersetze nur dort
+    for (const block of drawingBlocks) {
+      if (block.content.includes('{{PLAN_RID}}')) {
+        let newContent = block.content;
+
+        // Ersetze den Platzhalter mit der neuen rId
+        newContent = newContent.replace(/\{\{PLAN_RID\}\}/g, planRId);
+
+        // Ersetze wp:extent nur in diesem Block
+        newContent = newContent.replace(
+          /(<wp:extent\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
+          `$1${widthEmu}$3${heightEmu}$5`
+        );
+
+        // Ersetze a:ext nur in diesem Block
+        newContent = newContent.replace(
+          /(<a:ext\s+cx=")(\d+)("\s+cy=")(\d+)(")/g,
+          `$1${widthEmu}$3${heightEmu}$5`
+        );
+
+        // Ersetze den Block im XML
+        xml = xml.substring(0, block.start) + newContent + xml.substring(block.end);
+
+        // Legende NACH dem Planbild-Paragraphen einfügen
+        if (legendeResult) {
+          const afterBlock = block.start + newContent.length;
+          const closingPIdx = xml.indexOf('</w:p>', afterBlock);
+          if (closingPIdx !== -1) {
+            const insertPos = closingPIdx + '</w:p>'.length;
+            xml = xml.substring(0, insertPos) + legendeResult.xml + xml.substring(insertPos);
+          }
+        }
+
+        break;
+      }
+    }
+  } else {
+    // Kein Planbild, aber evtl. Legende
+    if (legendeResult) {
+      const planRidMatch = xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{PLAN_RID\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s);
+      if (planRidMatch && planRidMatch.index !== undefined) {
+        const insertPos = planRidMatch.index + planRidMatch[0].length;
+        xml = xml.substring(0, insertPos) + legendeResult.xml + xml.substring(insertPos);
+      }
+    }
+  }
+
+  // Fallback: Platzhalter ersetzen
+  xml = xml.replace(/\{\{PLAN_RID\}\}/g, planRId);
 
   return xml;
 }
@@ -544,8 +700,8 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   // Speichern
   zip.file('word/document.xml', xml);
 
-  // Planbeilage
-  xml = insertPlanbeilage(zip, offerte);
+  // Planbeilage und Legende
+  xml = insertPlanbeilageUndLegende(zip, offerte);
   zip.file('word/document.xml', xml);
 
   return Buffer.from(zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }));
