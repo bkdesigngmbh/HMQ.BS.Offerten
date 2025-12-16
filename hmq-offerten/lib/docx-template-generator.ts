@@ -200,6 +200,173 @@ function entferneRabatt(xml: string, rabattProzent: number): string {
   return xml;
 }
 
+// === LEGENDE ===
+
+interface LegendeEintrag {
+  text: string;
+  farbe: string;  // Hex ohne #, z.B. "FF0000"
+  typ: 'linie' | 'flaeche';
+}
+
+function generiereLegendeFarbe(farbe: string, transparenz: number = 0.4): string {
+  // Für Word: Opazität = 1 - Transparenz, als Hex-Wert (0-255)
+  // 40% Transparenz = 60% Opazität = 0.6 * 255 = 153 = "99"
+  const opazitaet = Math.round((1 - transparenz) * 255);
+  const alpha = opazitaet.toString(16).padStart(2, '0').toUpperCase();
+  return alpha + farbe;
+}
+
+function generiereLegendeXml(offerte: Offerte): string {
+  const cb = offerte.checkboxen?.erstaufnahme;
+  if (!cb) return '';
+
+  const eintraege: LegendeEintrag[] = [];
+
+  if (cb.fassaden) {
+    eintraege.push({
+      text: 'Fassaden inkl. Aussenanlagen (Mauern, Vorplätze, etc.)',
+      farbe: 'FF0000',
+      typ: 'linie'
+    });
+  }
+
+  if (cb.innenraeume) {
+    eintraege.push({
+      text: 'Innenaufnahmen',
+      farbe: '4F81BD',
+      typ: 'flaeche'
+    });
+  }
+
+  if (cb.strassen) {
+    eintraege.push({
+      text: 'Strassen',
+      farbe: 'FAC090',
+      typ: 'flaeche'
+    });
+  }
+
+  // Keine Einträge = keine Legende
+  if (eintraege.length === 0) return '';
+
+  // Symbol-Breite: ca. 1cm = 360000 EMU, Höhe: 0.4cm = 144000 EMU
+  const symbolBreite = 360000;
+  const symbolHoehe = 144000;
+
+  // Generiere Zeilen für jeden Eintrag
+  const zeilen = eintraege.map(eintrag => {
+    // Symbol als gefärbtes Rechteck oder Linie
+    let symbolXml: string;
+
+    if (eintrag.typ === 'linie') {
+      // Rote Linie - als Rechteck mit geringer Höhe
+      symbolXml = `
+        <w:r>
+          <w:rPr><w:noProof/></w:rPr>
+          <w:drawing>
+            <wp:inline distT="0" distB="0" distL="0" distR="0">
+              <wp:extent cx="${symbolBreite}" cy="50800"/>
+              <wp:docPr id="${Math.floor(Math.random() * 100000)}" name="Legende"/>
+              <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                <a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
+                  <wps:wsp xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
+                    <wps:spPr>
+                      <a:xfrm><a:off x="0" y="0"/><a:ext cx="${symbolBreite}" cy="50800"/></a:xfrm>
+                      <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                      <a:solidFill><a:srgbClr val="${eintrag.farbe}"><a:alpha val="60000"/></a:srgbClr></a:solidFill>
+                      <a:ln w="0"><a:noFill/></a:ln>
+                    </wps:spPr>
+                    <wps:bodyPr/>
+                  </wps:wsp>
+                </a:graphicData>
+              </a:graphic>
+            </wp:inline>
+          </w:drawing>
+        </w:r>`;
+    } else {
+      // Fläche als Rechteck
+      symbolXml = `
+        <w:r>
+          <w:rPr><w:noProof/></w:rPr>
+          <w:drawing>
+            <wp:inline distT="0" distB="0" distL="0" distR="0">
+              <wp:extent cx="${symbolBreite}" cy="${symbolHoehe}"/>
+              <wp:docPr id="${Math.floor(Math.random() * 100000)}" name="Legende"/>
+              <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                <a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
+                  <wps:wsp xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
+                    <wps:spPr>
+                      <a:xfrm><a:off x="0" y="0"/><a:ext cx="${symbolBreite}" cy="${symbolHoehe}"/></a:xfrm>
+                      <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                      <a:solidFill><a:srgbClr val="${eintrag.farbe}"><a:alpha val="60000"/></a:srgbClr></a:solidFill>
+                      <a:ln w="12700"><a:solidFill><a:srgbClr val="${eintrag.farbe}"/></a:solidFill></a:ln>
+                    </wps:spPr>
+                    <wps:bodyPr/>
+                  </wps:wsp>
+                </a:graphicData>
+              </a:graphic>
+            </wp:inline>
+          </w:drawing>
+        </w:r>`;
+    }
+
+    return `
+      <w:tr>
+        <w:tc>
+          <w:tcPr><w:tcW w="1200" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>
+          <w:p><w:pPr><w:jc w:val="center"/></w:pPr>${symbolXml}</w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr><w:tcW w="5000" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>
+          <w:p>
+            <w:pPr><w:spacing w:before="40" w:after="40"/></w:pPr>
+            <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/></w:rPr><w:t>${eintrag.text}</w:t></w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>`;
+  }).join('');
+
+  // Tabelle mit Rahmen für die Legende
+  const legendeXml = `
+    <w:tbl>
+      <w:tblPr>
+        <w:tblStyle w:val="TableGrid"/>
+        <w:tblW w:type="auto" w:w="0"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+          <w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+          <w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+          <w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/>
+          <w:insideH w:val="single" w:sz="4" w:space="0" w:color="CCCCCC"/>
+          <w:insideV w:val="nil"/>
+        </w:tblBorders>
+        <w:tblCellMar>
+          <w:top w:w="40" w:type="dxa"/>
+          <w:left w:w="80" w:type="dxa"/>
+          <w:bottom w:w="40" w:type="dxa"/>
+          <w:right w:w="80" w:type="dxa"/>
+        </w:tblCellMar>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="1200"/>
+        <w:gridCol w:w="5000"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/></w:tcPr>
+          <w:p>
+            <w:pPr><w:spacing w:before="60" w:after="60"/></w:pPr>
+            <w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="18"/></w:rPr><w:t>Legende</w:t></w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      ${zeilen}
+    </w:tbl>
+    <w:p><w:pPr><w:spacing w:after="120"/></w:pPr></w:p>`;
+
+  return legendeXml;
+}
+
 // === PLANBEILAGE ===
 
 // EMU Konvertierung: 1 cm = 360000 EMUs
@@ -238,7 +405,18 @@ function calculateProportionalSize(
 function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
   let xml = zip.file('word/document.xml')?.asText() || '';
 
+  // Legende generieren und vor dem Planbeilage einfügen
+  const legendeXml = generiereLegendeXml(offerte);
+
   if (!offerte.planbeilage) {
+    // Auch ohne Planbeilage kann die Legende eingefügt werden
+    if (legendeXml) {
+      // Finde den Planbeilage-Bereich (Paragraph mit PLAN_RID) und füge Legende davor ein
+      xml = xml.replace(
+        /(<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{PLAN_RID\}\}(?:(?!<\/w:p>).)*?<\/w:p>)/gs,
+        legendeXml + '$1'
+      );
+    }
     xml = xml.replace(/\{\{PLAN_RID\}\}/g, 'rId12');
     return xml;
   }
@@ -308,8 +486,22 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
         `$1${widthEmu}$3${heightEmu}$5`
       );
 
-      // Ersetze den Block im XML
-      xml = xml.substring(0, block.start) + newContent + xml.substring(block.end);
+      // Finde den umschliessenden Paragraphen für die Legende-Einfügung
+      // Suche rückwärts nach <w:p> vor dem Drawing-Block
+      let paragraphStart = block.start;
+      const searchArea = xml.substring(0, block.start);
+      const lastParagraphStart = searchArea.lastIndexOf('<w:p');
+      if (lastParagraphStart !== -1) {
+        paragraphStart = lastParagraphStart;
+      }
+
+      // Legende vor dem Planbeilage-Paragraphen einfügen
+      if (legendeXml) {
+        xml = xml.substring(0, paragraphStart) + legendeXml + xml.substring(paragraphStart, block.start) + newContent + xml.substring(block.end);
+      } else {
+        // Nur den Block ersetzen ohne Legende
+        xml = xml.substring(0, block.start) + newContent + xml.substring(block.end);
+      }
       break; // Nur einen Block bearbeiten
     }
   }
