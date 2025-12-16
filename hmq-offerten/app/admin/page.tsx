@@ -108,14 +108,23 @@ export default function AdminPage() {
       const oldIndex = kategorien.findIndex(k => k.id === active.id);
       const newIndex = kategorien.findIndex(k => k.id === over.id);
 
+      // 1. Array neu sortieren
       const neueSortierung = arrayMove(kategorien, oldIndex, newIndex);
-      setKategorien(neueSortierung);
 
-      // Sortierung in DB speichern
+      // 2. Sortierung-Werte im lokalen State aktualisieren
+      const mitNeuenSortierungsWerten = neueSortierung.map((kat, index) => ({
+        ...kat,
+        sortierung: (index + 1) * 10
+      }));
+
+      // 3. State SOFORT aktualisieren (optimistic update)
+      setKategorien(mitNeuenSortierungsWerten);
+
+      // 4. Dann in DB speichern (im Hintergrund)
       try {
         await Promise.all(
-          neueSortierung.map((kat, index) =>
-            updateKategorie(kat.id, { sortierung: (index + 1) * 10 })
+          mitNeuenSortierungsWerten.map(kat =>
+            updateKategorie(kat.id, { sortierung: kat.sortierung })
           )
         );
         showMessage('success', 'Reihenfolge gespeichert');
