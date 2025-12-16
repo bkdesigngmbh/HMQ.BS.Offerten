@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { Offerte, KategorieEingabe } from '@/lib/types';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Offerte, KategorieEingabe, GespeicherteKostenWerte } from '@/lib/types';
 import { getKategorien, getBasiswerte, KostenKategorie, KostenBasiswerte } from '@/lib/supabase';
 import { berechneKosten, KostenErgebnis, rundeAuf5Rappen } from '@/lib/kosten-rechner';
 
@@ -10,7 +10,7 @@ interface Tab2KostenProps {
   onChange: (offerte: Offerte) => void;
 }
 
-// State für editierbare Preise (werden bei Neuberechnung überschrieben)
+// State für editierbare Preise
 interface EditablePreise {
   grundlagen: number;
   termin: number;
@@ -27,6 +27,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
   const [kategorienConfig, setKategorienConfig] = useState<KostenKategorie[]>([]);
   const [basiswerte, setBasiswerte] = useState<KostenBasiswerte | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   // Editierbare Preise - lokal im State
   const [editablePreise, setEditablePreise] = useState<EditablePreise>({
@@ -54,21 +55,15 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
     zwischentotal: 0,
   });
 
+  // Track welche Felder manuell geändert wurden
+  const [manuallyChanged, setManuallyChanged] = useState<Set<keyof EditablePreise>>(new Set());
+
   // Track wenn Kategorien/Spesen geändert werden
   const prevKategorienRef = useRef<string>('');
   const prevSpesenRef = useRef<string>('');
   const prevOffertnummerRef = useRef<string>('');
 
-  // Wenn eine neue Offerte geladen wird, Refs zurücksetzen um Neuberechnung zu triggern
-  useEffect(() => {
-    if (prevOffertnummerRef.current !== '' && prevOffertnummerRef.current !== offerte.offertnummer) {
-      // Neue Offerte geladen - Refs zurücksetzen
-      prevKategorienRef.current = '';
-      prevSpesenRef.current = '';
-    }
-    prevOffertnummerRef.current = offerte.offertnummer;
-  }, [offerte.offertnummer]);
-
+  // Lade Konfiguration
   useEffect(() => {
     async function load() {
       try {
@@ -95,6 +90,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
     load();
   }, []);
 
+  // Berechne Kosten basierend auf aktuellen Eingaben
   const ergebnis: KostenErgebnis | null = useMemo(() => {
     if (!basiswerte || kategorienConfig.length === 0) return null;
     return berechneKosten(
@@ -106,15 +102,51 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
     );
   }, [offerte.kostenBerechnung, kategorienConfig, basiswerte]);
 
-  // Wenn Kategorien oder Spesen geändert werden -> alle Preise neu berechnen
+  // Initialisierung: Lade gespeicherte Werte oder berechne neu
   useEffect(() => {
-    const kategorienStr = JSON.stringify(offerte.kostenBerechnung.kategorien);
-    const spesenStr = JSON.stringify(offerte.kostenBerechnung.spesen);
+    if (!ergebnis || !basiswerte || initialized) return;
 
-    const kategorienChanged = prevKategorienRef.current !== '' && prevKategorienRef.current !== kategorienStr;
-    const spesenChanged = prevSpesenRef.current !== '' && prevSpesenRef.current !== spesenStr;
+    const gespeichert = offerte.kostenBerechnung.gespeicherteWerte;
 
-    if (ergebnis && (kategorienChanged || spesenChanged || prevKategorienRef.current === '')) {
+    if (gespeichert) {
+      // Lade gespeicherte Werte
+      const geladenePreise: EditablePreise = {
+        grundlagen: gespeichert.grundlagen,
+        termin: gespeichert.termin,
+        aufnahme: gespeichert.aufnahme,
+        bericht: gespeichert.bericht,
+        kontrolle: gespeichert.kontrolle,
+        abschluss: gespeichert.abschluss,
+        material: gespeichert.material,
+        spesen: gespeichert.spesen,
+        zwischentotal: gespeichert.zwischentotal,
+      };
+      setEditablePreise(geladenePreise);
+
+      // Berechnete Werte für Vergleich
+      const berechnete: EditablePreise = {
+        grundlagen: ergebnis.grundlagen.betrag,
+        termin: ergebnis.termin.betrag,
+        aufnahme: ergebnis.aufnahme.betrag,
+        bericht: ergebnis.bericht.betrag,
+        kontrolle: ergebnis.kontrolle.betrag,
+        abschluss: ergebnis.zustellbestaetigung.betrag + ergebnis.datenabgabe.betrag,
+        material: ergebnis.usb.betrag + ergebnis.binden.betrag,
+        spesen: ergebnis.spesen.betrag,
+        zwischentotal: ergebnis.endpreis,
+      };
+      setBerechnetePreise(berechnete);
+
+      // Markiere welche Werte abweichen
+      const changedFields = new Set<keyof EditablePreise>();
+      (Object.keys(geladenePreise) as (keyof EditablePreise)[]).forEach(key => {
+        if (Math.abs(geladenePreise[key] - berechnete[key]) >= 0.01) {
+          changedFields.add(key);
+        }
+      });
+      setManuallyChanged(changedFields);
+    } else {
+      // Keine gespeicherten Werte - berechne frisch
       const neuePreise: EditablePreise = {
         grundlagen: ergebnis.grundlagen.betrag,
         termin: ergebnis.termin.betrag,
@@ -128,18 +160,120 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
       };
       setEditablePreise(neuePreise);
       setBerechnetePreise(neuePreise);
+      setManuallyChanged(new Set());
+    }
+
+    prevKategorienRef.current = JSON.stringify(offerte.kostenBerechnung.kategorien);
+    prevSpesenRef.current = JSON.stringify(offerte.kostenBerechnung.spesen);
+    prevOffertnummerRef.current = offerte.offertnummer;
+    setInitialized(true);
+  }, [ergebnis, basiswerte, initialized, offerte.kostenBerechnung.gespeicherteWerte]);
+
+  // Bei Wechsel der Offerte: Reset
+  useEffect(() => {
+    if (prevOffertnummerRef.current !== '' && prevOffertnummerRef.current !== offerte.offertnummer) {
+      setInitialized(false);
+      setManuallyChanged(new Set());
+    }
+  }, [offerte.offertnummer]);
+
+  // Wenn Kategorien oder Spesen geändert werden -> alle Preise neu berechnen
+  useEffect(() => {
+    if (!ergebnis || !initialized) return;
+
+    const kategorienStr = JSON.stringify(offerte.kostenBerechnung.kategorien);
+    const spesenStr = JSON.stringify(offerte.kostenBerechnung.spesen);
+
+    const kategorienChanged = prevKategorienRef.current !== '' && prevKategorienRef.current !== kategorienStr;
+    const spesenChanged = prevSpesenRef.current !== '' && prevSpesenRef.current !== spesenStr;
+
+    if (kategorienChanged || spesenChanged) {
+      // Komplette Neuberechnung - alle manuellen Änderungen gehen verloren
+      const neuePreise: EditablePreise = {
+        grundlagen: ergebnis.grundlagen.betrag,
+        termin: ergebnis.termin.betrag,
+        aufnahme: ergebnis.aufnahme.betrag,
+        bericht: ergebnis.bericht.betrag,
+        kontrolle: ergebnis.kontrolle.betrag,
+        abschluss: ergebnis.zustellbestaetigung.betrag + ergebnis.datenabgabe.betrag,
+        material: ergebnis.usb.betrag + ergebnis.binden.betrag,
+        spesen: ergebnis.spesen.betrag,
+        zwischentotal: ergebnis.endpreis,
+      };
+      setEditablePreise(neuePreise);
+      setBerechnetePreise(neuePreise);
+      setManuallyChanged(new Set());
+
+      // Overrides zurücksetzen
+      onChange({
+        ...offerte,
+        kostenBerechnung: {
+          ...offerte.kostenBerechnung,
+          overrides: { stundenEnd: null, bindemengeEnd: null },
+          gespeicherteWerte: undefined, // Alte gespeicherte Werte löschen
+        },
+      });
     }
 
     prevKategorienRef.current = kategorienStr;
     prevSpesenRef.current = spesenStr;
-  }, [ergebnis, offerte.kostenBerechnung.kategorien, offerte.kostenBerechnung.spesen]);
+  }, [ergebnis, offerte.kostenBerechnung.kategorien, offerte.kostenBerechnung.spesen, initialized]);
 
   // Update offerte.kosten.leistungspreis wenn Zwischentotal geändert wird
   useEffect(() => {
-    if (editablePreise.zwischentotal !== offerte.kosten.leistungspreis) {
+    if (editablePreise.zwischentotal !== offerte.kosten.leistungspreis && initialized) {
       onChange({ ...offerte, kosten: { ...offerte.kosten, leistungspreis: editablePreise.zwischentotal } });
     }
-  }, [editablePreise.zwischentotal]);
+  }, [editablePreise.zwischentotal, initialized]);
+
+  // Speichere aktuelle Werte als gespeicherteWerte wenn sich editablePreise ändert
+  const updateGespeicherteWerte = useCallback(() => {
+    if (!basiswerte || !ergebnis || !initialized) return;
+
+    const rabattBetrag = rundeAuf5Rappen(editablePreise.zwischentotal * (offerte.kosten.rabattProzent / 100));
+    const totalNachRabatt = rundeAuf5Rappen(editablePreise.zwischentotal - rabattBetrag);
+    const mwstBetrag = rundeAuf5Rappen(totalNachRabatt * 0.081);
+    const totalInklMwst = rundeAuf5Rappen(totalNachRabatt + mwstBetrag);
+
+    const gespeicherteWerte: GespeicherteKostenWerte = {
+      grundlagen: editablePreise.grundlagen,
+      termin: editablePreise.termin,
+      aufnahme: editablePreise.aufnahme,
+      aufnahmeStunden: ergebnis.aufnahme.stundenEnd,
+      bericht: editablePreise.bericht,
+      kontrolle: editablePreise.kontrolle,
+      abschluss: editablePreise.abschluss,
+      material: editablePreise.material,
+      materialUsbKosten: basiswerte.usb_pauschal,
+      materialBindeAnzahl: ergebnis.binden.mengeEnd,
+      materialBindeKosten: ergebnis.binden.betrag,
+      spesen: editablePreise.spesen,
+      zwischentotal: editablePreise.zwischentotal,
+      rabattProzent: offerte.kosten.rabattProzent,
+      rabattBetrag,
+      mwstBetrag,
+      totalInklMwst,
+    };
+
+    // Nur updaten wenn sich Werte geändert haben
+    const current = offerte.kostenBerechnung.gespeicherteWerte;
+    if (JSON.stringify(current) !== JSON.stringify(gespeicherteWerte)) {
+      onChange({
+        ...offerte,
+        kostenBerechnung: {
+          ...offerte.kostenBerechnung,
+          gespeicherteWerte,
+        },
+      });
+    }
+  }, [editablePreise, offerte.kosten.rabattProzent, basiswerte, ergebnis, initialized]);
+
+  // Debounced Update der gespeicherten Werte
+  useEffect(() => {
+    if (!initialized) return;
+    const timeout = setTimeout(updateGespeicherteWerte, 300);
+    return () => clearTimeout(timeout);
+  }, [editablePreise, offerte.kosten.rabattProzent, updateGespeicherteWerte, initialized]);
 
   function handleKategorieChange(kategorieId: string, anzahl: number) {
     const newKategorien = offerte.kostenBerechnung.kategorien.map(k =>
@@ -155,17 +289,73 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
     });
   }
 
-  function handleOverrideChange(field: 'stundenEnd' | 'bindemengeEnd', value: number | null) {
+  // Override für Stunden - aktualisiert auch Aufnahme-Preis
+  function handleStundenOverride(value: number | null) {
+    if (!basiswerte) return;
+
+    // Override setzen
+    const newOverrides = {
+      ...offerte.kostenBerechnung.overrides,
+      stundenEnd: value,
+    };
+
     onChange({
       ...offerte,
       kostenBerechnung: {
         ...offerte.kostenBerechnung,
-        overrides: {
-          ...offerte.kostenBerechnung.overrides,
-          [field]: value,
-        },
+        overrides: newOverrides,
       },
     });
+
+    // Wenn Override gesetzt, Aufnahme-Preis neu berechnen
+    if (value !== null) {
+      const neuerAufnahmePreis = rundeAuf5Rappen(value * basiswerte.stundensatz_aufnahme);
+      setEditablePreise(prev => {
+        const updated = { ...prev, aufnahme: neuerAufnahmePreis };
+        updated.zwischentotal = rundeAuf5Rappen(
+          updated.grundlagen + updated.termin + updated.aufnahme +
+          updated.bericht + updated.kontrolle + updated.abschluss +
+          updated.material + updated.spesen
+        );
+        return updated;
+      });
+      setManuallyChanged(prev => new Set([...prev, 'aufnahme']));
+    }
+  }
+
+  // Override für Bindemenge - aktualisiert auch Material-Preis
+  function handleBindemengeOverride(value: number | null) {
+    if (!basiswerte) return;
+
+    // Override setzen
+    const newOverrides = {
+      ...offerte.kostenBerechnung.overrides,
+      bindemengeEnd: value,
+    };
+
+    onChange({
+      ...offerte,
+      kostenBerechnung: {
+        ...offerte.kostenBerechnung,
+        overrides: newOverrides,
+      },
+    });
+
+    // Wenn Override gesetzt, Material-Preis neu berechnen
+    if (value !== null) {
+      const neueBindeKosten = rundeAuf5Rappen(value * basiswerte.binden_einheitspreis);
+      const neuerMaterialPreis = rundeAuf5Rappen(basiswerte.usb_pauschal + neueBindeKosten);
+      setEditablePreise(prev => {
+        const updated = { ...prev, material: neuerMaterialPreis };
+        updated.zwischentotal = rundeAuf5Rappen(
+          updated.grundlagen + updated.termin + updated.aufnahme +
+          updated.bericht + updated.kontrolle + updated.abschluss +
+          updated.material + updated.spesen
+        );
+        return updated;
+      });
+      setManuallyChanged(prev => new Set([...prev, 'material']));
+    }
   }
 
   function handleRabattChange(rabattProzent: number) {
@@ -186,6 +376,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
       }
       return updated;
     });
+    setManuallyChanged(prev => new Set([...prev, field]));
   }
 
   function getBeschreibungForKategorie(kategorieId: string): string | undefined {
@@ -199,7 +390,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
 
   // Prüft ob ein Wert manuell geändert wurde
   function isManuallyChanged(field: keyof EditablePreise): boolean {
-    return Math.abs(editablePreise[field] - berechnetePreise[field]) >= 0.01;
+    return manuallyChanged.has(field);
   }
 
   if (loading) {
@@ -233,10 +424,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
         <span className="text-gray-600 flex items-center gap-1.5">
           {label}
           {isChanged && (
-            <span
-              className="w-2 h-2 bg-orange-400 rounded-full cursor-help"
-              title="Manuell angepasst - wird bei Änderung der Kategorien zurückgesetzt"
-            />
+            <span className="text-orange-500 text-xs font-medium">manuell</span>
           )}
         </span>
         <input
@@ -360,33 +548,37 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
         {ergebnis && ergebnis.totalN > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-100">
             <h4 className="text-sm font-medium text-gray-700 mb-3">Manuelle Korrekturen (optional)</h4>
-            <p className="text-xs text-gray-500 mb-3">Überschreiben Sie die berechneten Werte, falls nötig</p>
+            <p className="text-xs text-gray-500 mb-3">Änderungen hier aktualisieren automatisch die Preise rechts</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-                <label className="block text-xs text-amber-700 mb-2">
+                <label className="block text-xs text-amber-700 mb-1">
                   Stunden Aufnahme
-                  {ergebnis && <span className="text-amber-500 ml-1">(berechnet: {ergebnis.aufnahme.stundenRoh.toFixed(1)})</span>}
                 </label>
+                <span className="text-xs text-amber-500 block mb-2">
+                  berechnet: {ergebnis.aufnahme.stundenRoh.toFixed(1)} Std. → {ergebnis.aufnahme.stundenEnd.toFixed(1)} Std.
+                </span>
                 <input
                   type="number"
                   min="0"
                   step="0.5"
                   value={offerte.kostenBerechnung.overrides.stundenEnd ?? ''}
-                  onChange={(e) => handleOverrideChange('stundenEnd', e.target.value ? parseFloat(e.target.value) : null)}
+                  onChange={(e) => handleStundenOverride(e.target.value ? parseFloat(e.target.value) : null)}
                   className={`${inputClass} bg-white border border-amber-200`}
                   placeholder="Auto"
                 />
               </div>
               <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-                <label className="block text-xs text-amber-700 mb-2">
+                <label className="block text-xs text-amber-700 mb-1">
                   Bindemenge (Stk)
-                  {ergebnis && <span className="text-amber-500 ml-1">(berechnet: {ergebnis.binden.mengeStandard})</span>}
                 </label>
+                <span className="text-xs text-amber-500 block mb-2">
+                  berechnet: {ergebnis.binden.mengeStandard} Stk. (1 pro Objekt)
+                </span>
                 <input
                   type="number"
                   min="0"
                   value={offerte.kostenBerechnung.overrides.bindemengeEnd ?? ''}
-                  onChange={(e) => handleOverrideChange('bindemengeEnd', e.target.value ? parseInt(e.target.value) : null)}
+                  onChange={(e) => handleBindemengeOverride(e.target.value ? parseInt(e.target.value) : null)}
                   className={`${inputClass} bg-white border border-amber-200`}
                   placeholder="Auto"
                 />
@@ -430,10 +622,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
             <span className="text-white/80 flex items-center gap-1.5">
               Zwischentotal
               {isManuallyChanged('zwischentotal') && (
-                <span
-                  className="w-2 h-2 bg-orange-400 rounded-full cursor-help"
-                  title="Manuell angepasst - wird bei Änderung der Kategorien zurückgesetzt"
-                />
+                <span className="text-orange-300 text-xs">manuell</span>
               )}
             </span>
             <input
