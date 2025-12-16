@@ -200,6 +200,107 @@ function entferneRabatt(xml: string, rabattProzent: number): string {
   return xml;
 }
 
+// === LEGENDE ===
+
+interface LegendeEintrag {
+  text: string;
+  farbe: string;  // Hex ohne #, z.B. "FF0000"
+  istLinie: boolean;  // true = schmale Linie, false = breites Rechteck
+}
+
+function generiereLegendeXml(offerte: Offerte): string {
+  const cb = offerte.checkboxen?.erstaufnahme;
+  if (!cb) return '';
+
+  const eintraege: LegendeEintrag[] = [];
+
+  if (cb.fassaden) {
+    eintraege.push({
+      text: 'Fassaden inkl. Aussenanlagen (Mauern, Vorplätze, etc.)',
+      farbe: 'FF0000',
+      istLinie: true
+    });
+  }
+
+  if (cb.innenraeume) {
+    eintraege.push({
+      text: 'Innenaufnahmen',
+      farbe: '4F81BD',
+      istLinie: false
+    });
+  }
+
+  if (cb.strassen) {
+    eintraege.push({
+      text: 'Strassen',
+      farbe: 'FAC090',
+      istLinie: false
+    });
+  }
+
+  // Keine Einträge = keine Legende
+  if (eintraege.length === 0) return '';
+
+  // Generiere Zeilen für jeden Eintrag
+  // Verwende einfache Tabellenzellen mit Hintergrundfarbe (keine Shapes!)
+  const zeilen = eintraege.map(eintrag => {
+    // Zellenhöhe: Linie = schmal (100 twips = ~1.8mm), Fläche = normal (300 twips = ~5mm)
+    const zellenHoehe = eintrag.istLinie ? '100' : '300';
+
+    return `<w:tr>
+<w:trPr><w:trHeight w:val="${zellenHoehe}" w:hRule="exact"/></w:trPr>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="850" w:type="dxa"/>
+<w:shd w:val="clear" w:color="auto" w:fill="${eintrag.farbe}"/>
+<w:vAlign w:val="center"/>
+</w:tcPr>
+<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:p>
+</w:tc>
+<w:tc>
+<w:tcPr>
+<w:tcW w:w="5500" w:type="dxa"/>
+<w:vAlign w:val="center"/>
+</w:tcPr>
+<w:p>
+<w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
+<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="18"/></w:rPr><w:t>${eintrag.text}</w:t></w:r>
+</w:p>
+</w:tc>
+</w:tr>`;
+  }).join('\n');
+
+  // Tabelle ohne sichtbare Rahmen (nur die farbigen Zellen sind sichtbar)
+  const legendeXml = `
+<w:p><w:pPr><w:spacing w:after="120"/></w:pPr></w:p>
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="0" w:type="auto"/>
+<w:tblBorders>
+<w:top w:val="nil"/>
+<w:left w:val="nil"/>
+<w:bottom w:val="nil"/>
+<w:right w:val="nil"/>
+<w:insideH w:val="nil"/>
+<w:insideV w:val="nil"/>
+</w:tblBorders>
+<w:tblCellMar>
+<w:top w:w="40" w:type="dxa"/>
+<w:left w:w="80" w:type="dxa"/>
+<w:bottom w:w="40" w:type="dxa"/>
+<w:right w:w="80" w:type="dxa"/>
+</w:tblCellMar>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="850"/>
+<w:gridCol w:w="5500"/>
+</w:tblGrid>
+${zeilen}
+</w:tbl>`;
+
+  return legendeXml;
+}
+
 // === PLANBEILAGE ===
 
 // EMU Konvertierung: 1 cm = 360000 EMUs
@@ -238,7 +339,19 @@ function calculateProportionalSize(
 function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
   let xml = zip.file('word/document.xml')?.asText() || '';
 
+  // Legende generieren (wird nach dem Bild eingefügt)
+  const legendeXml = generiereLegendeXml(offerte);
+
   if (!offerte.planbeilage) {
+    // Auch ohne Planbeilage kann die Legende eingefügt werden
+    if (legendeXml) {
+      // Finde den Paragraphen mit PLAN_RID und füge Legende danach ein
+      const planRidMatch = xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{PLAN_RID\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s);
+      if (planRidMatch && planRidMatch.index !== undefined) {
+        const insertPos = planRidMatch.index + planRidMatch[0].length;
+        xml = xml.substring(0, insertPos) + legendeXml + xml.substring(insertPos);
+      }
+    }
     xml = xml.replace(/\{\{PLAN_RID\}\}/g, 'rId12');
     return xml;
   }
@@ -310,6 +423,19 @@ function insertPlanbeilage(zip: PizZip, offerte: Offerte): string {
 
       // Ersetze den Block im XML
       xml = xml.substring(0, block.start) + newContent + xml.substring(block.end);
+
+      // Legende NACH dem Paragraphen mit dem Bild einfügen
+      if (legendeXml) {
+        // Finde das Ende des umschliessenden Paragraphen (nach dem Drawing-Block)
+        // Der Drawing-Block ist innerhalb eines <w:p>...</w:p>
+        const afterBlock = block.start + newContent.length;
+        const closingPIdx = xml.indexOf('</w:p>', afterBlock);
+        if (closingPIdx !== -1) {
+          const insertPos = closingPIdx + '</w:p>'.length;
+          xml = xml.substring(0, insertPos) + legendeXml + xml.substring(insertPos);
+        }
+      }
+
       break; // Nur einen Block bearbeiten
     }
   }
