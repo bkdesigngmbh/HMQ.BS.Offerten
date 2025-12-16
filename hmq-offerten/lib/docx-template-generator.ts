@@ -664,7 +664,18 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
 
   // Daten vorbereiten
   const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
-  const kosten = berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
+
+  // WICHTIG: Gespeicherte Werte verwenden (falls vorhanden), sonst berechnen
+  // Die App speichert manuell überschriebene Werte in gespeicherteWerte
+  const gespeichert = offerte.kostenBerechnung?.gespeicherteWerte;
+  const kosten = gespeichert
+    ? {
+        rabattBetrag: gespeichert.rabattBetrag,
+        zwischentotal: gespeichert.zwischentotal,
+        mwstBetrag: gespeichert.mwstBetrag,
+        total: gespeichert.totalInklMwst,
+      }
+    : berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
   const anfrage = formatAnfrageDatum(offerte.projekt.anfrageDatum);
   const offNr = parseOffertnummer(offerte.offertnummer);
   const einsatz = generiereEinsatzTexte(offerte.einsatzpauschalen);
