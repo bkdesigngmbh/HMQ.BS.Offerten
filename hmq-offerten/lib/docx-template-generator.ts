@@ -203,27 +203,27 @@ function entferneRabatt(xml: string, rabattProzent: number): string {
 
 // === LEGENDE MIT PNG-BILDERN ===
 
+// CRC32 Tabelle und Funktion (für PNG-Erstellung)
+const crcTable: number[] = [];
+for (let n = 0; n < 256; n++) {
+  let c = n;
+  for (let k = 0; k < 8; k++) {
+    c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+  }
+  crcTable[n] = c;
+}
+function crc32(data: Buffer): number {
+  let crc = 0xffffffff;
+  for (let i = 0; i < data.length; i++) {
+    crc = crcTable[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
 // PNG-Erstellung: Erzeugt ein einfaches PNG mit einer Farbe
 function createPng(width: number, height: number, r: number, g: number, b: number, alpha: number): Buffer {
   // PNG Signatur
   const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-
-  // CRC32 Berechnung
-  const crcTable: number[] = [];
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) {
-      c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
-    }
-    crcTable[n] = c;
-  }
-  const crc32 = (data: Buffer): number => {
-    let crc = 0xffffffff;
-    for (let i = 0; i < data.length; i++) {
-      crc = crcTable[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
-    }
-    return (crc ^ 0xffffffff) >>> 0;
-  };
 
   // Chunk erstellen
   const createChunk = (type: string, data: Buffer): Buffer => {
@@ -271,10 +271,61 @@ function createPng(width: number, height: number, r: number, g: number, b: numbe
   ]);
 }
 
-// Legende-Symbole als PNG erstellen - ALLE 40px BREIT
+// PNG mit horizontaler Linie erstellen (zentriert in Bild mit transparentem Hintergrund)
+function createLinePng(width: number, height: number, lineHeight: number, r: number, g: number, b: number, alpha: number): Buffer {
+  const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+  const createChunk = (type: string, data: Buffer): Buffer => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length, 0);
+    const typeBuffer = Buffer.from(type);
+    const crcData = Buffer.concat([typeBuffer, data]);
+    const crcValue = Buffer.alloc(4);
+    crcValue.writeUInt32BE(crc32(crcData), 0);
+    return Buffer.concat([length, typeBuffer, data, crcValue]);
+  };
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr.writeUInt8(8, 8);   // Bit depth
+  ihdr.writeUInt8(6, 9);   // Color type (RGBA)
+  ihdr.writeUInt8(0, 10);  // Compression
+  ihdr.writeUInt8(0, 11);  // Filter
+  ihdr.writeUInt8(0, 12);  // Interlace
+
+  // Berechne wo die Linie vertikal zentriert sein soll
+  const lineStart = Math.floor((height - lineHeight) / 2);
+  const lineEnd = lineStart + lineHeight;
+
+  const rawData: number[] = [];
+  for (let y = 0; y < height; y++) {
+    rawData.push(0); // Filter byte
+    for (let x = 0; x < width; x++) {
+      if (y >= lineStart && y < lineEnd) {
+        // Linie zeichnen
+        rawData.push(r, g, b, alpha);
+      } else {
+        // Transparent
+        rawData.push(0, 0, 0, 0);
+      }
+    }
+  }
+  const rawBuffer = Buffer.from(rawData);
+  const compressed = zlib.deflateSync(rawBuffer);
+
+  return Buffer.concat([
+    signature,
+    createChunk('IHDR', ihdr),
+    createChunk('IDAT', compressed),
+    createChunk('IEND', Buffer.alloc(0))
+  ]);
+}
+
+// Legende-Symbole als PNG erstellen - ALLE 40px BREIT, ALLE 15px HOCH
 function createLegendSymbols(): { fassade: Buffer; innenraum: Buffer; strasse: Buffer } {
-  // Fassade: Rote Linie (40x8 Pixel, #FF0000, 60% Opazität = 153)
-  const fassade = createPng(40, 8, 255, 0, 0, 153);
+  // Fassade: Rote Linie 4px hoch, zentriert in 15px hohem Bild (40x15 Pixel, #FF0000, 60% Opazität = 153)
+  const fassade = createLinePng(40, 15, 4, 255, 0, 0, 153);
 
   // Innenaufnahmen: Blaues Rechteck (40x15 Pixel, #4F81BD, 60% Opazität)
   const innenraum = createPng(40, 15, 79, 129, 189, 153);
@@ -336,7 +387,6 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
   // Zeilen generieren mit eingebetteten Bildern
   const zeilen = eintraege.map((eintrag, idx) => {
     const symbolData = symbols[eintrag.symbolKey];
-    const isLine = eintrag.symbolKey === 'fassade';
 
     // Symbol zur Liste hinzufügen
     symbolsToAdd.push({
@@ -346,11 +396,9 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
     });
 
     // Bildgrössen in EMU (1cm = 360000 EMU)
-    // Alle Symbole sind 40px breit → ca. 1cm = 360000 EMU
-    // Fassade (Linie): 40x8px → ca. 1cm x 0.2cm
-    // Rechtecke: 40x15px → ca. 1cm x 0.4cm
-    const imgWidthEmu = 360000;  // 1cm (alle gleich breit)
-    const imgHeightEmu = isLine ? 72000 : 135000;  // 0.2cm oder 0.375cm
+    // Alle Symbole sind 40x15px → ca. 1cm x 0.375cm
+    const imgWidthEmu = 360000;   // 1cm
+    const imgHeightEmu = 135000;  // 0.375cm (alle gleich hoch)
 
     // Bild-XML (inline drawing)
     const bildXml = `<w:r>
@@ -378,7 +426,6 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
 <w:tc>
 <w:tcPr>
 <w:tcW w:w="700" w:type="dxa"/>
-<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
 <w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tcMar>
 <w:vAlign w:val="center"/>
 </w:tcPr>
@@ -390,7 +437,6 @@ ${bildXml}
 <w:tc>
 <w:tcPr>
 <w:tcW w:w="5800" w:type="dxa"/>
-<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
 <w:tcMar><w:top w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>
 <w:vAlign w:val="center"/>
 </w:tcPr>
@@ -432,7 +478,6 @@ ${bildXml}
 <w:tc>
 <w:tcPr>
 <w:gridSpan w:val="2"/>
-<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>
 <w:tcMar><w:top w:w="80" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tcMar>
 </w:tcPr>
 <w:p>
