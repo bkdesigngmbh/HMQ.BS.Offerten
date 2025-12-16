@@ -172,11 +172,11 @@ export function berechneKosten(
 
   // =====================================================
   // 7.2 BERICHT BINDEN
-  // Standard = aufrunden(N / 2)
+  // 1 Bericht pro Objekt = totalN Bindungen
   // Ende = Override oder Standard
   // Kosten = Menge × Einheitspreis
   // =====================================================
-  const mengeStandard = Math.ceil(totalN / 2);
+  const mengeStandard = totalN; // 1 Bericht pro Objekt (NICHT /2!)
   const mengeEnd = overrides.bindemengeEnd !== null ? overrides.bindemengeEnd : mengeStandard;
   const bindenBetrag = mengeEnd * basiswerte.binden_einheitspreis;
 

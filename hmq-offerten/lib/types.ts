@@ -131,10 +131,32 @@ export interface KostenSpesen {
   uebernachtungenAnzahl: number;
 }
 
+// Gespeicherte berechnete Werte (werden mit der Offerte gespeichert)
+export interface GespeicherteKostenWerte {
+  grundlagen: number;
+  termin: number;
+  aufnahme: number;
+  aufnahmeStunden: number;
+  bericht: number;
+  kontrolle: number;
+  abschluss: number;
+  material: number;
+  materialUsbKosten: number;
+  materialBindeAnzahl: number;
+  materialBindeKosten: number;
+  spesen: number;
+  zwischentotal: number;
+  rabattProzent: number;
+  rabattBetrag: number;
+  mwstBetrag: number;
+  totalInklMwst: number;
+}
+
 export interface KostenBerechnung {
   kategorien: KategorieEingabe[];
   overrides: KostenOverrides;
   spesen: KostenSpesen;
+  gespeicherteWerte?: GespeicherteKostenWerte;
 }
 
 export interface Offerte {
