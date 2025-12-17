@@ -27,6 +27,23 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
   function updateCheckbox(group: string, key: string, value: boolean | string) {
     const newCheckboxen = JSON.parse(JSON.stringify(offerte.checkboxen));
     (newCheckboxen as any)[group][key] = value;
+
+    // === AUTOMATISIERUNG ===
+
+    // 1. Strassen: Automatisch Belag und Rand mitsetzen
+    if (group === 'erstaufnahme' && key === 'strassen' && typeof value === 'boolean') {
+      newCheckboxen.erstaufnahme.strassenBelag = value;
+      newCheckboxen.erstaufnahme.strassenRand = value;
+    }
+
+    // 2. Dokumentation: Foto-Checkboxen automatisch basierend auf Erstaufnahme setzen
+    if (group === 'erstaufnahme') {
+      const ea = newCheckboxen.erstaufnahme;
+      newCheckboxen.dokumentation.fotoAussen = ea.fassaden || ea.aussenanlagen;
+      newCheckboxen.dokumentation.fotoInnen = ea.innenraeume;
+      newCheckboxen.dokumentation.fotoStrasse = ea.strassen;
+    }
+
     onChange({ ...offerte, checkboxen: newCheckboxen });
   }
 
@@ -373,11 +390,10 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
               titel="Zu dokumentierende Objekte"
               checkboxen={[
                 { key: 'fassaden', label: 'Fassaden', checked: offerte.checkboxen.erstaufnahme.fassaden },
-                { key: 'strassen', label: 'Strassen', checked: offerte.checkboxen.erstaufnahme.strassen },
-                { key: 'strassenBelag', label: 'Belagszustand', checked: offerte.checkboxen.erstaufnahme.strassenBelag },
-                { key: 'strassenRand', label: 'Randabschlüsse', checked: offerte.checkboxen.erstaufnahme.strassenRand },
                 { key: 'innenraeume', label: 'Innenräume', checked: offerte.checkboxen.erstaufnahme.innenraeume },
                 { key: 'aussenanlagen', label: 'Aussenanlagen', checked: offerte.checkboxen.erstaufnahme.aussenanlagen },
+                { key: 'strassen', label: 'Strassen', checked: offerte.checkboxen.erstaufnahme.strassen },
+                // strassenBelag und strassenRand werden automatisch mitgesetzt
               ]}
               onChange={(key, value) => updateCheckbox('erstaufnahme', key, value)}
             />
@@ -390,9 +406,7 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
               titel="Berichtinhalt pro Parzelle"
               checkboxen={[
                 { key: 'rissprotokoll', label: 'Rissprotokoll', checked: offerte.checkboxen.dokumentation.rissprotokoll },
-                { key: 'fotoAussen', label: 'Fotodokumentation Aussen', checked: offerte.checkboxen.dokumentation.fotoAussen },
-                { key: 'fotoInnen', label: 'Fotodokumentation Innen', checked: offerte.checkboxen.dokumentation.fotoInnen },
-                { key: 'fotoStrasse', label: 'Fotodokumentation Strassenzustand', checked: offerte.checkboxen.dokumentation.fotoStrasse },
+                // fotoAussen, fotoInnen, fotoStrasse werden automatisch von 2.2 Erstaufnahme gesetzt
                 { key: 'zustellbestaetigung', label: 'Zustellbestätigung', checked: offerte.checkboxen.dokumentation.zustellbestaetigung },
                 { key: 'datenabgabe', label: 'Datenabgabe Auftraggeber', checked: offerte.checkboxen.dokumentation.datenabgabe },
               ]}
