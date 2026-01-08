@@ -344,7 +344,7 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
                   { key: 'reihenhaus', label: 'Reihenhäuser', checked: offerte.checkboxen.artGebaeude.reihenhaus },
                   { key: 'terrassenhaus', label: 'Terrassenhäuser', checked: offerte.checkboxen.artGebaeude.terrassenhaus },
                   { key: 'mfh', label: 'Mehrfamilienhäuser', checked: offerte.checkboxen.artGebaeude.mfh },
-                  { key: 'strassen', label: 'Strassen/Vorplatz', checked: offerte.checkboxen.artGebaeude.strassen },
+                  { key: 'strassen', label: 'Strassen/Vorplätze', checked: offerte.checkboxen.artGebaeude.strassen },
                   { key: 'kunstbauten', label: 'Kunstbauten', checked: offerte.checkboxen.artGebaeude.kunstbauten },
                 ]}
                 onChange={(key, value) => updateCheckbox('artGebaeude', key, value)}
@@ -400,7 +400,7 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
                 { key: 'fassaden', label: 'Fassaden', checked: offerte.checkboxen.erstaufnahme.fassaden },
                 { key: 'innenraeume', label: 'Innenräume', checked: offerte.checkboxen.erstaufnahme.innenraeume },
                 { key: 'aussenanlagen', label: 'Aussenanlagen', checked: offerte.checkboxen.erstaufnahme.aussenanlagen },
-                { key: 'strassen', label: 'Strassen/Vorplatz', checked: offerte.checkboxen.erstaufnahme.strassen },
+                { key: 'strassen', label: 'Strassen/Vorplätze', checked: offerte.checkboxen.erstaufnahme.strassen },
                 // strassenBelag und strassenRand werden automatisch mitgesetzt
               ]}
               onChange={(key, value) => updateCheckbox('erstaufnahme', key, value)}
