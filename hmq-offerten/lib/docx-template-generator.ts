@@ -665,8 +665,8 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
 // === HAUPTFUNKTION ===
 
 export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  // V9 Template mit Abteilung-Platzhalter und "Strassen/Vorplatz" Umbenennung
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V9.docx');
+  // V10 Template mit ABTEILUNG-Platzhalter und "Strassen/Vorplatz" (aber nicht "Strassenzustand")
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V10.docx');
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
