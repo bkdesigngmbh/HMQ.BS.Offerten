@@ -384,7 +384,7 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
 
   if (cb.strassen) {
     eintraege.push({
-      text: 'Strassen',
+      text: 'Strassen/Vorplatz',
       symbolKey: 'strasse',
       rId: `rId${rIdCounter++}`
     });
@@ -665,8 +665,8 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
 // === HAUPTFUNKTION ===
 
 export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  // V8 Template mit Abteilung-Platzhalter und korrigierten Sonstiges-Abständen
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V8.docx');
+  // V9 Template mit Abteilung-Platzhalter und "Strassen/Vorplatz" Umbenennung
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V9.docx');
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
