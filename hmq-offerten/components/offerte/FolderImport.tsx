@@ -124,18 +124,24 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
       const mailData = parseEmailContent(mailContent);
 
       // Empfänger aus Mail
-      if (mailData.nachname) {
+      if (mailData.nachname || mailData.firma) {
         updatedOfferte.empfaenger = {
           ...updatedOfferte.empfaenger,
-          firma: '', // Muss manuell ergänzt werden
-          anrede: mailData.anrede,
-          vorname: mailData.vorname,
-          nachname: mailData.nachname,
-          strasse: mailData.strasse,
-          plz: mailData.plz,
-          ort: mailData.ort,
+          firma: mailData.firma || updatedOfferte.empfaenger.firma,
+          abteilung: mailData.abteilung || updatedOfferte.empfaenger.abteilung,
+          anrede: mailData.anrede || updatedOfferte.empfaenger.anrede,
+          vorname: mailData.vorname || updatedOfferte.empfaenger.vorname,
+          nachname: mailData.nachname || updatedOfferte.empfaenger.nachname,
+          strasse: mailData.strasse || updatedOfferte.empfaenger.strasse,
+          plz: mailData.plz || updatedOfferte.empfaenger.plz,
+          ort: mailData.ort || updatedOfferte.empfaenger.ort,
         };
         changes.push('Empfänger');
+      }
+
+      // Offerten-Deadline als Bemerkung anzeigen (falls vorhanden)
+      if (mailData.offertenDeadline) {
+        changes.push(`Deadline: ${mailData.offertenDeadline}`);
       }
 
       // Anfragedatum: Priorität MSG-Datum, dann EML-Header-Datum

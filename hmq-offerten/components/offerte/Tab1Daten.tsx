@@ -217,6 +217,17 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
               {errors['empfaenger.firma'] && <p className="text-red-500 text-xs mt-1">{errors['empfaenger.firma']}</p>}
             </div>
 
+            <div>
+              <label className={labelClass}>Abteilung</label>
+              <input
+                type="text"
+                value={offerte.empfaenger.abteilung || ''}
+                onChange={(e) => updateField('empfaenger.abteilung', e.target.value)}
+                placeholder="z.B. Abteilung Hochbau"
+                className={inputClass}
+              />
+            </div>
+
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={labelClass}>Anrede</label>
@@ -237,7 +248,6 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
                   value={offerte.empfaenger.vorname}
                   onChange={(e) => updateField('empfaenger.vorname', e.target.value)}
                   className={inputClass}
-                  disabled={!offerte.empfaenger.anrede}
                 />
               </div>
               <div>
@@ -247,7 +257,6 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
                   value={offerte.empfaenger.nachname}
                   onChange={(e) => updateField('empfaenger.nachname', e.target.value)}
                   className={inputClass}
-                  disabled={!offerte.empfaenger.anrede}
                 />
               </div>
             </div>
@@ -260,7 +269,6 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
                 onChange={(e) => updateField('empfaenger.funktion', e.target.value)}
                 placeholder="z.B. dipl. Ingenieur ETH/SIA"
                 className={inputClass}
-                disabled={!offerte.empfaenger.anrede}
               />
             </div>
 

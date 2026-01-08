@@ -184,6 +184,18 @@ function entferneLeerenKontakt(xml: string, hatKontakt: boolean): string {
   return xml;
 }
 
+function entferneLeereAbteilung(xml: string, abteilung: string): string {
+  if (abteilung && abteilung.trim()) return xml;
+
+  // Entferne den kompletten Paragraphen mit {{ABTEILUNG}}
+  xml = xml.replace(
+    /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{ABTEILUNG\}\}(?:(?!<\/w:p>).)*?<\/w:p>/gs,
+    ''
+  );
+
+  return xml;
+}
+
 // === RABATT ENTFERNEN ===
 
 function entferneRabatt(xml: string, rabattProzent: number): string {
@@ -653,8 +665,8 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
 // === HAUPTFUNKTION ===
 
 export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  // V7 Template mit Sonstiges-Platzhaltern verwenden
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V7.docx');
+  // V8 Template mit Abteilung-Platzhalter und korrigierten Sonstiges-Abständen
+  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V8.docx');
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
@@ -706,6 +718,7 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   // =====================================================
   xml = entferneLeereFunktion(xml, offerte.empfaenger.funktion);
   xml = entferneLeerenKontakt(xml, hatKontakt);
+  xml = entferneLeereAbteilung(xml, offerte.empfaenger.abteilung || '');
   xml = entferneRabatt(xml, offerte.kosten.rabattProzent);
 
   // =====================================================
@@ -714,6 +727,7 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   const replacements: Record<string, string> = {
     '{{ABSENDER_ADRESSE}}': standort.adresse,
     '{{FIRMA}}': offerte.empfaenger.firma,
+    '{{ABTEILUNG}}': offerte.empfaenger.abteilung || '',
     '{{KONTAKT_ZEILE}}': kontaktZeile,
     '{{FUNKTION_1}}': funktion1,
     '{{FUNKTION_2}}': funktion2 ? ` ${funktion2}` : '',

@@ -4,6 +4,8 @@ export interface ParsedMailData {
   bezeichnung: string;
 
   // Empfänger
+  firma: string;
+  abteilung: string;
   anrede: string;
   vorname: string;
   nachname: string;
@@ -17,6 +19,9 @@ export interface ParsedMailData {
 
   // Datum (aus Mail-Header)
   datum: string; // ISO-Format für Anfragedatum
+
+  // Offerten-Deadline (falls vorhanden)
+  offertenDeadline: string;
 }
 
 export interface ParsedFolderData {
@@ -173,6 +178,8 @@ export function parseEmailContent(emlContent: string): ParsedMailData {
   const result: ParsedMailData = {
     standort: '',
     bezeichnung: '',
+    firma: '',
+    abteilung: '',
     anrede: '',
     vorname: '',
     nachname: '',
@@ -182,6 +189,7 @@ export function parseEmailContent(emlContent: string): ParsedMailData {
     email: '',
     bemerkung: '',
     datum: '',
+    offertenDeadline: '',
   };
 
   // Datum aus Mail-Header extrahieren
@@ -240,41 +248,64 @@ export function parseEmailContent(emlContent: string): ParsedMailData {
     }
   }
 
-  // Empfänger parsen
+  // Empfänger parsen - unterstützt zwei Formate:
+  // Format A (alt): Anrede, Name, Strasse, PLZ Ort, Email
+  // Format B (neu callExpert): Firma, Anrede, Name, Strasse, PLZ Ort, Email
   if (empfaengerLines.length >= 4) {
-    // Zeile 0: Anrede (Herr/Frau)
-    if (empfaengerLines[0] === 'Herr' || empfaengerLines[0] === 'Frau') {
-      result.anrede = empfaengerLines[0];
-      empfaengerLines.shift();
+    let lineIdx = 0;
+
+    // Prüfen ob erste Zeile eine Firma ist (nicht Herr/Frau und kein Name mit @)
+    const firstLine = empfaengerLines[0];
+    const isAnrede = firstLine === 'Herr' || firstLine === 'Frau';
+    const isEmail = firstLine.includes('@');
+    const isPlzOrt = /^\d{4}\s+/.test(firstLine);
+
+    // Wenn erste Zeile keine Anrede ist und wie eine Firma aussieht
+    if (!isAnrede && !isEmail && !isPlzOrt && empfaengerLines.length >= 5) {
+      result.firma = empfaengerLines[lineIdx++];
     }
 
-    // Zeile 1: Name (Vorname Nachname)
-    if (empfaengerLines.length > 0) {
-      const nameParts = empfaengerLines[0].split(' ');
+    // Zeile: Anrede (Herr/Frau)
+    if (lineIdx < empfaengerLines.length) {
+      if (empfaengerLines[lineIdx] === 'Herr' || empfaengerLines[lineIdx] === 'Frau') {
+        result.anrede = empfaengerLines[lineIdx++];
+      }
+    }
+
+    // Zeile: Name (Vorname Nachname)
+    if (lineIdx < empfaengerLines.length && !empfaengerLines[lineIdx].includes('@') && !/^\d{4}\s+/.test(empfaengerLines[lineIdx])) {
+      const nameParts = empfaengerLines[lineIdx++].split(' ');
       result.vorname = nameParts[0] || '';
       result.nachname = nameParts.slice(1).join(' ') || '';
-      empfaengerLines.shift();
     }
 
-    // Zeile 2: Strasse
-    if (empfaengerLines.length > 0) {
-      result.strasse = empfaengerLines[0];
-      empfaengerLines.shift();
+    // Zeile: Strasse
+    if (lineIdx < empfaengerLines.length && !empfaengerLines[lineIdx].includes('@') && !/^\d{4}\s+/.test(empfaengerLines[lineIdx])) {
+      result.strasse = empfaengerLines[lineIdx++];
     }
 
-    // Zeile 3: PLZ Ort
-    if (empfaengerLines.length > 0) {
-      const plzOrtMatch = empfaengerLines[0].match(/^(\d{4})\s+(.+)$/);
+    // Zeile: PLZ Ort
+    if (lineIdx < empfaengerLines.length) {
+      const plzOrtMatch = empfaengerLines[lineIdx].match(/^(\d{4})\s+(.+)$/);
       if (plzOrtMatch) {
         result.plz = plzOrtMatch[1];
         result.ort = plzOrtMatch[2];
+        lineIdx++;
       }
-      empfaengerLines.shift();
     }
 
-    // Zeile 4: E-Mail
-    if (empfaengerLines.length > 0 && empfaengerLines[0].includes('@')) {
-      result.email = empfaengerLines[0];
+    // Zeile: E-Mail
+    if (lineIdx < empfaengerLines.length && empfaengerLines[lineIdx].includes('@')) {
+      result.email = empfaengerLines[lineIdx];
+    }
+  }
+
+  // Offerten Deadline parsen (Format: "Offerten Deadline: DD.MM.YYYY")
+  for (const line of lines) {
+    const deadlineMatch = line.match(/Offerten\s*Deadline[:\s]*(\d{2}\.\d{2}\.\d{4})/i);
+    if (deadlineMatch) {
+      result.offertenDeadline = deadlineMatch[1];
+      break;
     }
   }
 
