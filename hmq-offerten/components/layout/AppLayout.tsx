@@ -24,22 +24,23 @@ export default function AppLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      {/* Header mit HMQ Branding */}
+      <header className="bg-[#166ab8] text-white sticky top-0 z-40 shadow-lg">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Links: Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#1e3a5f] rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-sm">HMQ</span>
+          {/* Links: HMQ Logo + App-Name */}
+          <Link href="/" className="flex items-center gap-4">
+            <img src="/HMQ-Logo-weiss.svg" alt="HMQ" className="h-10 w-10" />
+            <div>
+              <h1 className="text-lg font-bold leading-tight">Beweissicherung</h1>
+              <p className="text-sm text-blue-200 leading-tight">Offertgenerator</p>
             </div>
-            <span className="font-semibold text-xl text-gray-900">Offerten-Tool</span>
           </Link>
 
           {/* Mitte: Aktuelle Offerte */}
           {currentOffertnummer && !isAdmin && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f]/5 rounded-full">
-              <span className="text-sm text-gray-600">Aktiv:</span>
-              <span className="font-mono font-semibold text-[#1e3a5f]">{currentOffertnummer}</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full">
+              <span className="text-sm text-blue-200">Aktiv:</span>
+              <span className="font-mono font-semibold text-white">{currentOffertnummer}</span>
             </div>
           )}
 
@@ -48,7 +49,7 @@ export default function AppLayout({
             {showNeueOfferte && onNeueOfferteClick && (
               <button
                 onClick={onNeueOfferteClick}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 rounded-xl transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -60,7 +61,7 @@ export default function AppLayout({
             {onOffertenClick && !isAdmin && (
               <button
                 onClick={onOffertenClick}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 rounded-xl transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -73,8 +74,8 @@ export default function AppLayout({
               href={isAdmin ? '/' : '/admin'}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
                 isAdmin
-                  ? 'bg-[#1e3a5f] text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-white text-[#166ab8]'
+                  : 'text-white hover:bg-white/10'
               }`}
             >
               {isAdmin ? (
