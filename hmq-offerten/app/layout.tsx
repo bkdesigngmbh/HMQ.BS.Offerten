@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'HMQ Offerten-Generator',
+  title: 'Beweissicherung - Offertgenerator | HMQ AG',
   description: 'Professionelle Offerten für Beweissicherung erstellen',
+  icons: {
+    icon: '/HMQ-Logo-weiss.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
