@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Beweissicherung - Offertgenerator | HMQ AG',
   description: 'Professionelle Offerten für Beweissicherung erstellen',
   icons: {
-    icon: '/HMQ-Logo-weiss.svg',
+    icon: '/HMQ-Logo-rounded.svg',
   },
 };
 
