@@ -17,6 +17,7 @@ export interface Ansprechpartner {
 
 export interface Empfaenger {
   firma: string;
+  abteilung: string;
   anrede: string;
   vorname: string;
   nachname: string;
@@ -184,6 +185,7 @@ export function createEmptyOfferte(): Offerte {
     ansprechpartnerIds: ['bpa', 'bho'],
     empfaenger: {
       firma: '',
+      abteilung: '',
       anrede: '',
       vorname: '',
       nachname: '',
