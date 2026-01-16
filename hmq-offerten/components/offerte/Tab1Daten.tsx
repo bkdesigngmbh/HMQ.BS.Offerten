@@ -8,10 +8,11 @@ import FolderImport from './FolderImport';
 interface Tab1DatenProps {
   offerte: Offerte;
   onChange: (offerte: Offerte) => void;
+  onCreateNew?: (offerte: Offerte) => void;
   errors?: Record<string, string>;
 }
 
-export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenProps) {
+export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} }: Tab1DatenProps) {
 
   function updateField(path: string, value: any) {
     const keys = path.split('.');
@@ -62,7 +63,7 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
           </div>
           Ordner-Import
         </h3>
-        <FolderImport offerte={offerte} onChange={onChange} />
+        <FolderImport offerte={offerte} onChange={onChange} onCreateNew={onCreateNew} />
       </div>
 
       {/* 3-Spalten Layout: Offert-Info, Projekt, Empfänger */}
@@ -129,19 +130,6 @@ export default function Tab1Daten({ offerte, onChange, errors = {} }: Tab1DatenP
               </select>
             </div>
 
-            <div>
-              <label className={labelClass}>Einsatzpauschalen</label>
-              <select
-                value={offerte.einsatzpauschalen.toString()}
-                onChange={(e) => updateField('einsatzpauschalen', parseInt(e.target.value))}
-                className={inputClass}
-              >
-                <option value="1">1 Einsatz (1 Tag)</option>
-                <option value="2">2 Einsätze (2 Tage)</option>
-                <option value="3">3 Einsätze (3 Tage)</option>
-                <option value="4">4 Einsätze (4 Tage)</option>
-              </select>
-            </div>
           </div>
         </div>
 
