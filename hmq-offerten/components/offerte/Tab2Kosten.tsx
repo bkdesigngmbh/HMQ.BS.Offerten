@@ -510,7 +510,9 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
             <div className="px-6 pb-6">
               <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
                 <img
-                  src={offerte.planbeilage.base64}
+                  src={offerte.planbeilage.base64.startsWith('data:')
+                    ? offerte.planbeilage.base64
+                    : `data:${offerte.planbeilage.mimeType};base64,${offerte.planbeilage.base64}`}
                   alt={offerte.planbeilage.dateiname}
                   className="w-full h-auto max-h-[600px] object-contain"
                 />
