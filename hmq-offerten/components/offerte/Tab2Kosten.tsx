@@ -548,18 +548,18 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
           Objekte nach Kategorie
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
           {offerte.kostenBerechnung.kategorien.map((kat) => {
             const beschreibung = getBeschreibungForKategorie(kat.kategorieId);
             return (
-              <div key={kat.kategorieId} className="bg-gray-50 rounded-xl p-3">
-                <div className="flex justify-between items-start mb-2">
-                  <label className="text-xs font-medium text-gray-600">{kat.titel}</label>
-                  <div className="group relative">
-                    <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div key={kat.kategorieId} className="bg-gray-50 rounded-lg p-2">
+                <div className="flex justify-between items-start mb-1.5">
+                  <label className="text-xs font-medium text-gray-600 leading-tight">{kat.titel}</label>
+                  <div className="group relative flex-shrink-0 ml-1">
+                    <svg className="w-3.5 h-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <div className="hidden group-hover:block absolute right-0 top-5 bg-gray-900 text-white text-xs p-2 rounded-lg w-48 z-10 shadow-lg">
+                    <div className="hidden group-hover:block absolute right-0 top-4 bg-gray-900 text-white text-xs p-2 rounded-lg w-48 z-10 shadow-lg">
                       {beschreibung || 'Keine Beschreibung hinterlegt'}
                     </div>
                   </div>
@@ -569,7 +569,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
                   min="0"
                   value={kat.anzahl || ''}
                   onChange={(e) => handleKategorieChange(kat.kategorieId, parseInt(e.target.value) || 0)}
-                  className={inputClass}
+                  className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
                   placeholder="0"
                 />
               </div>
@@ -585,70 +585,65 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
           </div>
         )}
 
-        {/* Einsatzpauschalen */}
+        {/* Einsatzpauschalen & Spesen kombiniert */}
         <div className="mt-6 pt-6 border-t border-gray-100">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Einsatzpauschalen</h4>
-          <div className="bg-gray-50 rounded-xl p-3 max-w-xs">
-            <label className="block text-xs text-gray-500 mb-2">Anzahl Einsätze (Tage)</label>
-            <select
-              value={offerte.einsatzpauschalen.toString()}
-              onChange={(e) => onChange({ ...offerte, einsatzpauschalen: parseInt(e.target.value) })}
-              className={inputClass}
-            >
-              <option value="1">1 Einsatz (1 Tag)</option>
-              <option value="2">2 Einsätze (2 Tage)</option>
-              <option value="3">3 Einsätze (3 Tage)</option>
-              <option value="4">4 Einsätze (4 Tage)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Spesen */}
-        <div className="mt-6 pt-6 border-t border-gray-100">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Spesen</h4>
-          <div className="grid grid-cols-4 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3">
-              <label className="block text-xs text-gray-500 mb-2">Kilometer</label>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Einsätze & Spesen</h4>
+          <div className="grid grid-cols-5 gap-2">
+            <div className="bg-gray-50 rounded-lg p-2">
+              <label className="block text-xs text-gray-500 mb-1.5">Einsätze</label>
+              <select
+                value={offerte.einsatzpauschalen.toString()}
+                onChange={(e) => onChange({ ...offerte, einsatzpauschalen: parseInt(e.target.value) })}
+                className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+              >
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <label className="block text-xs text-gray-500 mb-1.5">Kilometer</label>
               <input
                 type="number"
                 min="0"
                 value={offerte.kostenBerechnung.spesen.kilometer || ''}
                 onChange={(e) => handleSpesenChange('kilometer', parseFloat(e.target.value) || 0)}
-                className={inputClass}
+                className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
                 placeholder="0"
               />
             </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <label className="block text-xs text-gray-500 mb-2">Reisezeit (Std)</label>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <label className="block text-xs text-gray-500 mb-1.5">Reisezeit</label>
               <input
                 type="number"
                 min="0"
                 step="0.5"
                 value={offerte.kostenBerechnung.spesen.reisezeitStunden || ''}
                 onChange={(e) => handleSpesenChange('reisezeitStunden', parseFloat(e.target.value) || 0)}
-                className={inputClass}
+                className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
                 placeholder="0"
               />
             </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <label className="block text-xs text-gray-500 mb-2">Verpflegung</label>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <label className="block text-xs text-gray-500 mb-1.5">Verpflegung</label>
               <input
                 type="number"
                 min="0"
                 value={offerte.kostenBerechnung.spesen.verpflegungAnzahl || ''}
                 onChange={(e) => handleSpesenChange('verpflegungAnzahl', parseInt(e.target.value) || 0)}
-                className={inputClass}
+                className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
                 placeholder="0"
               />
             </div>
-            <div className="bg-gray-50 rounded-xl p-3">
-              <label className="block text-xs text-gray-500 mb-2">Übernachtung</label>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <label className="block text-xs text-gray-500 mb-1.5">Übernachtung</label>
               <input
                 type="number"
                 min="0"
                 value={offerte.kostenBerechnung.spesen.uebernachtungenAnzahl || ''}
                 onChange={(e) => handleSpesenChange('uebernachtungenAnzahl', parseInt(e.target.value) || 0)}
-                className={inputClass}
+                className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
                 placeholder="0"
               />
             </div>

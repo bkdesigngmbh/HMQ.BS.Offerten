@@ -680,11 +680,13 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
 
   // WICHTIG: Gespeicherte Werte verwenden (falls vorhanden), sonst berechnen
   // Die App speichert manuell überschriebene Werte in gespeicherteWerte
+  // HINWEIS: gespeichert.zwischentotal ist der Leistungspreis (VOR Rabatt)
+  // aber kosten.zwischentotal muss NACH Rabatt sein für die Platzhalter-Logik
   const gespeichert = offerte.kostenBerechnung?.gespeicherteWerte;
   const kosten = gespeichert
     ? {
         rabattBetrag: gespeichert.rabattBetrag,
-        zwischentotal: gespeichert.zwischentotal,
+        zwischentotal: gespeichert.zwischentotal - gespeichert.rabattBetrag, // NACH Rabatt
         mwstBetrag: gespeichert.mwstBetrag,
         total: gespeichert.totalInklMwst,
       }
