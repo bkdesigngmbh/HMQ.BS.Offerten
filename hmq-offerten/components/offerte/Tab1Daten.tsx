@@ -53,22 +53,22 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
 
   return (
     <div className="space-y-6">
-      {/* Ordner-Import */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
-            <svg className="w-4 h-4 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Ordner-Import - kompakt */}
+      <div className="bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-6 h-6 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-3.5 h-3.5 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
-          Ordner-Import
-        </h3>
+          <span className="font-medium text-gray-900 text-sm">Ordner-Import</span>
+        </div>
         <FolderImport offerte={offerte} onChange={onChange} onCreateNew={onCreateNew} />
       </div>
 
-      {/* 3-Spalten Layout: Offert-Info, Projekt, Empfänger */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Spalte 1: Offert-Info */}
+      {/* 2-Spalten Layout: Offert & Projekt | Empfänger */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Spalte 1: Offert-Informationen & Projekt */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
             <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
@@ -80,27 +80,18 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
           </h3>
 
           <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Offertnummer *</label>
-              <input
-                type="text"
-                value={offerte.offertnummer}
-                onChange={(e) => updateField('offertnummer', e.target.value)}
-                placeholder="z.B. 51.25.405"
-                className={inputClass}
-              />
-              {errors.offertnummer && <p className="text-red-500 text-xs mt-1">{errors.offertnummer}</p>}
-            </div>
-
+            {/* Zeile 1: Offertnummer, Standort */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClass}>Datum</label>
+                <label className={labelClass}>Offertnummer *</label>
                 <input
-                  type="date"
-                  value={offerte.datum}
-                  onChange={(e) => updateField('datum', e.target.value)}
+                  type="text"
+                  value={offerte.offertnummer}
+                  onChange={(e) => updateField('offertnummer', e.target.value)}
+                  placeholder="z.B. 51.25.405"
                   className={inputClass}
                 />
+                {errors.offertnummer && <p className="text-red-500 text-xs mt-1">{errors.offertnummer}</p>}
               </div>
               <div>
                 <label className={labelClass}>Standort</label>
@@ -116,72 +107,79 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
               </div>
             </div>
 
-            <div>
-              <label className={labelClass}>Vorlaufzeit</label>
-              <select
-                value={offerte.vorlaufzeit}
-                onChange={(e) => updateField('vorlaufzeit', e.target.value)}
-                className={inputClass}
-              >
-                <option value="2 Wochen">2 Wochen</option>
-                <option value="3 Wochen">3 Wochen</option>
-                <option value="4 Wochen">4 Wochen</option>
-                <option value="6 Wochen">6 Wochen</option>
-              </select>
+            {/* Zeile 2: Offertdatum, Anfragedatum */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Offertdatum</label>
+                <input
+                  type="date"
+                  value={offerte.datum}
+                  onChange={(e) => updateField('datum', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Anfragedatum</label>
+                <input
+                  type="date"
+                  value={offerte.projekt.anfrageDatum}
+                  onChange={(e) => updateField('projekt.anfrageDatum', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
             </div>
 
+            {/* Zeile 3: Vorlaufzeit */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Vorlaufzeit</label>
+                <select
+                  value={offerte.vorlaufzeit}
+                  onChange={(e) => updateField('vorlaufzeit', e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="2 Wochen">2 Wochen</option>
+                  <option value="3 Wochen">3 Wochen</option>
+                  <option value="4 Wochen">4 Wochen</option>
+                  <option value="6 Wochen">6 Wochen</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Trennlinie */}
+            <div className="border-t border-gray-100 pt-4 mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Projekt</h4>
+            </div>
+
+            {/* Zeile 4: Projektort, Bezeichnung */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Projektort *</label>
+                <input
+                  type="text"
+                  value={offerte.projekt.ort}
+                  onChange={(e) => updateField('projekt.ort', e.target.value)}
+                  placeholder="z.B. Zürich"
+                  className={inputClass}
+                />
+                {errors['projekt.ort'] && <p className="text-red-500 text-xs mt-1">{errors['projekt.ort']}</p>}
+              </div>
+              <div>
+                <label className={labelClass}>Bezeichnung *</label>
+                <input
+                  type="text"
+                  value={offerte.projekt.bezeichnung}
+                  onChange={(e) => updateField('projekt.bezeichnung', e.target.value)}
+                  placeholder="z.B. Seestrasse 44, Neubau MFH"
+                  className={inputClass}
+                />
+                {errors['projekt.bezeichnung'] && <p className="text-red-500 text-xs mt-1">{errors['projekt.bezeichnung']}</p>}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Spalte 2: Projekt */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            Projekt
-          </h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Projektort *</label>
-              <input
-                type="text"
-                value={offerte.projekt.ort}
-                onChange={(e) => updateField('projekt.ort', e.target.value)}
-                placeholder="z.B. Zürich"
-                className={inputClass}
-              />
-              {errors['projekt.ort'] && <p className="text-red-500 text-xs mt-1">{errors['projekt.ort']}</p>}
-            </div>
-
-            <div>
-              <label className={labelClass}>Bezeichnung *</label>
-              <input
-                type="text"
-                value={offerte.projekt.bezeichnung}
-                onChange={(e) => updateField('projekt.bezeichnung', e.target.value)}
-                placeholder="z.B. Seestrasse 44, Neubau MFH"
-                className={inputClass}
-              />
-              {errors['projekt.bezeichnung'] && <p className="text-red-500 text-xs mt-1">{errors['projekt.bezeichnung']}</p>}
-            </div>
-
-            <div>
-              <label className={labelClass}>Anfragedatum</label>
-              <input
-                type="date"
-                value={offerte.projekt.anfrageDatum}
-                onChange={(e) => updateField('projekt.anfrageDatum', e.target.value)}
-                className={inputClass}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Spalte 3: Empfänger */}
+        {/* Spalte 2: Empfänger */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
             <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
