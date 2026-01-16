@@ -28,7 +28,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
   const [basiswerte, setBasiswerte] = useState<KostenBasiswerte | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
-  const [showPlanbeilage, setShowPlanbeilage] = useState(false);
+  const [showPlanbeilage, setShowPlanbeilage] = useState(true);
 
   // Editierbare Preise - lokal im State
   const [editablePreise, setEditablePreise] = useState<EditablePreise>({
