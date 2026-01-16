@@ -1,15 +1,16 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Offerte } from '@/lib/types';
+import { Offerte, createEmptyOfferte } from '@/lib/types';
 import { parseFolderName, parseEmailContent, parseMsgFile } from '@/lib/mail-parser';
 
 interface FolderImportProps {
   offerte: Offerte;
   onChange: (offerte: Offerte) => void;
+  onCreateNew?: (offerte: Offerte) => void;
 }
 
-export default function FolderImport({ offerte, onChange }: FolderImportProps) {
+export default function FolderImport({ offerte, onChange, onCreateNew }: FolderImportProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [loadedFolder, setLoadedFolder] = useState<string>('');
@@ -91,8 +92,8 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
       }
     }
 
-    // Daten extrahieren
-    let updatedOfferte = { ...offerte };
+    // Daten extrahieren - neue Offerte erstellen wenn onCreateNew vorhanden
+    let updatedOfferte = onCreateNew ? createEmptyOfferte() : { ...offerte };
     let changes: string[] = [];
 
     // 1. Ordnername parsen
@@ -160,15 +161,21 @@ export default function FolderImport({ offerte, onChange }: FolderImportProps) {
     }
 
     if (changes.length > 0) {
-      onChange(updatedOfferte);
+      // Wenn onCreateNew vorhanden, neue Offerte erstellen, sonst aktuelle aktualisieren
+      if (onCreateNew) {
+        onCreateNew(updatedOfferte);
+        setStatus(`✓ Neue Offerte erstellt: ${changes.join(', ')}`);
+      } else {
+        onChange(updatedOfferte);
+        setStatus(`✓ Importiert: ${changes.join(', ')}`);
+      }
       setLoadedFolder(folderName);
-      setStatus(`✓ Importiert: ${changes.join(', ')}`);
     } else {
       setStatus('Keine Daten gefunden');
     }
 
     setTimeout(() => setStatus(''), 5000);
-  }, [offerte, onChange]);
+  }, [offerte, onChange, onCreateNew]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

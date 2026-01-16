@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { Offerte, KategorieEingabe, GespeicherteKostenWerte } from '@/lib/types';
 import { getKategorien, getBasiswerte, KostenKategorie, KostenBasiswerte } from '@/lib/supabase';
 import { berechneKosten, KostenErgebnis, rundeAuf5Rappen } from '@/lib/kosten-rechner';
@@ -28,6 +28,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
   const [basiswerte, setBasiswerte] = useState<KostenBasiswerte | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [showPlanbeilage, setShowPlanbeilage] = useState(false);
 
   // Editierbare Preise - lokal im State
   const [editablePreise, setEditablePreise] = useState<EditablePreise>({
@@ -476,7 +477,64 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
+      {/* Planbeilage Vorschau (wenn vorhanden) */}
+      {offerte.planbeilage && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <button
+            onClick={() => setShowPlanbeilage(!showPlanbeilage)}
+            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Planbeilage (Situationsplan)</h3>
+                <p className="text-sm text-gray-500">Zur Unterstützung beim Ausfüllen der Kosten</p>
+              </div>
+            </div>
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform ${showPlanbeilage ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showPlanbeilage && (
+            <div className="px-6 pb-6">
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+                <img
+                  src={offerte.planbeilage.base64}
+                  alt={offerte.planbeilage.dateiname}
+                  className="w-full h-auto max-h-[600px] object-contain"
+                />
+              </div>
+              {offerte.planbeilageGisLink && (
+                <a
+                  href={offerte.planbeilageGisLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 mt-3 text-sm text-[#1e3a5f] hover:text-[#166ab8] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  GIS-Link öffnen
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Hauptbereich: Kategorien, Spesen, Kostenübersicht */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Spalte 1+2: Kategorien & Spesen */}
       <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
@@ -524,6 +582,24 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
             </span>
           </div>
         )}
+
+        {/* Einsatzpauschalen */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Einsatzpauschalen</h4>
+          <div className="bg-gray-50 rounded-xl p-3 max-w-xs">
+            <label className="block text-xs text-gray-500 mb-2">Anzahl Einsätze (Tage)</label>
+            <select
+              value={offerte.einsatzpauschalen.toString()}
+              onChange={(e) => onChange({ ...offerte, einsatzpauschalen: parseInt(e.target.value) })}
+              className={inputClass}
+            >
+              <option value="1">1 Einsatz (1 Tag)</option>
+              <option value="2">2 Einsätze (2 Tage)</option>
+              <option value="3">3 Einsätze (3 Tage)</option>
+              <option value="4">4 Einsätze (4 Tage)</option>
+            </select>
+          </div>
+        </div>
 
         {/* Spesen */}
         <div className="mt-6 pt-6 border-t border-gray-100">
@@ -712,6 +788,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
             Wählen Sie mindestens eine Kategorie mit Anzahl &gt; 0
           </div>
         )}
+      </div>
       </div>
     </div>
   );

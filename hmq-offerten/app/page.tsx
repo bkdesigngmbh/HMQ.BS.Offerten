@@ -60,6 +60,16 @@ export default function HomePage() {
     setActiveTab('daten');
   }
 
+  function handleCreateNewFromImport(newOfferte: Offerte) {
+    // Bei ungespeicherten Änderungen warnen
+    if (offerte.offertnummer && !isSaved) {
+      if (!confirm('Ungespeicherte Änderungen verwerfen und neue Offerte erstellen?')) return;
+    }
+    setOfferte(newOfferte);
+    setIsSaved(false);
+    setActiveTab('daten');
+  }
+
   async function handleOfferteLoad(offertnummer: string) {
     try {
       const result = await getOfferte(offertnummer);
@@ -215,7 +225,7 @@ export default function HomePage() {
       {/* Tab Content */}
       <div className="mb-8">
         {activeTab === 'daten' && (
-          <Tab1Daten offerte={offerte} onChange={handleOfferteChange} />
+          <Tab1Daten offerte={offerte} onChange={handleOfferteChange} onCreateNew={handleCreateNewFromImport} />
         )}
         {activeTab === 'kosten' && (
           <Tab2Kosten offerte={offerte} onChange={handleOfferteChange} />
