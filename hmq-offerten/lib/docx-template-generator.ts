@@ -685,8 +685,8 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   const gespeichert = offerte.kostenBerechnung?.gespeicherteWerte;
   const kosten = gespeichert
     ? {
-        rabattBetrag: gespeichert.rabattBetrag,
-        zwischentotal: gespeichert.zwischentotal - gespeichert.rabattBetrag, // NACH Rabatt
+        rabattBetrag: gespeichert.rabattBetrag || 0,
+        zwischentotal: gespeichert.zwischentotal - (gespeichert.rabattBetrag || 0), // NACH Rabatt
         mwstBetrag: gespeichert.mwstBetrag,
         total: gespeichert.totalInklMwst,
       }
