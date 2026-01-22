@@ -24,6 +24,17 @@ const STANDORTE: Record<string, { name: string; adresse: string }> = {
 
 // === HELPER ===
 
+// XML-Escape für Sonderzeichen (wichtig für Word-Dokument!)
+function escapeXml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 function formatDatumKurz(isoDate: string): string {
   if (!isoDate) return '';
   const d = new Date(isoDate);
@@ -728,24 +739,24 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   // =====================================================
   const replacements: Record<string, string> = {
     '{{ABSENDER_ADRESSE}}': standort.adresse,
-    '{{FIRMA}}': offerte.empfaenger.firma,
-    '{{ABTEILUNG}}': offerte.empfaenger.abteilung || '',
-    '{{KONTAKT_ZEILE}}': kontaktZeile,
-    '{{FUNKTION_1}}': funktion1,
-    '{{FUNKTION_2}}': funktion2 ? ` ${funktion2}` : '',
-    '{{STRASSE}}': offerte.empfaenger.strasse,
-    '{{PLZ_ORT}}': plzOrt,
+    '{{FIRMA}}': escapeXml(offerte.empfaenger.firma),
+    '{{ABTEILUNG}}': escapeXml(offerte.empfaenger.abteilung || ''),
+    '{{KONTAKT_ZEILE}}': escapeXml(kontaktZeile),
+    '{{FUNKTION_1}}': escapeXml(funktion1),
+    '{{FUNKTION_2}}': funktion2 ? ` ${escapeXml(funktion2)}` : '',
+    '{{STRASSE}}': escapeXml(offerte.empfaenger.strasse),
+    '{{PLZ_ORT}}': escapeXml(plzOrt),
     '{{ANREDE}}': generiereAnrede(offerte.empfaenger),
     '{{STANDORT}}': standort.name,
     '{{DATUM}}': formatDatumKurz(offerte.datum),
-    '{{OFFNR_A}}': offNr.a,
-    '{{OFFNR_B}}': offNr.b,
-    '{{OFFNR_C}}': offNr.c,
-    '{{OFFNR_D}}': offNr.d,
-    '{{PROJEKT_ORT}}': offerte.projekt.ort,
-    '{{PROJEKT_BEZ1}}': offerte.projekt.bezeichnung.split(' ')[0] || offerte.projekt.bezeichnung,
+    '{{OFFNR_A}}': escapeXml(offNr.a),
+    '{{OFFNR_B}}': escapeXml(offNr.b),
+    '{{OFFNR_C}}': escapeXml(offNr.c),
+    '{{OFFNR_D}}': escapeXml(offNr.d),
+    '{{PROJEKT_ORT}}': escapeXml(offerte.projekt.ort),
+    '{{PROJEKT_BEZ1}}': escapeXml(offerte.projekt.bezeichnung.split(' ')[0] || offerte.projekt.bezeichnung),
     '{{PROJEKT_BEZ2}}': offerte.projekt.bezeichnung.includes(' ')
-      ? ' ' + offerte.projekt.bezeichnung.split(' ').slice(1).join(' ')
+      ? ' ' + escapeXml(offerte.projekt.bezeichnung.split(' ').slice(1).join(' '))
       : '',
     '{{ANF_TAG}}': anfrage.tag,
     '{{ANF_MONAT}}': anfrage.monat,
@@ -766,10 +777,10 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{EIN_TAGE_1}}': einsatz.tage1,
     '{{EIN_TAGE_2}}': einsatz.tage2,
     // Sonstiges-Textfelder (Text wenn vorhanden, sonst Punkte)
-    '{{BAUVORHABEN_SONSTIGES}}': offerte.checkboxen.artBauvorhaben.sonstiges?.trim() || '……………….',
-    '{{GEBAEUDE_SONSTIGES_1}}': offerte.checkboxen.artGebaeude.sonstiges1?.trim() || '……………….',
-    '{{GEBAEUDE_SONSTIGES_2}}': offerte.checkboxen.artGebaeude.sonstiges2?.trim() || '……………….',
-    '{{TAETIGKEITEN_SONSTIGES}}': offerte.checkboxen.taetigkeiten.sonstiges?.trim() || '……………….',
+    '{{BAUVORHABEN_SONSTIGES}}': escapeXml(offerte.checkboxen.artBauvorhaben.sonstiges?.trim()) || '……………….',
+    '{{GEBAEUDE_SONSTIGES_1}}': escapeXml(offerte.checkboxen.artGebaeude.sonstiges1?.trim()) || '……………….',
+    '{{GEBAEUDE_SONSTIGES_2}}': escapeXml(offerte.checkboxen.artGebaeude.sonstiges2?.trim()) || '……………….',
+    '{{TAETIGKEITEN_SONSTIGES}}': escapeXml(offerte.checkboxen.taetigkeiten.sonstiges?.trim()) || '……………….',
   };
 
   for (const [ph, val] of Object.entries(replacements)) {
