@@ -473,7 +473,7 @@ ${bildXml}
 </w:tcPr>
 <w:p>
 <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Univers" w:hAnsi="Univers"/><w:sz w:val="18"/></w:rPr><w:t>${eintrag.text}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Univers" w:hAnsi="Univers"/><w:sz w:val="18"/></w:rPr><w:t>${escapeXml(eintrag.text)}</w:t></w:r>
 </w:p>
 </w:tc>
 </w:tr>`;
@@ -594,6 +594,16 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
       // Relationship hinzufügen
       const symbolRel = `<Relationship Id="${symbol.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/legende_${symbol.key}.png"/>`;
       rels = rels.replace('</Relationships>', `${symbolRel}</Relationships>`);
+    }
+
+    // Content-Types für PNG hinzufügen falls nicht vorhanden
+    let contentTypes = zip.file('[Content_Types].xml')?.asText() || '';
+    if (!contentTypes.includes('Extension="png"')) {
+      contentTypes = contentTypes.replace(
+        '</Types>',
+        '<Default Extension="png" ContentType="image/png"/></Types>'
+      );
+      zip.file('[Content_Types].xml', contentTypes);
     }
   }
 
