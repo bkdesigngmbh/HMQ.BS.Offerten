@@ -595,20 +595,36 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
       const symbolRel = `<Relationship Id="${symbol.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/legende_${symbol.key}.png"/>`;
       rels = rels.replace('</Relationships>', `${symbolRel}</Relationships>`);
     }
-
-    // Content-Types für PNG hinzufügen falls nicht vorhanden
-    let contentTypes = zip.file('[Content_Types].xml')?.asText() || '';
-    if (!contentTypes.includes('Extension="png"')) {
-      contentTypes = contentTypes.replace(
-        '</Types>',
-        '<Default Extension="png" ContentType="image/png"/></Types>'
-      );
-      zip.file('[Content_Types].xml', contentTypes);
-    }
   }
 
   // Relationships speichern
   zip.file(relsPath, rels);
+
+  // Content-Types für Bilder hinzufügen falls nicht vorhanden
+  let contentTypes = zip.file('[Content_Types].xml')?.asText() || '';
+  let contentTypesChanged = false;
+
+  // PNG Content-Type (für Legende-Symbole und PNG-Planbeilagen)
+  if (!contentTypes.includes('Extension="png"')) {
+    contentTypes = contentTypes.replace(
+      '</Types>',
+      '<Default Extension="png" ContentType="image/png"/></Types>'
+    );
+    contentTypesChanged = true;
+  }
+
+  // JPEG Content-Type (für JPEG-Planbeilagen)
+  if (!contentTypes.includes('Extension="jpeg"') && !contentTypes.includes('Extension="jpg"')) {
+    contentTypes = contentTypes.replace(
+      '</Types>',
+      '<Default Extension="jpeg" ContentType="image/jpeg"/></Types>'
+    );
+    contentTypesChanged = true;
+  }
+
+  if (contentTypesChanged) {
+    zip.file('[Content_Types].xml', contentTypes);
+  }
 
   // Planbeilage-Bild Grösse anpassen
   if (offerte.planbeilage) {

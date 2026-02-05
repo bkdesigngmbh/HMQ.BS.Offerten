@@ -34,15 +34,20 @@ export async function POST(request: Request) {
 
     // PDF generieren falls CloudConvert konfiguriert
     let pdfBuffer: Buffer | null = null;
-    if (isCloudConvertConfigured()) {
+    const cloudConvertConfigured = isCloudConvertConfigured();
+    console.log('CloudConvert konfiguriert:', cloudConvertConfigured);
+
+    if (cloudConvertConfigured) {
       try {
         console.log('Konvertiere zu PDF...');
         pdfBuffer = await convertDocxToPdf(docxBuffer, `${baseName}.docx`);
-        console.log('PDF erstellt');
+        console.log('PDF erstellt, Grösse:', pdfBuffer.length, 'bytes');
       } catch (pdfError) {
         console.error('PDF-Konvertierung fehlgeschlagen:', pdfError);
         // Weitermachen ohne PDF
       }
+    } else {
+      console.log('CloudConvert nicht konfiguriert - kein PDF generiert');
     }
 
     // Response: JSON mit Base64-kodierten Dateien
