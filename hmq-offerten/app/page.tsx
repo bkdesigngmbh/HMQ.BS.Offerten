@@ -100,6 +100,26 @@ export default function HomePage() {
     }
   }
 
+  // Helper: Base64 zu Blob konvertieren und herunterladen
+  function downloadBase64File(base64Data: string, filename: string, mimeType: string) {
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
   async function handleGenerateWord() {
     if (!offerte.offertnummer) {
       alert('Bitte Offertnummer eingeben');
@@ -107,43 +127,46 @@ export default function HomePage() {
       return;
     }
 
+    // Datum auf heute setzen
+    const heute = new Date().toISOString().split('T')[0];
+    const offerteAktualisiert = { ...offerte, datum: heute };
+    setOfferte(offerteAktualisiert);
+
     setGenerating(true);
     try {
-      await saveOfferte(offerte);
+      await saveOfferte(offerteAktualisiert);
       setIsSaved(true);
 
       const response = await fetch('/api/generate-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(offerte),
+        body: JSON.stringify(offerteAktualisiert),
       });
 
       if (!response.ok) throw new Error('Fehler');
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
+      const result = await response.json();
 
-      // Dateiname zusammenbauen
-      const projektOrt = offerte.projekt.ort || '';
-      const projektBezeichnung = offerte.projekt.bezeichnung || '';
-      let dateiname = `Beweissicherung ¦ ${offerte.offertnummer}`;
-      if (projektOrt) {
-        dateiname += ` ${projektOrt}`;
+      // DOCX herunterladen
+      if (result.docx) {
+        downloadBase64File(
+          result.docx.data,
+          result.docx.filename,
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        );
       }
-      if (projektBezeichnung) {
-        dateiname += `, ${projektBezeichnung}`;
-      }
-      dateiname += '.docx';
-      // Ungültige Zeichen für Dateinamen entfernen (Windows-kompatibel)
-      dateiname = dateiname.replace(/[<>:"/\\|?*]/g, '');
 
-      a.download = dateiname;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      // PDF herunterladen (falls vorhanden)
+      if (result.pdf) {
+        // Kurze Verzögerung damit beide Downloads starten
+        setTimeout(() => {
+          downloadBase64File(
+            result.pdf.data,
+            result.pdf.filename,
+            'application/pdf'
+          );
+        }, 500);
+      }
     } catch (error) {
       console.error('Fehler:', error);
       alert('Fehler beim Generieren');

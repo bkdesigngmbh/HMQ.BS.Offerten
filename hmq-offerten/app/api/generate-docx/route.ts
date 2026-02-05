@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateOfferteFromTemplate } from '@/lib/docx-template-generator';
+import { convertDocxToPdf, isCloudConvertConfigured } from '@/lib/cloudconvert';
 
 export async function POST(request: Request) {
   try {
@@ -15,13 +16,52 @@ export async function POST(request: Request) {
     console.log('Generiere Offerte:', offerte.offertnummer);
     console.log('Planbeilage:', offerte.planbeilage ? 'Ja' : 'Nein');
 
-    const buffer = await generateOfferteFromTemplate(offerte);
+    // DOCX generieren
+    const docxBuffer = await generateOfferteFromTemplate(offerte);
 
-    return new NextResponse(new Uint8Array(buffer), {
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="Offerte_${offerte.offertnummer.replace(/\./g, '-')}.docx"`,
+    // Dateiname zusammenbauen
+    const projektOrt = offerte.projekt?.ort || '';
+    const projektBezeichnung = offerte.projekt?.bezeichnung || '';
+    let baseName = `Beweissicherung ¦ ${offerte.offertnummer}`;
+    if (projektOrt) {
+      baseName += ` ${projektOrt}`;
+    }
+    if (projektBezeichnung) {
+      baseName += `, ${projektBezeichnung}`;
+    }
+    // Ungültige Zeichen für Dateinamen entfernen
+    baseName = baseName.replace(/[<>:"/\\|?*]/g, '');
+
+    // PDF generieren falls CloudConvert konfiguriert
+    let pdfBuffer: Buffer | null = null;
+    const cloudConvertConfigured = isCloudConvertConfigured();
+    console.log('CloudConvert konfiguriert:', cloudConvertConfigured);
+
+    if (cloudConvertConfigured) {
+      try {
+        console.log('Konvertiere zu PDF...');
+        pdfBuffer = await convertDocxToPdf(docxBuffer, `${baseName}.docx`);
+        console.log('PDF erstellt, Grösse:', pdfBuffer.length, 'bytes');
+      } catch (pdfError) {
+        console.error('PDF-Konvertierung fehlgeschlagen:', pdfError);
+        // Weitermachen ohne PDF
+      }
+    } else {
+      console.log('CloudConvert nicht konfiguriert - kein PDF generiert');
+    }
+
+    // Response: JSON mit Base64-kodierten Dateien
+    return NextResponse.json({
+      docx: {
+        data: docxBuffer.toString('base64'),
+        filename: `${baseName}.docx`,
       },
+      pdf: pdfBuffer
+        ? {
+            data: pdfBuffer.toString('base64'),
+            filename: `${baseName}.pdf`,
+          }
+        : null,
     });
   } catch (error) {
     console.error('Fehler:', error);

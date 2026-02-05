@@ -96,6 +96,9 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
   // Track welche Felder manuell geändert wurden
   const [manuallyChanged, setManuallyChanged] = useState<Set<keyof EditablePreise>>(new Set());
 
+  // Track ob Einsatzpauschale manuell gesetzt wurde
+  const [einsatzpauschaleManual, setEinsatzpauschaleManual] = useState(false);
+
   // Track wenn Kategorien/Spesen geändert werden
   const prevKategorienRef = useRef<string>('');
   const prevSpesenRef = useRef<string>('');
@@ -288,7 +291,24 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
 
     prevKategorienRef.current = kategorienStr;
     prevSpesenRef.current = spesenStr;
+
+    // Reset manual flag bei Kategorie-Änderung
+    if (kategorienChanged) {
+      setEinsatzpauschaleManual(false);
+    }
   }, [ergebnis, offerte.kostenBerechnung.kategorien, offerte.kostenBerechnung.spesen, initialized]);
+
+  // Auto-berechne Einsatzpauschalen basierend auf Aufnahmezeit (wenn nicht manuell gesetzt)
+  useEffect(() => {
+    if (!ergebnis || !initialized || einsatzpauschaleManual) return;
+
+    const stundenEnd = offerte.kostenBerechnung.overrides.stundenEnd ?? ergebnis.aufnahme.stundenEnd;
+    const berechnetePauschalen = Math.max(1, Math.min(10, Math.ceil(stundenEnd / 8)));
+
+    if (offerte.einsatzpauschalen !== berechnetePauschalen) {
+      onChange({ ...offerte, einsatzpauschalen: berechnetePauschalen });
+    }
+  }, [ergebnis?.aufnahme.stundenEnd, offerte.kostenBerechnung.overrides.stundenEnd, initialized, einsatzpauschaleManual]);
 
   // Update offerte.kosten.leistungspreis wenn Zwischentotal geändert wird
   useEffect(() => {
@@ -593,16 +613,23 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
           <h4 className="text-sm font-medium text-gray-700 mb-3">Einsätze & Spesen</h4>
           <div className="grid grid-cols-5 gap-2">
             <div className="bg-gray-50 rounded-lg p-2">
-              <label className="block text-xs text-gray-500 mb-1.5">Einsätze</label>
+              <label className="block text-xs text-gray-500 mb-1.5 flex items-center gap-1">
+                Einsätze
+                {einsatzpauschaleManual && (
+                  <span className="text-orange-500 text-xs font-medium">manuell</span>
+                )}
+              </label>
               <select
                 value={offerte.einsatzpauschalen.toString()}
-                onChange={(e) => onChange({ ...offerte, einsatzpauschalen: parseInt(e.target.value) })}
+                onChange={(e) => {
+                  setEinsatzpauschaleManual(true);
+                  onChange({ ...offerte, einsatzpauschalen: parseInt(e.target.value) });
+                }}
                 className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
               >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
               </select>
             </div>
             <div className="bg-gray-50 rounded-lg p-2">

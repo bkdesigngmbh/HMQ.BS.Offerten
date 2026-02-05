@@ -100,6 +100,12 @@ function generiereEinsatzTexte(anzahl: number): { z1: string; z2: string; wort: 
     2: { z1: 'zw', z2: 'ei', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'zwei verschiedenen Tagen' },
     3: { z1: 'dr', z2: 'ei', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'drei verschiedenen Tagen' },
     4: { z1: 'vi', z2: 'er', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'vier verschiedenen Tagen' },
+    5: { z1: 'fü', z2: 'nf', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'fünf verschiedenen Tagen' },
+    6: { z1: 'se', z2: 'chs', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'sechs verschiedenen Tagen' },
+    7: { z1: 'si', z2: 'eben', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'sieben verschiedenen Tagen' },
+    8: { z1: 'ac', z2: 'ht', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'acht verschiedenen Tagen' },
+    9: { z1: 'ne', z2: 'un', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'neun verschiedenen Tagen' },
+    10: { z1: 'ze', z2: 'hn', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'zehn verschiedenen Tagen' },
   };
   return daten[anzahl] || daten[2];
 }
@@ -467,7 +473,7 @@ ${bildXml}
 </w:tcPr>
 <w:p>
 <w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Univers" w:hAnsi="Univers"/><w:sz w:val="18"/></w:rPr><w:t>${eintrag.text}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Univers" w:hAnsi="Univers"/><w:sz w:val="18"/></w:rPr><w:t>${escapeXml(eintrag.text)}</w:t></w:r>
 </w:p>
 </w:tc>
 </w:tr>`;
@@ -593,6 +599,32 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
 
   // Relationships speichern
   zip.file(relsPath, rels);
+
+  // Content-Types für Bilder hinzufügen falls nicht vorhanden
+  let contentTypes = zip.file('[Content_Types].xml')?.asText() || '';
+  let contentTypesChanged = false;
+
+  // PNG Content-Type (für Legende-Symbole und PNG-Planbeilagen)
+  if (!contentTypes.includes('Extension="png"')) {
+    contentTypes = contentTypes.replace(
+      '</Types>',
+      '<Default Extension="png" ContentType="image/png"/></Types>'
+    );
+    contentTypesChanged = true;
+  }
+
+  // JPEG Content-Type (für JPEG-Planbeilagen)
+  if (!contentTypes.includes('Extension="jpeg"') && !contentTypes.includes('Extension="jpg"')) {
+    contentTypes = contentTypes.replace(
+      '</Types>',
+      '<Default Extension="jpeg" ContentType="image/jpeg"/></Types>'
+    );
+    contentTypesChanged = true;
+  }
+
+  if (contentTypesChanged) {
+    zip.file('[Content_Types].xml', contentTypes);
+  }
 
   // Planbeilage-Bild Grösse anpassen
   if (offerte.planbeilage) {
