@@ -107,15 +107,20 @@ export default function HomePage() {
       return;
     }
 
+    // Datum auf heute setzen
+    const heute = new Date().toISOString().split('T')[0];
+    const offerteAktualisiert = { ...offerte, datum: heute };
+    setOfferte(offerteAktualisiert);
+
     setGenerating(true);
     try {
-      await saveOfferte(offerte);
+      await saveOfferte(offerteAktualisiert);
       setIsSaved(true);
 
       const response = await fetch('/api/generate-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(offerte),
+        body: JSON.stringify(offerteAktualisiert),
       });
 
       if (!response.ok) throw new Error('Fehler');

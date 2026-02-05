@@ -100,6 +100,12 @@ function generiereEinsatzTexte(anzahl: number): { z1: string; z2: string; wort: 
     2: { z1: 'zw', z2: 'ei', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'zwei verschiedenen Tagen' },
     3: { z1: 'dr', z2: 'ei', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'drei verschiedenen Tagen' },
     4: { z1: 'vi', z2: 'er', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'vier verschiedenen Tagen' },
+    5: { z1: 'fü', z2: 'nf', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'fünf verschiedenen Tagen' },
+    6: { z1: 'se', z2: 'chs', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'sechs verschiedenen Tagen' },
+    7: { z1: 'si', z2: 'eben', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'sieben verschiedenen Tagen' },
+    8: { z1: 'ac', z2: 'ht', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'acht verschiedenen Tagen' },
+    9: { z1: 'ne', z2: 'un', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'neun verschiedenen Tagen' },
+    10: { z1: 'ze', z2: 'hn', wort: 'Einsatzpauschalen', tage1: 'Einsätze an maximal ', tage2: 'zehn verschiedenen Tagen' },
   };
   return daten[anzahl] || daten[2];
 }
