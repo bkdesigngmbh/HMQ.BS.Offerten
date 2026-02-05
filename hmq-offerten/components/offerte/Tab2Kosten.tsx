@@ -22,7 +22,7 @@ function EditablePreisInput({
   field: string;
   value: number;
   isChanged: boolean;
-  onPreisChange: (field: string, value: number) => void;
+  onPreisChange: (field: keyof EditablePreise, value: number) => void;
 }) {
   return (
     <div className="flex justify-between items-center py-1.5 group relative">
@@ -37,7 +37,7 @@ function EditablePreisInput({
         min="0"
         step="0.05"
         value={value || ''}
-        onChange={(e) => onPreisChange(field, parseFloat(e.target.value) || 0)}
+        onChange={(e) => onPreisChange(field as keyof EditablePreise, parseFloat(e.target.value) || 0)}
         className={`w-24 px-2 py-1 text-right font-mono text-sm rounded-lg border-0
           ${isChanged ? 'bg-orange-50' : 'bg-gray-50'}
           focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all`}
@@ -479,11 +479,6 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
 
   const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all";
 
-  // Wrapper function for handlePreisChange to use with EditablePreisInput
-  const onPreisChange = useCallback((field: string, value: number) => {
-    handlePreisChange(field as keyof EditablePreise, value);
-  }, [handlePreisChange]);
-
   return (
     <div className="space-y-6">
       {/* Planbeilage Vorschau (wenn vorhanden) */}
@@ -717,14 +712,14 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
               </span>
             </div>
             <div className="space-y-1 text-sm">
-              <EditablePreisInput label="Grundlagen" field="grundlagen" value={editablePreise.grundlagen} isChanged={isManuallyChanged('grundlagen')} onPreisChange={onPreisChange} />
-              <EditablePreisInput label="Termin" field="termin" value={editablePreise.termin} isChanged={isManuallyChanged('termin')} onPreisChange={onPreisChange} />
-              <EditablePreisInput label="Aufnahme" field="aufnahme" value={editablePreise.aufnahme} isChanged={isManuallyChanged('aufnahme')} onPreisChange={onPreisChange} />
-              <EditablePreisInput label="Bericht" field="bericht" value={editablePreise.bericht} isChanged={isManuallyChanged('bericht')} onPreisChange={onPreisChange} />
-              <EditablePreisInput label="Kontrolle" field="kontrolle" value={editablePreise.kontrolle} isChanged={isManuallyChanged('kontrolle')} onPreisChange={onPreisChange} />
-              <EditablePreisInput label="Abschluss" field="abschluss" value={editablePreise.abschluss} isChanged={isManuallyChanged('abschluss')} onPreisChange={onPreisChange} />
-              <EditablePreisInput label="Material" field="material" value={editablePreise.material} isChanged={isManuallyChanged('material')} onPreisChange={onPreisChange} />
-              <EditablePreisInput label="Spesen" field="spesen" value={editablePreise.spesen} isChanged={isManuallyChanged('spesen')} onPreisChange={onPreisChange} />
+              <EditablePreisInput label="Grundlagen" field="grundlagen" value={editablePreise.grundlagen} isChanged={isManuallyChanged('grundlagen')} onPreisChange={handlePreisChange} />
+              <EditablePreisInput label="Termin" field="termin" value={editablePreise.termin} isChanged={isManuallyChanged('termin')} onPreisChange={handlePreisChange} />
+              <EditablePreisInput label="Aufnahme" field="aufnahme" value={editablePreise.aufnahme} isChanged={isManuallyChanged('aufnahme')} onPreisChange={handlePreisChange} />
+              <EditablePreisInput label="Bericht" field="bericht" value={editablePreise.bericht} isChanged={isManuallyChanged('bericht')} onPreisChange={handlePreisChange} />
+              <EditablePreisInput label="Kontrolle" field="kontrolle" value={editablePreise.kontrolle} isChanged={isManuallyChanged('kontrolle')} onPreisChange={handlePreisChange} />
+              <EditablePreisInput label="Abschluss" field="abschluss" value={editablePreise.abschluss} isChanged={isManuallyChanged('abschluss')} onPreisChange={handlePreisChange} />
+              <EditablePreisInput label="Material" field="material" value={editablePreise.material} isChanged={isManuallyChanged('material')} onPreisChange={handlePreisChange} />
+              <EditablePreisInput label="Spesen" field="spesen" value={editablePreise.spesen} isChanged={isManuallyChanged('spesen')} onPreisChange={handlePreisChange} />
             </div>
           </div>
         )}
