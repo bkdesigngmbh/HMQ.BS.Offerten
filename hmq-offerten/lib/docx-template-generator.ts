@@ -3,24 +3,8 @@ import { Offerte } from './types';
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
-
-const MWST_SATZ = 8.1;
-
-// HMQ Standorte
-const STANDORTE: Record<string, { name: string; adresse: string }> = {
-  zh: {
-    name: 'Zürich-Opfikon',
-    adresse: 'Balz-Zimmermann-Strasse 7 · 8152 Zürich-Opfikon'
-  },
-  gr: {
-    name: 'Chur',
-    adresse: 'Sommeraustrasse 30 · 7000 Chur'
-  },
-  ag: {
-    name: 'Zofingen',
-    adresse: 'Vordere Hauptgasse 104 · 4800 Zofingen'
-  },
-};
+import { formatCHF, berechneRabattUndMwst } from './kosten-helpers';
+import { STANDORTE, GERMAN_MONTHS, EMU_PER_CM, TEMPLATE_FILENAME } from './constants';
 
 // === HELPER ===
 
@@ -43,23 +27,6 @@ function formatDatumKurz(isoDate: string): string {
   return `${day}.${month}.${d.getFullYear()}`;
 }
 
-function formatCHF(amount: number): string {
-  return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, "'");
-}
-
-// 5-Rappen-Rundung (Schweizer Standard)
-function rundeAuf5Rappen(betrag: number): number {
-  return Math.round(betrag * 20) / 20;
-}
-
-function berechneKosten(leistungspreis: number, rabattProzent: number) {
-  const rabattBetrag = rundeAuf5Rappen(leistungspreis * (rabattProzent / 100));
-  const zwischentotal = rundeAuf5Rappen(leistungspreis - rabattBetrag);
-  const mwstBetrag = rundeAuf5Rappen(zwischentotal * (MWST_SATZ / 100));
-  const total = rundeAuf5Rappen(zwischentotal + mwstBetrag);
-  return { rabattBetrag, zwischentotal, mwstBetrag, total };
-}
-
 function generiereAnrede(empfaenger: Offerte['empfaenger']): string {
   if (empfaenger.anrede && empfaenger.nachname) {
     return empfaenger.anrede === 'Herr'
@@ -72,10 +39,9 @@ function generiereAnrede(empfaenger: Offerte['empfaenger']): string {
 function formatAnfrageDatum(isoDate: string): { tag: string; monat: string; jahr: string } {
   if (!isoDate) return { tag: '', monat: '', jahr: '' };
   const d = new Date(isoDate);
-  const monate = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   return {
     tag: `${d.getDate()}. `,
-    monat: monate[d.getMonth()],
+    monat: GERMAN_MONTHS[d.getMonth()],
     jahr: ` ${d.getFullYear()}`,
   };
 }
@@ -528,9 +494,6 @@ ${zeilen}
 
 // === PLANBEILAGE ===
 
-// EMU Konvertierung: 1 cm = 360000 EMUs
-const EMU_PER_CM = 360000;
-
 // A4 = 210mm Breite, typische Ränder = 25mm links + 25mm rechts
 // Verfügbare Breite = 210 - 50 = 160mm = 16cm
 const FULL_WIDTH_CM = 16;
@@ -710,8 +673,7 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
 // === HAUPTFUNKTION ===
 
 export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
-  // V11 Template mit "Strassen/Vorplätze" und "Fotodokumentation Strassen/Vorplätze"
-  const templatePath = path.join(process.cwd(), 'public', 'Offerte_Template_V11.docx');
+  const templatePath = path.join(process.cwd(), 'public', TEMPLATE_FILENAME);
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
@@ -735,7 +697,7 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
         mwstBetrag: gespeichert.mwstBetrag,
         total: gespeichert.totalInklMwst,
       }
-    : berechneKosten(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
+    : berechneRabattUndMwst(offerte.kosten.leistungspreis, offerte.kosten.rabattProzent);
   const anfrage = formatAnfrageDatum(offerte.projekt.anfrageDatum);
   const offNr = parseOffertnummer(offerte.offertnummer);
   const einsatz = generiereEinsatzTexte(offerte.einsatzpauschalen);

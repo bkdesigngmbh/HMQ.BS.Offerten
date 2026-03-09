@@ -1,8 +1,21 @@
 import CloudConvert from 'cloudconvert';
 
-const cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_API_KEY || '');
+let _cloudConvert: CloudConvert | null = null;
+
+function getCloudConvert(): CloudConvert {
+  if (!_cloudConvert) {
+    const apiKey = process.env.CLOUDCONVERT_API_KEY;
+    if (!apiKey) {
+      throw new Error('CLOUDCONVERT_API_KEY not configured');
+    }
+    _cloudConvert = new CloudConvert(apiKey);
+  }
+  return _cloudConvert;
+}
 
 export async function convertDocxToPdf(docxBuffer: Buffer, filename: string): Promise<Buffer> {
+  const cloudConvert = getCloudConvert();
+
   // Job mit Upload, Konvertierung und Export erstellen
   const job = await cloudConvert.jobs.create({
     tasks: {

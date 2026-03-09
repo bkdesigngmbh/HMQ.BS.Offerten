@@ -58,6 +58,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
     <div className="space-y-4">
       {value ? (
         <div className="relative bg-gray-50 border border-gray-200 rounded-xl p-4 group">
+          {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic base64 image */}
           <img
             src={`data:${value.mimeType};base64,${value.base64}`}
             alt="Situationsplan Vorschau"

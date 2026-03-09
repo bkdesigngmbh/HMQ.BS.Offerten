@@ -93,8 +93,8 @@ export default function FolderImport({ offerte, onChange, onCreateNew }: FolderI
     }
 
     // Daten extrahieren - neue Offerte erstellen wenn onCreateNew vorhanden
-    let updatedOfferte = onCreateNew ? createEmptyOfferte() : { ...offerte };
-    let changes: string[] = [];
+    const updatedOfferte = onCreateNew ? createEmptyOfferte() : { ...offerte };
+    const changes: string[] = [];
 
     // 1. Ordnername parsen
     if (folderName) {

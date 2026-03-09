@@ -13,7 +13,11 @@ export function getStandorte(): Standort[] {
 
   const stored = localStorage.getItem(STORAGE_KEYS.STANDORTE);
   if (stored) {
-    return JSON.parse(stored);
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return standorteData;
+    }
   }
   return standorteData;
 }
@@ -32,7 +36,11 @@ export function getAnsprechpartner(): Ansprechpartner[] {
 
   const stored = localStorage.getItem(STORAGE_KEYS.ANSPRECHPARTNER);
   if (stored) {
-    return JSON.parse(stored);
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return ansprechpartnerData;
+    }
   }
   return ansprechpartnerData;
 }
