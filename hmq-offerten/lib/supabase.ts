@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Offerte, Checkboxen } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -62,7 +63,7 @@ export interface KostenBasiswerte {
 export interface OfferteHistorie {
   id: string;
   offertnummer: string;
-  offerte_data: any; // Das komplette Offerte-Objekt als JSON
+  offerte_data: Offerte;
   projekt_ort: string | null;
   projekt_bezeichnung: string | null;
   empfaenger_firma: string | null;
@@ -75,7 +76,7 @@ export interface AppEinstellungen {
   standort_default: string;
   vorlaufzeit_default: string;
   einsatzpauschalen_default: number;
-  standard_checkboxen: any; // JSON-Objekt
+  standard_checkboxen: Partial<Checkboxen> | null;
   updated_at: string;
 }
 
@@ -130,7 +131,7 @@ export async function createKategorie(kategorie: Partial<KostenKategorie>): Prom
 
 export async function updateKategorie(id: string, kategorie: Partial<KostenKategorie>): Promise<KostenKategorie> {
   // Nur editierbare Felder senden - OHNE id, created_at, updated_at
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, string | number | null | undefined> = {};
 
   if (kategorie.titel !== undefined) updateData.titel = kategorie.titel;
   if (kategorie.beschreibung !== undefined) updateData.beschreibung = kategorie.beschreibung || null;
@@ -207,11 +208,11 @@ export async function getOfferte(offertnummer: string): Promise<OfferteHistorie 
     .eq('offertnummer', offertnummer)
     .single();
 
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+  if (error && error.code !== 'PGRST116') throw error;
   return data;
 }
 
-export async function saveOfferte(offerte: any): Promise<OfferteHistorie> {
+export async function saveOfferte(offerte: Offerte): Promise<OfferteHistorie> {
   const payload = {
     offertnummer: offerte.offertnummer,
     offerte_data: offerte,

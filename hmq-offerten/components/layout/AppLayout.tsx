@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -29,7 +30,7 @@ export default function AppLayout({
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Links: HMQ Logo + App-Name */}
           <Link href="/" className="flex items-center gap-4">
-            <img src="/HMQ-Logo-rounded.svg" alt="HMQ" className="h-10 w-10" />
+            <Image src="/HMQ-Logo-rounded.svg" alt="HMQ" width={40} height={40} />
             <div>
               <h1 className="text-lg font-bold leading-tight">Beweissicherung</h1>
               <p className="text-sm text-blue-200 leading-tight">Offertgenerator</p>

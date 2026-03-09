@@ -1,6 +1,6 @@
 'use client';
 
-import { Offerte } from '@/lib/types';
+import { Offerte, Checkboxen } from '@/lib/types';
 import CheckboxGruppe from './CheckboxGruppe';
 import PlanUpload from './PlanUpload';
 import FolderImport from './FolderImport';
@@ -14,10 +14,11 @@ interface Tab1DatenProps {
 
 export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} }: Tab1DatenProps) {
 
-  function updateField(path: string, value: any) {
+  function updateField(path: string, value: string | number | boolean) {
     const keys = path.split('.');
     const newOfferte = JSON.parse(JSON.stringify(offerte));
-    let obj: any = newOfferte;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep path access requires dynamic typing
+    let obj: Record<string, any> = newOfferte;
     for (let i = 0; i < keys.length - 1; i++) {
       obj = obj[keys[i]];
     }
@@ -25,9 +26,10 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
     onChange(newOfferte);
   }
 
-  function updateCheckbox(group: string, key: string, value: boolean | string) {
-    const newCheckboxen = JSON.parse(JSON.stringify(offerte.checkboxen));
-    (newCheckboxen as any)[group][key] = value;
+  function updateCheckbox(group: keyof Checkboxen, key: string, value: boolean | string) {
+    const newCheckboxen = JSON.parse(JSON.stringify(offerte.checkboxen)) as Checkboxen;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic key access for checkbox groups
+    (newCheckboxen[group] as Record<string, any>)[key] = value;
 
     // === AUTOMATISIERUNG ===
 
@@ -291,7 +293,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
                 {errors['empfaenger.ort'] && <p className="text-red-500 text-xs mt-1">{errors['empfaenger.ort']}</p>}
               </div>
             </div>
-            <p className="text-xs text-gray-500">PLZ wird automatisch mit "CH-" ergänzt</p>
+            <p className="text-xs text-gray-500">PLZ wird automatisch mit &quot;CH-&quot; ergänzt</p>
           </div>
         </div>
       </div>

@@ -1,5 +1,9 @@
 import { KostenKategorie, KostenBasiswerte } from './supabase';
 import { KategorieEingabe, KostenOverrides, KostenSpesen } from './types';
+import { rundeAuf5Rappen } from './kosten-helpers';
+
+// Re-export for backwards compatibility
+export { rundeAuf5Rappen } from './kosten-helpers';
 
 // =====================================================
 // BERECHNUNGS-ERGEBNISSE
@@ -28,14 +32,6 @@ export interface KostenErgebnis {
   totalN: number;
   zwischentotal: number;
   endpreis: number;
-}
-
-// =====================================================
-// 5-RAPPEN-RUNDUNG
-// =====================================================
-
-export function rundeAuf5Rappen(betrag: number): number {
-  return Math.round(betrag * 20) / 20;
 }
 
 // =====================================================

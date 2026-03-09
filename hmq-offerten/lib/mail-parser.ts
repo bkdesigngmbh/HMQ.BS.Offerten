@@ -64,15 +64,28 @@ export function parseFolderName(folderName: string): ParsedFolderData {
   };
 }
 
+interface MsgFileData {
+  body?: string;
+  bodyHtml?: string;
+  messageDeliveryTime?: string;
+  clientSubmitTime?: string;
+  creationTime?: string;
+}
+
 /**
  * Parst eine MSG-Datei (Outlook-Format) und extrahiert Body + Datum
  */
 export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<{ body: string; datum: string }> {
   // Dynamischer Import für Client-Side
-  const MsgReader = (await import('@kenjiuno/msgreader')).default;
+  let MsgReader;
+  try {
+    MsgReader = (await import('@kenjiuno/msgreader')).default;
+  } catch {
+    throw new Error('MSG-Reader konnte nicht geladen werden');
+  }
 
   const msgReader = new MsgReader(arrayBuffer);
-  const fileData = msgReader.getFileData();
+  const fileData = msgReader.getFileData() as MsgFileData;
 
   // Body extrahieren (HTML oder Text)
   let body = fileData.body || '';
@@ -86,9 +99,9 @@ export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<{ body: st
   let datum = '';
 
   // messageDeliveryTime ist das Zustelldatum
-  if ((fileData as any).messageDeliveryTime) {
+  if (fileData.messageDeliveryTime) {
     try {
-      const d = new Date((fileData as any).messageDeliveryTime);
+      const d = new Date(fileData.messageDeliveryTime);
       if (!isNaN(d.getTime())) {
         datum = d.toISOString().split('T')[0]; // YYYY-MM-DD
       }
@@ -98,9 +111,9 @@ export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<{ body: st
   }
 
   // Fallback: clientSubmitTime (Sendedatum)
-  if (!datum && (fileData as any).clientSubmitTime) {
+  if (!datum && fileData.clientSubmitTime) {
     try {
-      const d = new Date((fileData as any).clientSubmitTime);
+      const d = new Date(fileData.clientSubmitTime);
       if (!isNaN(d.getTime())) {
         datum = d.toISOString().split('T')[0];
       }
@@ -110,9 +123,9 @@ export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<{ body: st
   }
 
   // Fallback: creationTime
-  if (!datum && (fileData as any).creationTime) {
+  if (!datum && fileData.creationTime) {
     try {
-      const d = new Date((fileData as any).creationTime);
+      const d = new Date(fileData.creationTime);
       if (!isNaN(d.getTime())) {
         datum = d.toISOString().split('T')[0];
       }
@@ -206,8 +219,8 @@ export function parseEmailContent(emlContent: string): ParsedMailData {
   }
 
   let section = '';
-  let empfaengerLines: string[] = [];
-  let bemerkungLines: string[] = [];
+  const empfaengerLines: string[] = [];
+  const bemerkungLines: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

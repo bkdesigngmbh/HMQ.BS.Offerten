@@ -6,15 +6,16 @@ export async function POST(request: Request) {
   try {
     const offerte = await request.json();
 
+    // Eingabevalidierung
     if (!offerte.offertnummer?.trim()) {
       return NextResponse.json({ error: 'Offertnummer fehlt' }, { status: 400 });
     }
     if (!offerte.empfaenger?.firma?.trim()) {
       return NextResponse.json({ error: 'Firma fehlt' }, { status: 400 });
     }
-
-    console.log('Generiere Offerte:', offerte.offertnummer);
-    console.log('Planbeilage:', offerte.planbeilage ? 'Ja' : 'Nein');
+    if (!/^\d{2}\.\d{2}\.\d{3}$/.test(offerte.offertnummer.trim())) {
+      return NextResponse.json({ error: 'Ungültiges Offertnummer-Format (erwartet: XX.XX.XXX)' }, { status: 400 });
+    }
 
     // DOCX generieren
     const docxBuffer = await generateOfferteFromTemplate(offerte);
@@ -29,28 +30,19 @@ export async function POST(request: Request) {
     if (projektBezeichnung) {
       baseName += `, ${projektBezeichnung}`;
     }
-    // Ungültige Zeichen für Dateinamen entfernen
     baseName = baseName.replace(/[<>:"/\\|?*]/g, '');
 
     // PDF generieren falls CloudConvert konfiguriert
     let pdfBuffer: Buffer | null = null;
-    const cloudConvertConfigured = isCloudConvertConfigured();
-    console.log('CloudConvert konfiguriert:', cloudConvertConfigured);
 
-    if (cloudConvertConfigured) {
+    if (isCloudConvertConfigured()) {
       try {
-        console.log('Konvertiere zu PDF...');
         pdfBuffer = await convertDocxToPdf(docxBuffer, `${baseName}.docx`);
-        console.log('PDF erstellt, Grösse:', pdfBuffer.length, 'bytes');
       } catch (pdfError) {
         console.error('PDF-Konvertierung fehlgeschlagen:', pdfError);
-        // Weitermachen ohne PDF
       }
-    } else {
-      console.log('CloudConvert nicht konfiguriert - kein PDF generiert');
     }
 
-    // Response: JSON mit Base64-kodierten Dateien
     return NextResponse.json({
       docx: {
         data: docxBuffer.toString('base64'),
@@ -64,7 +56,10 @@ export async function POST(request: Request) {
         : null,
     });
   } catch (error) {
-    console.error('Fehler:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    console.error('Fehler bei Offerte-Generierung:', error);
+    return NextResponse.json(
+      { error: 'Fehler beim Generieren der Offerte' },
+      { status: 500 }
+    );
   }
 }
