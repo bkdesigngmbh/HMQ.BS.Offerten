@@ -182,7 +182,7 @@ export function createEmptyOfferte(): Offerte {
     offertnummer: '',
     datum: heute,
     standortId: 'zh',
-    ansprechpartnerIds: ['bpa', 'mme'],
+    ansprechpartnerIds: ['bpa', 'bho'],
     empfaenger: {
       firma: '',
       abteilung: '',
