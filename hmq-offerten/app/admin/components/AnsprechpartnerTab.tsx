@@ -6,8 +6,8 @@ export default function AnsprechpartnerTab() {
       <h2 className="text-lg font-semibold mb-6">Ansprechpartner</h2>
       <div className="space-y-4">
         {[
-          { name: 'Benjamin Patt', funktion: 'Geomatiker EFZ, Bereichsleiter Beweissicherung', email: 'bpa@hmq.ch' },
-          { name: 'Moreno Meier', funktion: 'BSc FHNW in Geomatik, Geschäftsstellenleitung Zürich', email: 'mme@hmq.ch' },
+          { name: 'Benjamin Patt', funktion: 'Projektleiter', email: 'benjamin.patt@hmq.ch' },
+          { name: 'Bianca Hochuli', funktion: 'Projektleiterin', email: 'bianca.hochuli@hmq.ch' },
         ].map((p) => (
           <div key={p.name} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
             <div className="w-12 h-12 bg-[#1e3a5f] rounded-xl flex items-center justify-center">
