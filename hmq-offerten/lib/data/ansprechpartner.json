@@ -3,14 +3,14 @@
     "id": "bpa",
     "vorname": "Benjamin",
     "nachname": "Patt",
-    "funktion": "Geomatiker EFZ, Bereichsleitung Beweissicherung",
+    "funktion": "Geomatiker EFZ, Bereichsleiter Beweissicherung",
     "unterschriftDatei": "unterschrift-bpa.svg"
   },
   {
-    "id": "bho",
-    "vorname": "Bianca",
-    "nachname": "Hochuli",
-    "funktion": "Kauffrau EFZ, Stv. Bereichsleitung Beweissicherung",
-    "unterschriftDatei": "unterschrift-bho.svg"
+    "id": "mme",
+    "vorname": "Moreno",
+    "nachname": "Meier",
+    "funktion": "BSc FHNW in Geomatik, Geschäftsstellenleitung Zürich",
+    "unterschriftDatei": "unterschrift-mme.jpg"
   }
 ]
