@@ -34,7 +34,7 @@ function EditablePreisInput({
         onChange={(e) => onPreisChange(field as keyof EditablePreise, parseFloat(e.target.value) || 0)}
         className={`w-24 px-2 py-1 text-right font-mono text-sm rounded-lg border-0
           ${isChanged ? 'bg-orange-50' : 'bg-gray-50'}
-          focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all`}
+          focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all`}
         placeholder="0.00"
       />
     </div>

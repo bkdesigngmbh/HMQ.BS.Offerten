@@ -139,7 +139,7 @@ export default function AdminPage() {
     { id: 'einstellungen', label: 'Einstellungen' },
   ];
 
-  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all";
+  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all";
 
   if (loading) {
     return (

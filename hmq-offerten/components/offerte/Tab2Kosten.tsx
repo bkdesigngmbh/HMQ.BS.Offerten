@@ -144,7 +144,7 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
     );
   }
 
-  const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all";
+  const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all";
 
   return (
     <div className="space-y-6">

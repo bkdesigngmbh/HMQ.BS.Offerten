@@ -34,7 +34,7 @@ export default function SpesenGrid({
               onEinsatzpauschaleManualSet();
               onEinsatzpauschaleChange(parseInt(e.target.value));
             }}
-            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
           >
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
               <option key={n} value={n}>{n}</option>
@@ -48,7 +48,7 @@ export default function SpesenGrid({
             min="0"
             value={offerte.kostenBerechnung.spesen.kilometer || ''}
             onChange={(e) => onSpesenChange('kilometer', parseFloat(e.target.value) || 0)}
-            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
             placeholder="0"
           />
         </div>
@@ -60,7 +60,7 @@ export default function SpesenGrid({
             step="0.5"
             value={offerte.kostenBerechnung.spesen.reisezeitStunden || ''}
             onChange={(e) => onSpesenChange('reisezeitStunden', parseFloat(e.target.value) || 0)}
-            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
             placeholder="0"
           />
         </div>
@@ -71,7 +71,7 @@ export default function SpesenGrid({
             min="0"
             value={offerte.kostenBerechnung.spesen.verpflegungAnzahl || ''}
             onChange={(e) => onSpesenChange('verpflegungAnzahl', parseInt(e.target.value) || 0)}
-            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
             placeholder="0"
           />
         </div>
@@ -82,7 +82,7 @@ export default function SpesenGrid({
             min="0"
             value={offerte.kostenBerechnung.spesen.uebernachtungenAnzahl || ''}
             onChange={(e) => onSpesenChange('uebernachtungenAnzahl', parseInt(e.target.value) || 0)}
-            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+            className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
             placeholder="0"
           />
         </div>
