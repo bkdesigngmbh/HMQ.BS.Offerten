@@ -23,7 +23,12 @@ function EditablePreisInput({
       <span className="text-gray-600 flex items-center gap-1.5">
         {label}
         {isChanged && (
-          <span className="text-orange-500 text-xs font-medium">manuell</span>
+          <span
+            className="text-orange-500 text-xs font-medium cursor-help"
+            title="Manuell überschrieben — weicht von der automatischen Berechnung ab. Wird bei Änderung von Kategorien/Spesen zurückgesetzt."
+          >
+            manuell
+          </span>
         )}
       </span>
       <input
@@ -97,7 +102,12 @@ export default function KostenUebersicht({
           <span className="text-white/80 flex items-center gap-1.5">
             Zwischentotal
             {isManuallyChanged('zwischentotal') && (
-              <span className="text-orange-300 text-xs">manuell</span>
+              <span
+                className="text-orange-300 text-xs cursor-help"
+                title="Manuell überschrieben — weicht von der automatischen Berechnung ab. Wird bei Änderung von Kategorien/Spesen zurückgesetzt."
+              >
+                manuell
+              </span>
             )}
           </span>
           <input

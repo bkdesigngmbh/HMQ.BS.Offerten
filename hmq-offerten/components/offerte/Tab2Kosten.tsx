@@ -217,19 +217,11 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
           totalN={ergebnis?.totalN}
         />
 
-        <SpesenGrid
-          offerte={offerte}
-          onSpesenChange={handleSpesenChange}
-          einsatzpauschaleManual={einsatzpauschaleManual}
-          onEinsatzpauschaleChange={(value) => onChange({ ...offerte, einsatzpauschalen: value })}
-          onEinsatzpauschaleManualSet={() => setEinsatzpauschaleManual(true)}
-        />
-
-        {/* Manuelle Korrekturen */}
+        {/* Feinabstimmung: Stunden & Bindemenge (direkt unter Kategorien) */}
         {ergebnis && ergebnis.totalN > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-100">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Manuelle Korrekturen (optional)</h4>
-            <p className="text-xs text-gray-500 mb-3">Änderungen hier aktualisieren automatisch die Preise rechts</p>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Feinabstimmung: Stunden &amp; Bindemenge</h4>
+            <p className="text-xs text-gray-500 mb-3">Stunden überschreiben berechnet den Aufnahmepreis neu. Änderungen aktualisieren die Preise rechts.</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
                 <label className="block text-xs text-amber-700 mb-1">
@@ -273,6 +265,14 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
             </div>
           </div>
         )}
+
+        <SpesenGrid
+          offerte={offerte}
+          onSpesenChange={handleSpesenChange}
+          einsatzpauschaleManual={einsatzpauschaleManual}
+          onEinsatzpauschaleChange={(value) => onChange({ ...offerte, einsatzpauschalen: value })}
+          onEinsatzpauschaleManualSet={() => setEinsatzpauschaleManual(true)}
+        />
       </div>
 
       {/* Spalte 3: Zusammenfassung */}
