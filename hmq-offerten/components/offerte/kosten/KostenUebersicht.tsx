@@ -2,7 +2,7 @@
 
 import { Offerte } from '@/lib/types';
 import { EditablePreise } from '@/lib/hooks/use-editable-preise';
-import { rundeAuf5Rappen, formatCHF } from '@/lib/kosten-helpers';
+import { formatCHF, berechneRabattUndMwst } from '@/lib/kosten-helpers';
 
 // Editable price input component - MUST be outside the main component to prevent re-mounting
 function EditablePreisInput({
@@ -58,10 +58,10 @@ export default function KostenUebersicht({
   onRabattChange,
   showPositionen,
 }: KostenUebersichtProps) {
-  const rabattBetrag = rundeAuf5Rappen(editablePreise.zwischentotal * (offerte.kosten.rabattProzent / 100));
-  const totalNachRabatt = rundeAuf5Rappen(editablePreise.zwischentotal - rabattBetrag);
-  const mwstBetrag = rundeAuf5Rappen(totalNachRabatt * 0.081); // 8.1% MwSt.
-  const totalInklMwst = rundeAuf5Rappen(totalNachRabatt + mwstBetrag);
+  const { rabattBetrag, mwstBetrag, total: totalInklMwst } = berechneRabattUndMwst(
+    editablePreise.zwischentotal,
+    offerte.kosten.rabattProzent
+  );
 
   return (
     <div className="space-y-4">

@@ -243,7 +243,10 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
                   min="0"
                   step="0.5"
                   value={offerte.kostenBerechnung.overrides.stundenEnd ?? ''}
-                  onChange={(e) => handleStundenOverride(e.target.value ? parseFloat(e.target.value) : null)}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    handleStundenOverride(Number.isFinite(v) ? v : null);
+                  }}
                   className={`${inputClass} bg-white border border-amber-200`}
                   placeholder="Auto"
                 />
@@ -259,7 +262,10 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
                   type="number"
                   min="0"
                   value={offerte.kostenBerechnung.overrides.bindemengeEnd ?? ''}
-                  onChange={(e) => handleBindemengeOverride(e.target.value ? parseInt(e.target.value) : null)}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    handleBindemengeOverride(Number.isFinite(v) ? v : null);
+                  }}
                   className={`${inputClass} bg-white border border-amber-200`}
                   placeholder="Auto"
                 />

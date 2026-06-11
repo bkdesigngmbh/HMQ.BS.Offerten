@@ -1,0 +1,113 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`berechneKosten > Standardfall ohne Overrides (Snapshot) 1`] = `
+{
+  "aufnahme": {
+    "betrag": 1430,
+    "details": "10.0 Std. × CHF 143.00",
+    "label": "Zustandsaufnahme vor Ort",
+    "stundenEnd": 10,
+    "stundenRoh": 10,
+  },
+  "bericht": {
+    "betrag": 200,
+    "label": "Berichtserstellung",
+  },
+  "binden": {
+    "betrag": 100,
+    "details": "4 Stk. × CHF 25.00",
+    "label": "Bericht binden",
+    "mengeEnd": 4,
+    "mengeStandard": 4,
+  },
+  "datenabgabe": {
+    "betrag": 75,
+    "label": "Datenabgabe Auftraggeber",
+  },
+  "endpreis": 2821,
+  "grundlagen": {
+    "betrag": 250,
+    "label": "Grundlagenbeschaffung",
+  },
+  "kontrolle": {
+    "betrag": 100,
+    "label": "Berichtskontrolle",
+  },
+  "spesen": {
+    "betrag": 386,
+    "details": "100 km, 2 Std. Reise, 1× Verpfl.",
+    "label": "Spesen",
+  },
+  "termin": {
+    "betrag": 150,
+    "label": "Terminorganisation",
+  },
+  "totalN": 4,
+  "usb": {
+    "betrag": 80,
+    "details": "Pauschal",
+    "label": "USB/Digitale Datenabgabe",
+  },
+  "zustellbestaetigung": {
+    "betrag": 50,
+    "label": "Zustellbestätigung",
+  },
+  "zwischentotal": 2821,
+}
+`;
+
+exports[`berechneKosten > mit Stunden- und Bindemengen-Override (Snapshot) 1`] = `
+{
+  "aufnahme": {
+    "betrag": 2288,
+    "details": "16.0 Std. × CHF 143.00",
+    "label": "Zustandsaufnahme vor Ort",
+    "stundenEnd": 16,
+    "stundenRoh": 10,
+  },
+  "bericht": {
+    "betrag": 200,
+    "label": "Berichtserstellung",
+  },
+  "binden": {
+    "betrag": 125,
+    "details": "5 Stk. × CHF 25.00",
+    "label": "Bericht binden",
+    "mengeEnd": 5,
+    "mengeStandard": 4,
+  },
+  "datenabgabe": {
+    "betrag": 75,
+    "label": "Datenabgabe Auftraggeber",
+  },
+  "endpreis": 3704,
+  "grundlagen": {
+    "betrag": 250,
+    "label": "Grundlagenbeschaffung",
+  },
+  "kontrolle": {
+    "betrag": 100,
+    "label": "Berichtskontrolle",
+  },
+  "spesen": {
+    "betrag": 386,
+    "details": "100 km, 2 Std. Reise, 1× Verpfl.",
+    "label": "Spesen",
+  },
+  "termin": {
+    "betrag": 150,
+    "label": "Terminorganisation",
+  },
+  "totalN": 4,
+  "usb": {
+    "betrag": 80,
+    "details": "Pauschal",
+    "label": "USB/Digitale Datenabgabe",
+  },
+  "zustellbestaetigung": {
+    "betrag": 50,
+    "label": "Zustellbestätigung",
+  },
+  "zwischentotal": 3704,
+}
+`;

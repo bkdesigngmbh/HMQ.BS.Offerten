@@ -30,8 +30,8 @@ function formatDatumKurz(isoDate: string): string {
 function generiereAnrede(empfaenger: Offerte['empfaenger']): string {
   if (empfaenger.anrede && empfaenger.nachname) {
     return empfaenger.anrede === 'Herr'
-      ? `Sehr geehrter Herr ${empfaenger.nachname}`
-      : `Sehr geehrte Frau ${empfaenger.nachname}`;
+      ? `Sehr geehrter Herr ${escapeXml(empfaenger.nachname)}`
+      : `Sehr geehrte Frau ${escapeXml(empfaenger.nachname)}`;
   }
   return 'Sehr geehrte Damen und Herren';
 }
@@ -672,14 +672,20 @@ function insertPlanbeilageUndLegende(zip: PizZip, offerte: Offerte): string {
 
 // === HAUPTFUNKTION ===
 
-export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
+// Template-Buffer einmalig cachen (statisch pro Deploy) — kein Blocking-Read pro Request
+let cachedTemplateBuffer: Buffer | null = null;
+async function loadTemplateBuffer(): Promise<Buffer> {
+  if (cachedTemplateBuffer) return cachedTemplateBuffer;
   const templatePath = path.join(process.cwd(), 'public', TEMPLATE_FILENAME);
-
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template nicht gefunden: ${templatePath}`);
   }
+  cachedTemplateBuffer = await fs.promises.readFile(templatePath);
+  return cachedTemplateBuffer;
+}
 
-  const zip = new PizZip(fs.readFileSync(templatePath));
+export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buffer> {
+  const zip = new PizZip(await loadTemplateBuffer());
   let xml = zip.file('word/document.xml')?.asText() || '';
 
   // Daten vorbereiten
@@ -734,7 +740,7 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   // DANN Platzhalter ersetzen
   // =====================================================
   const replacements: Record<string, string> = {
-    '{{ABSENDER_ADRESSE}}': standort.adresse,
+    '{{ABSENDER_ADRESSE}}': escapeXml(standort.adresse),
     '{{FIRMA}}': escapeXml(offerte.empfaenger.firma),
     '{{ABTEILUNG}}': escapeXml(offerte.empfaenger.abteilung || ''),
     '{{KONTAKT_ZEILE}}': escapeXml(kontaktZeile),
@@ -743,8 +749,8 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{STRASSE}}': escapeXml(offerte.empfaenger.strasse),
     '{{PLZ_ORT}}': escapeXml(plzOrt),
     '{{ANREDE}}': generiereAnrede(offerte.empfaenger),
-    '{{STANDORT}}': standort.name,
-    '{{DATUM}}': formatDatumKurz(offerte.datum),
+    '{{STANDORT}}': escapeXml(standort.name),
+    '{{DATUM}}': escapeXml(formatDatumKurz(offerte.datum)),
     '{{OFFNR_A}}': escapeXml(offNr.a),
     '{{OFFNR_B}}': escapeXml(offNr.b),
     '{{OFFNR_C}}': escapeXml(offNr.c),

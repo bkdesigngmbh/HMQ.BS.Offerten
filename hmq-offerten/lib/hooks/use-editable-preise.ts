@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Offerte, GespeicherteKostenWerte } from '@/lib/types';
 import { KostenBasiswerte } from '@/lib/supabase';
 import { KostenErgebnis } from '@/lib/kosten-rechner';
-import { rundeAuf5Rappen } from '@/lib/kosten-helpers';
+import { rundeAuf5Rappen, berechneRabattUndMwst } from '@/lib/kosten-helpers';
 
 // State für editierbare Preise
 export interface EditablePreise {
@@ -184,10 +184,10 @@ export function useEditablePreise(
   const updateGespeicherteWerte = useCallback(() => {
     if (!basiswerte || !ergebnis || !initialized) return;
 
-    const rabattBetrag = rundeAuf5Rappen(editablePreise.zwischentotal * (offerte.kosten.rabattProzent / 100));
-    const totalNachRabatt = rundeAuf5Rappen(editablePreise.zwischentotal - rabattBetrag);
-    const mwstBetrag = rundeAuf5Rappen(totalNachRabatt * 0.081);
-    const totalInklMwst = rundeAuf5Rappen(totalNachRabatt + mwstBetrag);
+    const { rabattBetrag, mwstBetrag, total: totalInklMwst } = berechneRabattUndMwst(
+      editablePreise.zwischentotal,
+      offerte.kosten.rabattProzent
+    );
 
     const gespeicherteWerte: GespeicherteKostenWerte = {
       grundlagen: editablePreise.grundlagen,

@@ -46,7 +46,7 @@ export default function EinstellungenTab({
           <label className="block text-sm text-gray-600 mb-1.5">Standard-Einsatzpauschalen</label>
           <select
             value={einstellungen.einsatzpauschalen_default}
-            onChange={(e) => setEinstellungen({ ...einstellungen, einsatzpauschalen_default: parseInt(e.target.value) })}
+            onChange={(e) => setEinstellungen({ ...einstellungen, einsatzpauschalen_default: parseInt(e.target.value, 10) })}
             className={inputClass}
           >
             {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}

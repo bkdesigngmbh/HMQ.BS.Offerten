@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Offerte, createEmptyOfferte } from '@/lib/types';
 import { saveOfferte, getOffertenListe, getOfferte, deleteOfferte } from '@/lib/supabase';
@@ -179,13 +179,13 @@ export default function HomePage() {
     });
   }
 
-  const filteredOfferten = offertenListe.filter(o => {
+  const filteredOfferten = useMemo(() => offertenListe.filter(o => {
     const s = offertenSearch.toLowerCase();
     return o.offertnummer.toLowerCase().includes(s) ||
            o.projekt_ort?.toLowerCase().includes(s) ||
            o.projekt_bezeichnung?.toLowerCase().includes(s) ||
            o.empfaenger_firma?.toLowerCase().includes(s);
-  });
+  }), [offertenListe, offertenSearch]);
 
   return (
     <AppLayout
