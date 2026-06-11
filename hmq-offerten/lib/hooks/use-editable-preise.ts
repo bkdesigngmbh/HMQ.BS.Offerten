@@ -221,7 +221,7 @@ export function useEditablePreise(
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- onChange identity is stable from parent
-  }, [editablePreise, offerte.kosten.rabattProzent, basiswerte, ergebnis, initialized]);
+  }, [editablePreise, offerte, basiswerte, ergebnis, initialized]);
 
   // Debounced Update der gespeicherten Werte
   useEffect(() => {
