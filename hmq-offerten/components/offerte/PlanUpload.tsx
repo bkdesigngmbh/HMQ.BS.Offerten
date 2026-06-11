@@ -137,7 +137,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
             value={gisLink}
             onChange={(e) => onGisLinkChange(e.target.value)}
             placeholder="https://map.geo.admin.ch/..."
-            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all"
+            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
           />
           <p className="text-xs text-gray-500 mt-1">
             Link zu map.geo.admin.ch oder anderem GIS (wird nur gespeichert, nicht ins Word eingefügt)

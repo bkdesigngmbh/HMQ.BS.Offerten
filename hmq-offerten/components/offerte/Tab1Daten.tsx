@@ -50,21 +50,22 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
     onChange({ ...offerte, checkboxen: newCheckboxen });
   }
 
-  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all";
+  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
 
   return (
     <div className="space-y-6">
-      {/* Ordner-Import - kompakt */}
-      <div className="bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-6 h-6 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-            <svg className="w-3.5 h-3.5 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Ordner-Import - empfohlener Startpunkt */}
+      <div className="bg-[#166ab8]/5 rounded-2xl px-5 py-4 shadow-sm border border-[#166ab8]/25">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-6 h-6 bg-[#166ab8]/15 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-3.5 h-3.5 text-[#166ab8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
-          <span className="font-medium text-gray-900 text-sm">Ordner-Import</span>
+          <span className="font-semibold text-gray-900 text-sm">Schnellstart: Projektordner importieren</span>
         </div>
+        <p className="text-xs text-gray-500 mb-3 ml-9">Füllt Empfänger, Adresse &amp; Anfragedatum automatisch — oder unten manuell ausfüllen.</p>
         <FolderImport offerte={offerte} onChange={onChange} onCreateNew={onCreateNew} />
       </div>
 

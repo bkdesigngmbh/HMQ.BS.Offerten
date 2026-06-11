@@ -179,7 +179,7 @@ export default function FolderImport({ offerte, onChange, onCreateNew }: FolderI
       setStatus(`✗ Import fehlgeschlagen: ${msg}`);
     }
 
-    setTimeout(() => setStatus(''), 5000);
+    setTimeout(() => setStatus(''), 8000);
   }, [offerte, onChange, onCreateNew]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -255,9 +255,23 @@ export default function FolderImport({ offerte, onChange, onCreateNew }: FolderI
       </div>
 
       {status && (
-        <p className={`mt-2 text-sm ${status.startsWith('✓') ? 'text-green-600' : 'text-gray-500'}`}>
-          {status}
-        </p>
+        <div className={`mt-2 flex items-center justify-between gap-3 text-sm rounded-lg px-3 py-2 ${
+          status.startsWith('✓') ? 'bg-green-50 text-green-700'
+            : status.startsWith('✗') ? 'bg-red-50 text-red-700'
+            : 'bg-gray-50 text-gray-500'
+        }`}>
+          <span>{status}</span>
+          {!status.endsWith('...') && (
+            <button
+              onClick={() => setStatus('')}
+              className="opacity-60 hover:opacity-100 transition-opacity shrink-0"
+              title="Ausblenden"
+              aria-label="Meldung ausblenden"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

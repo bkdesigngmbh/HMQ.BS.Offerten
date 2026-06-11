@@ -23,7 +23,12 @@ function EditablePreisInput({
       <span className="text-gray-600 flex items-center gap-1.5">
         {label}
         {isChanged && (
-          <span className="text-orange-500 text-xs font-medium">manuell</span>
+          <span
+            className="text-orange-500 text-xs font-medium cursor-help"
+            title="Manuell überschrieben — weicht von der automatischen Berechnung ab. Wird bei Änderung von Kategorien/Spesen zurückgesetzt."
+          >
+            manuell
+          </span>
         )}
       </span>
       <input
@@ -34,7 +39,7 @@ function EditablePreisInput({
         onChange={(e) => onPreisChange(field as keyof EditablePreise, parseFloat(e.target.value) || 0)}
         className={`w-24 px-2 py-1 text-right font-mono text-sm rounded-lg border-0
           ${isChanged ? 'bg-orange-50' : 'bg-gray-50'}
-          focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20 transition-all`}
+          focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all`}
         placeholder="0.00"
       />
     </div>
@@ -63,6 +68,11 @@ export default function KostenUebersicht({
     offerte.kosten.rabattProzent
   );
 
+  const PREIS_FELDER: (keyof EditablePreise)[] = [
+    'grundlagen', 'termin', 'aufnahme', 'bericht', 'kontrolle', 'abschluss', 'material', 'spesen', 'zwischentotal',
+  ];
+  const hatManuellePreise = PREIS_FELDER.some((f) => isManuallyChanged(f));
+
   return (
     <div className="space-y-4">
       {/* Kostenübersicht - editierbar */}
@@ -77,6 +87,11 @@ export default function KostenUebersicht({
               editierbar
             </span>
           </div>
+          {hatManuellePreise && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3">
+              ⚠ Manuell angepasste Preise werden bei Änderung von Kategorien oder Spesen zurückgesetzt.
+            </p>
+          )}
           <div className="space-y-1 text-sm">
             <EditablePreisInput label="Grundlagen" field="grundlagen" value={editablePreise.grundlagen} isChanged={isManuallyChanged('grundlagen')} onPreisChange={handlePreisChange} />
             <EditablePreisInput label="Termin" field="termin" value={editablePreise.termin} isChanged={isManuallyChanged('termin')} onPreisChange={handlePreisChange} />
@@ -97,7 +112,12 @@ export default function KostenUebersicht({
           <span className="text-white/80 flex items-center gap-1.5">
             Zwischentotal
             {isManuallyChanged('zwischentotal') && (
-              <span className="text-orange-300 text-xs">manuell</span>
+              <span
+                className="text-orange-300 text-xs cursor-help"
+                title="Manuell überschrieben — weicht von der automatischen Berechnung ab. Wird bei Änderung von Kategorien/Spesen zurückgesetzt."
+              >
+                manuell
+              </span>
             )}
           </span>
           <input

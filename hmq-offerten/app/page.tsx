@@ -47,9 +47,25 @@ export default function HomePage() {
     if (offertenOpen) loadOfferten();
   }, [offertenOpen]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  function validateOfferte(o: Offerte, forGenerate: boolean): Record<string, string> {
+    const e: Record<string, string> = {};
+    if (!o.offertnummer.trim()) {
+      e.offertnummer = 'Offertnummer fehlt';
+    } else if (forGenerate && !/^\d{2}\.\d{2}\.\d{3}$/.test(o.offertnummer.trim())) {
+      e.offertnummer = 'Format: XX.XX.XXX';
+    }
+    if (forGenerate && !o.empfaenger.firma.trim()) {
+      e['empfaenger.firma'] = 'Firma fehlt';
+    }
+    return e;
+  }
+
   function handleOfferteChange(newOfferte: Offerte) {
     setOfferte(newOfferte);
     setIsSaved(false);
+    setErrors({}); // Fehler verschwinden, sobald der Nutzer etwas korrigiert
   }
 
   function handleNeueOfferte() {
@@ -102,11 +118,13 @@ export default function HomePage() {
   }
 
   async function handleGenerateWord() {
-    if (!offerte.offertnummer) {
-      alert('Bitte Offertnummer eingeben');
+    const validationErrors = validateOfferte(offerte, true);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       setActiveTab('daten');
       return;
     }
+    setErrors({});
 
     // Datum auf heute setzen
     const heute = new Date().toISOString().split('T')[0];
@@ -156,11 +174,13 @@ export default function HomePage() {
   }
 
   async function handleSave() {
-    if (!offerte.offertnummer) {
-      alert('Bitte Offertnummer eingeben');
+    const validationErrors = validateOfferte(offerte, false);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       setActiveTab('daten');
       return;
     }
+    setErrors({});
 
     setSaving(true);
     try {
@@ -187,6 +207,23 @@ export default function HomePage() {
            o.empfaenger_firma?.toLowerCase().includes(s);
   }), [offertenListe, offertenSearch]);
 
+  // Tastatur-Shortcuts: ⌘/Strg+S = Speichern, ⌘/Strg+Enter = Word generieren.
+  // Bewusst ohne Dependency-Array, damit immer die aktuellen Handler gebunden sind.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        handleSave();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleGenerateWord();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   return (
     <AppLayout
       onOffertenClick={() => setOffertenOpen(true)}
@@ -211,7 +248,7 @@ export default function HomePage() {
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Offert-Daten
+            1 · Daten
           </button>
           <button
             onClick={() => setActiveTab('kosten')}
@@ -221,7 +258,7 @@ export default function HomePage() {
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Kosten
+            2 · Kosten
           </button>
         </div>
       </div>
@@ -229,7 +266,20 @@ export default function HomePage() {
       {/* Tab Content */}
       <div className="mb-8">
         {activeTab === 'daten' && (
-          <Tab1Daten offerte={offerte} onChange={handleOfferteChange} onCreateNew={handleCreateNewFromImport} />
+          <>
+            <Tab1Daten offerte={offerte} onChange={handleOfferteChange} onCreateNew={handleCreateNewFromImport} errors={errors} />
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setActiveTab('kosten')}
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-[#1e3a5f]/30 text-[#1e3a5f] font-medium rounded-xl hover:bg-[#1e3a5f]/5 transition-all"
+              >
+                Weiter zu Kosten
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+          </>
         )}
         {activeTab === 'kosten' && (
           <Tab2Kosten offerte={offerte} onChange={handleOfferteChange} />
@@ -240,7 +290,12 @@ export default function HomePage() {
       <div className="flex items-center justify-between py-6 border-t border-gray-200">
         {/* Links: Status */}
         <div className="flex items-center gap-3">
-          {offerte.offertnummer && (
+          {!offerte.offertnummer ? (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+              <span>Offertnummer eingeben, um zu speichern oder zu generieren</span>
+            </div>
+          ) : (
             <div className="flex items-center gap-2 text-sm">
               {isSaved ? (
                 <>
@@ -263,6 +318,7 @@ export default function HomePage() {
           <button
             onClick={handleSave}
             disabled={saving || !offerte.offertnummer}
+            title={!offerte.offertnummer ? 'Offertnummer eingeben, um zu speichern' : 'Speichern (⌘/Strg+S)'}
             className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
           >
             {saving ? (
@@ -284,6 +340,7 @@ export default function HomePage() {
           <button
             onClick={handleGenerateWord}
             disabled={generating || !offerte.offertnummer}
+            title={!offerte.offertnummer ? 'Offertnummer eingeben, um zu generieren' : 'Word generieren (⌘/Strg+Enter)'}
             className="flex items-center gap-3 px-8 py-3 bg-[#1e3a5f] text-white font-semibold rounded-xl hover:bg-[#162b47] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#1e3a5f]/20"
           >
             {generating ? (
@@ -334,7 +391,7 @@ export default function HomePage() {
                   placeholder="Suchen nach Nummer, Ort, Projekt, Firma..."
                   value={offertenSearch}
                   onChange={(e) => setOffertenSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/20"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40"
                 />
               </div>
             </div>
