@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Offerte } from '@/lib/types';
 import { KostenErgebnis } from '@/lib/kosten-rechner';
+import { HOURS_PER_EINSATZPAUSCHALE } from '@/lib/constants';
 
 export function useEinsatzpauschale(
   offerte: Offerte,
@@ -16,7 +17,7 @@ export function useEinsatzpauschale(
     if (!ergebnis || !initialized || einsatzpauschaleManual) return;
 
     const stundenEnd = offerte.kostenBerechnung.overrides.stundenEnd ?? ergebnis.aufnahme.stundenEnd;
-    const berechnetePauschalen = Math.max(1, Math.min(10, Math.ceil(stundenEnd / 8)));
+    const berechnetePauschalen = Math.max(1, Math.min(10, Math.ceil(stundenEnd / HOURS_PER_EINSATZPAUSCHALE)));
 
     if (offerte.einsatzpauschalen !== berechnetePauschalen) {
       onChange({ ...offerte, einsatzpauschalen: berechnetePauschalen });
