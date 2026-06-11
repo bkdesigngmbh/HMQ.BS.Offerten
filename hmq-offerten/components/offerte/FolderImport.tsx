@@ -23,6 +23,7 @@ export default function FolderImport({ offerte, onChange, onCreateNew }: FolderI
   const processFiles = useCallback(async (items: DataTransferItemList | FileList) => {
     setStatus('Verarbeite...');
 
+    try {
     let folderName = '';
     let mailContent = '';
     let mailDatum = ''; // Datum aus MSG
@@ -172,6 +173,10 @@ export default function FolderImport({ offerte, onChange, onCreateNew }: FolderI
       setLoadedFolder(folderName);
     } else {
       setStatus('Keine Daten gefunden');
+    }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unbekannter Fehler';
+      setStatus(`✗ Import fehlgeschlagen: ${msg}`);
     }
 
     setTimeout(() => setStatus(''), 5000);

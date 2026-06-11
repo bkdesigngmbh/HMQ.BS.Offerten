@@ -84,8 +84,13 @@ export async function parseMsgFile(arrayBuffer: ArrayBuffer): Promise<{ body: st
     throw new Error('MSG-Reader konnte nicht geladen werden');
   }
 
-  const msgReader = new MsgReader(arrayBuffer);
-  const fileData = msgReader.getFileData() as MsgFileData;
+  let fileData: MsgFileData;
+  try {
+    const msgReader = new MsgReader(arrayBuffer);
+    fileData = msgReader.getFileData() as MsgFileData;
+  } catch {
+    throw new Error('MSG-Datei konnte nicht gelesen werden (beschädigt oder unbekanntes Format)');
+  }
 
   // Body extrahieren (HTML oder Text)
   let body = fileData.body || '';

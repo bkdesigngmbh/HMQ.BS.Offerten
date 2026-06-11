@@ -16,7 +16,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
 
   function updateField(path: string, value: string | number | boolean) {
     const keys = path.split('.');
-    const newOfferte = JSON.parse(JSON.stringify(offerte));
+    const newOfferte = structuredClone(offerte);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deep path access requires dynamic typing
     let obj: Record<string, any> = newOfferte;
     for (let i = 0; i < keys.length - 1; i++) {
@@ -27,7 +27,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
   }
 
   function updateCheckbox(group: keyof Checkboxen, key: string, value: boolean | string) {
-    const newCheckboxen = JSON.parse(JSON.stringify(offerte.checkboxen)) as Checkboxen;
+    const newCheckboxen = structuredClone(offerte.checkboxen);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic key access for checkbox groups
     (newCheckboxen[group] as Record<string, any>)[key] = value;
 

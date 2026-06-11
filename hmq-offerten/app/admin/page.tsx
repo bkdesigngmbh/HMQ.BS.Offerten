@@ -43,6 +43,7 @@ export default function AdminPage() {
       setStandorte(s);
     } catch (e) {
       console.error(e);
+      setMessage({ type: 'error', text: 'Daten konnten nicht geladen werden — bitte Verbindung prüfen und neu laden.' });
     }
     setLoading(false);
   }
