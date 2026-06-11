@@ -68,6 +68,11 @@ export default function KostenUebersicht({
     offerte.kosten.rabattProzent
   );
 
+  const PREIS_FELDER: (keyof EditablePreise)[] = [
+    'grundlagen', 'termin', 'aufnahme', 'bericht', 'kontrolle', 'abschluss', 'material', 'spesen', 'zwischentotal',
+  ];
+  const hatManuellePreise = PREIS_FELDER.some((f) => isManuallyChanged(f));
+
   return (
     <div className="space-y-4">
       {/* Kostenübersicht - editierbar */}
@@ -82,6 +87,11 @@ export default function KostenUebersicht({
               editierbar
             </span>
           </div>
+          {hatManuellePreise && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3">
+              ⚠ Manuell angepasste Preise werden bei Änderung von Kategorien oder Spesen zurückgesetzt.
+            </p>
+          )}
           <div className="space-y-1 text-sm">
             <EditablePreisInput label="Grundlagen" field="grundlagen" value={editablePreise.grundlagen} isChanged={isManuallyChanged('grundlagen')} onPreisChange={handlePreisChange} />
             <EditablePreisInput label="Termin" field="termin" value={editablePreise.termin} isChanged={isManuallyChanged('termin')} onPreisChange={handlePreisChange} />
