@@ -269,7 +269,7 @@ export function parseEmailContent(emlContent: string): ParsedMailData {
 
     // Prüfen ob erste Zeile eine Firma ist (nicht Herr/Frau und kein Name mit @)
     const firstLine = empfaengerLines[0];
-    const isAnrede = firstLine === 'Herr' || firstLine === 'Frau';
+    const isAnrede = /^(Herr|Frau)\b/.test(firstLine);
     const isEmail = firstLine.includes('@');
     const isPlzOrt = /^\d{4}\s+/.test(firstLine);
 
@@ -278,16 +278,25 @@ export function parseEmailContent(emlContent: string): ParsedMailData {
       result.firma = empfaengerLines[lineIdx++];
     }
 
-    // Zeile: Anrede (Herr/Frau)
+    // Anrede: eigene Zeile ("Herr") ODER Präfix der Namenszeile ("Herr Kevin Volkart")
+    let nameZeile = '';
     if (lineIdx < empfaengerLines.length) {
-      if (empfaengerLines[lineIdx] === 'Herr' || empfaengerLines[lineIdx] === 'Frau') {
-        result.anrede = empfaengerLines[lineIdx++];
+      const anredeMatch = empfaengerLines[lineIdx].match(/^(Herr|Frau)(?:\s+(.*))?$/);
+      if (anredeMatch) {
+        result.anrede = anredeMatch[1];
+        lineIdx++;
+        if (anredeMatch[2]?.trim()) {
+          nameZeile = anredeMatch[2].trim(); // Name stand auf gleicher Zeile
+        }
       }
     }
 
-    // Zeile: Name (Vorname Nachname)
-    if (lineIdx < empfaengerLines.length && !empfaengerLines[lineIdx].includes('@') && !/^\d{4}\s+/.test(empfaengerLines[lineIdx])) {
-      const nameParts = empfaengerLines[lineIdx++].split(' ');
+    // Name: von der Anrede-Zeile, sonst nächste Zeile
+    if (!nameZeile && lineIdx < empfaengerLines.length && !empfaengerLines[lineIdx].includes('@') && !/^\d{4}\s+/.test(empfaengerLines[lineIdx])) {
+      nameZeile = empfaengerLines[lineIdx++];
+    }
+    if (nameZeile) {
+      const nameParts = nameZeile.split(/\s+/);
       result.vorname = nameParts[0] || '';
       result.nachname = nameParts.slice(1).join(' ') || '';
     }
