@@ -11,6 +11,7 @@ interface AppLayoutProps {
   showNeueOfferte?: boolean;
   onNeueOfferteClick?: () => void;
   currentOffertnummer?: string;
+  currentProjekt?: string;
 }
 
 export default function AppLayout({
@@ -19,6 +20,7 @@ export default function AppLayout({
   showNeueOfferte = false,
   onNeueOfferteClick,
   currentOffertnummer,
+  currentProjekt,
 }: AppLayoutProps) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith('/admin');
@@ -39,9 +41,17 @@ export default function AppLayout({
 
           {/* Mitte: Aktuelle Offerte */}
           {currentOffertnummer && !isAdmin && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full">
-              <span className="text-sm text-blue-200">Aktiv:</span>
-              <span className="font-mono font-semibold text-white">{currentOffertnummer}</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full min-w-0">
+              <span className="text-sm text-blue-200 shrink-0">Aktiv:</span>
+              <span className="font-mono font-semibold text-white shrink-0">{currentOffertnummer}</span>
+              {currentProjekt && (
+                <span
+                  className="text-sm text-blue-100 truncate max-w-[320px]"
+                  title={currentProjekt}
+                >
+                  &middot; {currentProjekt}
+                </span>
+              )}
             </div>
           )}
 
