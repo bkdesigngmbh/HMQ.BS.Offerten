@@ -230,6 +230,7 @@ export default function HomePage() {
       showNeueOfferte={true}
       onNeueOfferteClick={handleNeueOfferte}
       currentOffertnummer={offerte.offertnummer}
+      currentProjekt={[offerte.projekt.ort, offerte.projekt.bezeichnung].filter(Boolean).join(', ')}
     >
       {/* Titel */}
       <div className="mb-8">
