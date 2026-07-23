@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Offerte, Checkboxen } from '@/lib/types';
-import { geocodeOrt, naechsterStandort, NaechsterStandort } from '@/lib/standort-logik';
+import { geocodeOrtCached, naechsterStandort, NaechsterStandort } from '@/lib/standort-logik';
 import CheckboxGruppe from './CheckboxGruppe';
 import PlanUpload from './PlanUpload';
 import FolderImport from './FolderImport';
@@ -21,7 +21,6 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
   // und alte gespeicherte Offerten (undefined) werden nie automatisch geändert.
   const [autoStandort, setAutoStandort] = useState<(NaechsterStandort & { ort: string }) | null>(null);
   const offerteRef = useRef(offerte);
-  const letzteAbfrageOrt = useRef<string>('');
 
   // Ref immer auf dem aktuellen Stand halten (für den asynchronen Geocoding-Callback)
   useEffect(() => {
@@ -31,13 +30,14 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
   const projektOrt = offerte.projekt.ort.trim();
   const standortAutoAktiv = offerte.standortManuell === false;
 
+  // Läuft bei jeder Änderung von Projektort/Offerte neu (wichtig: der Ordner-Import
+  // erstellt eine frische Offerte mit Default-Standort, auch bei gleichem Ortsnamen).
+  // Wiederholte Abfragen desselben Orts beantwortet der Cache ohne API-Aufruf.
   useEffect(() => {
     if (!standortAutoAktiv || projektOrt.length < 2) return;
-    if (letzteAbfrageOrt.current === projektOrt) return;
 
     const timer = setTimeout(async () => {
-      letzteAbfrageOrt.current = projektOrt;
-      const koordinaten = await geocodeOrt(projektOrt);
+      const koordinaten = await geocodeOrtCached(projektOrt);
       const aktuell = offerteRef.current;
       // Ort wurde inzwischen geändert oder manuell umgestellt -> Ergebnis verwerfen
       if (aktuell.projekt.ort.trim() !== projektOrt || aktuell.standortManuell !== false) return;
@@ -159,10 +159,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
                     <button
                       type="button"
                       className="underline hover:text-gray-700"
-                      onClick={() => {
-                        letzteAbfrageOrt.current = '';
-                        onChange({ ...offerte, standortManuell: false });
-                      }}
+                      onClick={() => onChange({ ...offerte, standortManuell: false })}
                     >
                       automatisch wählen
                     </button>

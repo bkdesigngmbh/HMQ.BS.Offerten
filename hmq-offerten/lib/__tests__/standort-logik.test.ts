@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { haversineKm, naechsterStandort, geocodeOrt, STANDORT_KOORDINATEN } from '@/lib/standort-logik';
+import { haversineKm, naechsterStandort, geocodeOrt, geocodeOrtCached, STANDORT_KOORDINATEN } from '@/lib/standort-logik';
 
 describe('haversineKm', () => {
   it('Distanz Zürich-Opfikon nach Chur ca. 95 km Luftlinie', () => {
@@ -57,5 +57,32 @@ describe('geocodeOrt', () => {
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     expect(await geocodeOrt('Zürich')).toBeNull();
+  });
+});
+
+describe('geocodeOrtCached', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('fragt denselben Ort nur einmal beim API an (wichtig für wiederholte Auswertung nach Ordner-Import)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ results: [{ attrs: { lat: 47.5866, lon: 9.0855 } }] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await geocodeOrtCached('Cachedorf')).toEqual({ lat: 47.5866, lon: 9.0855 });
+    expect(await geocodeOrtCached('Cachedorf')).toEqual({ lat: 47.5866, lon: 9.0855 });
+    expect(await geocodeOrtCached('  cachedorf ')).toEqual({ lat: 47.5866, lon: 9.0855 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('cacht Fehlschläge nicht (Retry nach Netzwerkfehler möglich)', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await geocodeOrtCached('Retrydorf')).toBeNull();
+    expect(await geocodeOrtCached('Retrydorf')).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
