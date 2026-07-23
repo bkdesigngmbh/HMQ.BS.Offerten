@@ -171,6 +171,9 @@ export interface Offerte {
   kostenBerechnung: KostenBerechnung;
   vorlaufzeit: string;
   einsatzpauschalen: number;
+  // Optional (fehlt bei alten gespeicherten Offerten): Abschnitt 2.3 Vergleichsaufnahme
+  // plus Kostenzeile "Optional: Leistungen Vergleichsaufnahme" im Dokument aufführen
+  vergleichsaufnahme?: boolean;
   checkboxen: Checkboxen;
   planbeilage: Planbeilage | null;
   planbeilageGisLink?: string; // GIS-Link (optional, wird nicht ins Word eingefügt)
@@ -218,6 +221,7 @@ export function createEmptyOfferte(): Offerte {
     },
     vorlaufzeit: '3 Wochen',
     einsatzpauschalen: 2,
+    vergleichsaufnahme: false,
     checkboxen: {
       artBauvorhaben: { neubau: true, umbau: false, rueckbau: false, sonstiges: '' },
       artGebaeude: { efhFreistehend: false, reihenhaus: false, terrassenhaus: false, mfh: true, strassen: false, kunstbauten: false, sonstiges1: '', sonstiges2: '' },

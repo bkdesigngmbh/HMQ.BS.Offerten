@@ -396,9 +396,22 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
             />
           </div>
 
-          {/* 2.3 Dokumentation */}
+          {/* 2.3 Vergleichsaufnahme (optional) */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">2.3 Dokumentation/Datenabgabe</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">2.3 Vergleichsaufnahme (optional)</h4>
+            <CheckboxGruppe
+              titel="Vergleichsaufnahme"
+              untertitel="Führt den Abschnitt «Beweissicherung Vergleichsaufnahme» und die Kostenzeile «Optional: Leistungen Vergleichsaufnahme» (Preis identisch zur Erstaufnahme, in Klammern) in der Offerte auf."
+              checkboxen={[
+                { key: 'aktiv', label: 'Vergleichsaufnahme aufführen', checked: !!offerte.vergleichsaufnahme },
+              ]}
+              onChange={(_key, value) => onChange({ ...offerte, vergleichsaufnahme: value })}
+            />
+          </div>
+
+          {/* 2.3/2.4 Dokumentation */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">{offerte.vergleichsaufnahme ? '2.4' : '2.3'} Dokumentation/Datenabgabe</h4>
             <CheckboxGruppe
               titel="Berichtinhalt pro Parzelle"
               checkboxen={[

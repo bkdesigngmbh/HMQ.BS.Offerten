@@ -3,7 +3,7 @@ export const RAPPEN_MULTIPLIER = 20;
 export const HOURS_PER_EINSATZPAUSCHALE = 8;
 export const EMU_PER_CM = 360000;
 export const SUPABASE_NOT_FOUND = 'PGRST116';
-export const TEMPLATE_FILENAME = 'Offerte_Template_V11.docx';
+export const TEMPLATE_FILENAME = 'Offerte_Template_V12.docx';
 
 export const GERMAN_MONTHS = [
   'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
