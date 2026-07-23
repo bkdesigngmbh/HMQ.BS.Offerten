@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { Offerte, Checkboxen } from '@/lib/types';
+import { geocodeOrt, naechsterStandort, NaechsterStandort } from '@/lib/standort-logik';
 import CheckboxGruppe from './CheckboxGruppe';
 import PlanUpload from './PlanUpload';
 import FolderImport from './FolderImport';
@@ -13,6 +15,45 @@ interface Tab1DatenProps {
 }
 
 export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} }: Tab1DatenProps) {
+
+  // === AUTOMATISCHE STANDORTWAHL (nächster Bürostandort zum Projektort) ===
+  // Aktiv nur bei standortManuell === false (neue Offerten); manuell gewählte
+  // und alte gespeicherte Offerten (undefined) werden nie automatisch geändert.
+  const [autoStandort, setAutoStandort] = useState<(NaechsterStandort & { ort: string }) | null>(null);
+  const offerteRef = useRef(offerte);
+  const letzteAbfrageOrt = useRef<string>('');
+
+  // Ref immer auf dem aktuellen Stand halten (für den asynchronen Geocoding-Callback)
+  useEffect(() => {
+    offerteRef.current = offerte;
+  }, [offerte]);
+
+  const projektOrt = offerte.projekt.ort.trim();
+  const standortAutoAktiv = offerte.standortManuell === false;
+
+  useEffect(() => {
+    if (!standortAutoAktiv || projektOrt.length < 2) return;
+    if (letzteAbfrageOrt.current === projektOrt) return;
+
+    const timer = setTimeout(async () => {
+      letzteAbfrageOrt.current = projektOrt;
+      const koordinaten = await geocodeOrt(projektOrt);
+      const aktuell = offerteRef.current;
+      // Ort wurde inzwischen geändert oder manuell umgestellt -> Ergebnis verwerfen
+      if (aktuell.projekt.ort.trim() !== projektOrt || aktuell.standortManuell !== false) return;
+      if (!koordinaten) {
+        setAutoStandort(null);
+        return;
+      }
+      const naechster = naechsterStandort(koordinaten);
+      setAutoStandort({ ...naechster, ort: projektOrt });
+      if (naechster.standortId !== aktuell.standortId) {
+        onChange({ ...aktuell, standortId: naechster.standortId });
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [projektOrt, standortAutoAktiv, onChange]);
 
   function updateField(path: string, value: string | number | boolean) {
     const keys = path.split('.');
@@ -100,13 +141,33 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
                 <label className={labelClass}>Standort</label>
                 <select
                   value={offerte.standortId}
-                  onChange={(e) => updateField('standortId', e.target.value)}
+                  onChange={(e) => onChange({ ...offerte, standortId: e.target.value, standortManuell: true })}
                   className={inputClass}
                 >
                   <option value="zh">Zürich-Opfikon</option>
                   <option value="gr">Chur</option>
                   <option value="ag">Zofingen</option>
                 </select>
+                {standortAutoAktiv && autoStandort && autoStandort.ort === projektOrt && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    automatisch: nächster Standort zu {autoStandort.ort} ({Math.round(autoStandort.distanzKm)} km Luftlinie)
+                  </p>
+                )}
+                {offerte.standortManuell === true && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    manuell gewählt ·{' '}
+                    <button
+                      type="button"
+                      className="underline hover:text-gray-700"
+                      onClick={() => {
+                        letzteAbfrageOrt.current = '';
+                        onChange({ ...offerte, standortManuell: false });
+                      }}
+                    >
+                      automatisch wählen
+                    </button>
+                  </p>
+                )}
               </div>
             </div>
 
