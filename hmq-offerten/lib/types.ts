@@ -164,6 +164,10 @@ export interface Offerte {
   offertnummer: string;
   datum: string;
   standortId: string;
+  // false = Standort darf automatisch (nächster zum Projektort) gesetzt werden,
+  // true = vom Benutzer manuell gewählt. Fehlt bei alten Offerten (undefined):
+  // dann kein Auto-Update, damit gespeicherte Standorte unangetastet bleiben.
+  standortManuell?: boolean;
   ansprechpartnerIds: string[];
   empfaenger: Empfaenger;
   projekt: Projekt;
@@ -185,6 +189,7 @@ export function createEmptyOfferte(): Offerte {
     offertnummer: '',
     datum: heute,
     standortId: 'zh',
+    standortManuell: false,
     ansprechpartnerIds: ['bpa', 'mme'],
     empfaenger: {
       firma: '',
