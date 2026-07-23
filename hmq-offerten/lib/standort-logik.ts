@@ -49,6 +49,22 @@ interface GeoAdminResult {
   results?: { attrs?: { lat?: number; lon?: number } }[];
 }
 
+// Erfolgs-Cache pro Ortsname: die Auto-Logik wird bei jeder Offerten-Änderung neu
+// bewertet (z.B. Ordner-Import setzt den Standort auf Default zurück), soll dabei
+// aber nicht für denselben Ort erneut das API anfragen. Fehlschläge (unbekannter
+// Ort, offline) werden bewusst nicht gecacht, damit ein Retry möglich bleibt.
+const geocodeCache = new Map<string, Koordinaten>();
+
+export async function geocodeOrtCached(ort: string): Promise<Koordinaten | null> {
+  const key = ort.trim().toLowerCase();
+  if (!key) return null;
+  const cached = geocodeCache.get(key);
+  if (cached) return cached;
+  const koordinaten = await geocodeOrt(ort);
+  if (koordinaten) geocodeCache.set(key, koordinaten);
+  return koordinaten;
+}
+
 // Geocodiert einen Schweizer Ortsnamen (inkl. Weiler/Ortsteile wie "Ottoberg").
 // Liefert null bei unbekanntem Ort oder Netzwerkfehler; der Aufrufer behält dann
 // den bisherigen Standort (kein automatischer Wechsel).
