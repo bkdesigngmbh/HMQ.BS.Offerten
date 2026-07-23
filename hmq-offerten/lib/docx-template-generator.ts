@@ -125,6 +125,12 @@ function setCheckboxen(xml: string, offerte: Offerte): string {
     cb.dokumentation.datenabgabe,
   ];
 
+  // Vergleichsaufnahme-Block (4 Checkboxen zwischen Erstaufnahme und Dokumentation):
+  // nur im XML vorhanden, wenn der Block nicht vorher entfernt wurde — dann immer alle angekreuzt
+  if (offerte.vergleichsaufnahme) {
+    states.splice(31, 0, true, true, true, true);
+  }
+
   let idx = 0;
   xml = xml.replace(/<w14:checkbox>([\s\S]*?)<\/w14:checkbox>/g, (match) => {
     const checked = states[idx++] || false;
@@ -192,6 +198,56 @@ function entferneRabatt(xml: string, rabattProzent: number): string {
   );
   xml = xml.replace(
     /<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{PREIS_RABATT\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
+    ''
+  );
+
+  return xml;
+}
+
+// === VERGLEICHSAUFNAHME ===
+
+// Abschnitt 2.3 Vergleichsaufnahme + Kostenzeile "Optional: Leistungen Vergleichsaufnahme".
+// Im Template ist der Textblock von {{VA_START}}/{{VA_END}}-Markerabsätzen umschlossen.
+// Aktiv: Markerabsätze entfernen + Paginierung wie Muster-Offerte anpassen.
+// Inaktiv: Block und Kostenzeile komplett entfernen (Output wie bisher).
+function entferneVergleichsaufnahme(xml: string, aktiv: boolean): string {
+  if (aktiv) {
+    xml = xml.replace(
+      /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{VA_START\}\}(?:(?!<\/w:p>).)*?<\/w:p>/gs,
+      ''
+    );
+    xml = xml.replace(
+      /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{VA_END\}\}(?:(?!<\/w:p>).)*?<\/w:p>/gs,
+      ''
+    );
+
+    // Kapitel Dokumentation (2.4) beginnt auf neuer Seite: pageBreakBefore in die
+    // Überschrift einfügen (Absatz mit {{NR_DOKU}}, direkt nach pStyle = schemakonform)
+    xml = xml.replace(
+      /(<w:p\b[^>]*><w:pPr><w:pStyle w:val="[^"]+"\/>)((?:(?!<\/w:p>).)*?\{\{NR_DOKU\}\})/s,
+      '$1<w:pageBreakBefore/>$2'
+    );
+
+    // Kein fester Umbruch vor dem Schlussteil: KOMPETENZ bleibt mit Unterschriften und
+    // Beilagen-Hinweis auf einer Seite (wie Muster: zwei Leerzeilen statt Umbruch)
+    const leerAbsatz = '<w:pPr><w:spacing w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:rPr><w:noProof/></w:rPr></w:pPr></w:p>';
+    xml = xml.replace(
+      /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{SCHLUSS_UMBRUCH\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s,
+      `<w:p>${leerAbsatz}<w:p>${leerAbsatz}`
+    );
+
+    return xml;
+  }
+
+  // Alles vom {{VA_START}}- bis zum {{VA_END}}-Absatz entfernen (inkl. Marker)
+  xml = xml.replace(
+    /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{VA_START\}\}[\s\S]*?\{\{VA_END\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s,
+    ''
+  );
+
+  // Kostenzeile entfernen
+  xml = xml.replace(
+    /<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{PREIS_VERGLEICH\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
     ''
   );
 
@@ -735,6 +791,7 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   xml = entferneLeerenKontakt(xml, hatKontakt);
   xml = entferneLeereAbteilung(xml, offerte.empfaenger.abteilung || '');
   xml = entferneRabatt(xml, offerte.kosten.rabattProzent);
+  xml = entferneVergleichsaufnahme(xml, !!offerte.vergleichsaufnahme);
 
   // =====================================================
   // DANN Platzhalter ersetzen
@@ -765,6 +822,13 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{ANF_JAHR}}': anfrage.jahr,
     // Leistungspreis = Zwischentotal + Rabatt (Summe vor Rabattabzug)
     '{{PREIS_LEISTUNG}}': formatCHF(kosten.zwischentotal + kosten.rabattBetrag),
+    // Vergleichsaufnahme: identischer Preis wie Erstaufnahme, rein informativ (fliesst nicht ins Total)
+    '{{PREIS_VERGLEICH}}': formatCHF(kosten.zwischentotal + kosten.rabattBetrag),
+    '{{LEISTUNG_LABEL}}': offerte.vergleichsaufnahme ? 'Leistungen Erstaufnahme' : 'Leistungen gemäss Offerte',
+    '{{NR_DOKU}}': offerte.vergleichsaufnahme ? '2.4' : '2.3',
+    '{{KOSTEN_TITEL}}': offerte.vergleichsaufnahme ? 'Beweissicherung' : 'Beweissicherung Erstaufnahme',
+    // Marker im Umbruch-Absatz vor dem Schlussteil (Absatz selbst bleibt bei VA-off bestehen)
+    '{{SCHLUSS_UMBRUCH}}': '',
     '{{PREIS_RABATT}}': `-${formatCHF(kosten.rabattBetrag)}`,
     '{{PREIS_ZWISCHEN}}': formatCHF(kosten.zwischentotal),
     '{{PREIS_MWST}}': formatCHF(kosten.mwstBetrag),
