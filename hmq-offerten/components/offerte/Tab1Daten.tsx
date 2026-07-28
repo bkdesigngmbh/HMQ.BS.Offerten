@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Offerte, Checkboxen } from '@/lib/types';
+import { Offerte, Offertart, Checkboxen, EmgKonfiguration, createEmptyEmg, getOffertart } from '@/lib/types';
 import { geocodeOrtCached, naechsterStandort, NaechsterStandort } from '@/lib/standort-logik';
 import CheckboxGruppe from './CheckboxGruppe';
 import PlanUpload from './PlanUpload';
@@ -12,9 +12,16 @@ interface Tab1DatenProps {
   onChange: (offerte: Offerte) => void;
   onCreateNew?: (offerte: Offerte) => void;
   errors?: Record<string, string>;
+  emgFehler?: boolean;
 }
 
-export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} }: Tab1DatenProps) {
+const OFFERTART_OPTIONEN: { id: Offertart; label: string; beschreibung: string }[] = [
+  { id: 'bs', label: 'Beweissicherung', beschreibung: 'Standard-Offerte wie bisher' },
+  { id: 'bs_emg', label: 'Beweissicherung + EMG', beschreibung: 'Zusätzliches Kapitel Erschütterungsmessung' },
+  { id: 'emg', label: 'Nur EMG', beschreibung: 'Reine Erschütterungsmessungs-Offerte' },
+];
+
+export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {}, emgFehler = false }: Tab1DatenProps) {
 
   // === AUTOMATISCHE STANDORTWAHL (nächster Bürostandort zum Projektort) ===
   // Aktiv nur bei standortManuell === false (neue Offerten); manuell gewählte
@@ -91,6 +98,28 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
     onChange({ ...offerte, checkboxen: newCheckboxen });
   }
 
+  // === OFFERTART UND EMG ===
+  const art = getOffertart(offerte);
+  const bsAktiv = art !== 'emg';
+  const emgAktiv = art !== 'bs';
+  const emg = offerte.emg ?? createEmptyEmg();
+
+  function setOffertart(neu: Offertart) {
+    const next: Offerte = { ...offerte, offertart: neu };
+    if (neu !== 'bs' && !offerte.emg) {
+      next.emg = createEmptyEmg();
+    }
+    // Vergleichsaufnahme gehört zur Beweissicherung: bei "nur EMG" deaktivieren
+    if (neu === 'emg') {
+      next.vergleichsaufnahme = false;
+    }
+    onChange(next);
+  }
+
+  function updateEmg(patch: Partial<EmgKonfiguration>) {
+    onChange({ ...offerte, emg: { ...emg, ...patch } });
+  }
+
   const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
 
@@ -108,6 +137,43 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
         </div>
         <p className="text-xs text-gray-500 mb-3 ml-9">Füllt Empfänger, Adresse &amp; Anfragedatum automatisch — oder unten manuell ausfüllen.</p>
         <FolderImport offerte={offerte} onChange={onChange} onCreateNew={onCreateNew} />
+      </div>
+
+      {/* Offertart */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+            </svg>
+          </div>
+          Offertart
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {OFFERTART_OPTIONEN.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setOffertart(option.id)}
+              className={`text-left rounded-xl border-2 p-4 transition-all ${
+                art === option.id
+                  ? 'border-[#1e3a5f] bg-[#1e3a5f]/5'
+                  : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
+              }`}
+            >
+              <span className={`block font-medium text-sm ${art === option.id ? 'text-[#1e3a5f]' : 'text-gray-900'}`}>
+                {option.label}
+              </span>
+              <span className="block text-xs text-gray-500 mt-0.5">{option.beschreibung}</span>
+            </button>
+          ))}
+        </div>
+        {emgAktiv && emgFehler && (
+          <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            EMG-Basiswerte fehlen: Migration <span className="font-mono">database/emg-migration.sql</span> im
+            Supabase SQL Editor ausführen und die Seite neu laden.
+          </p>
+        )}
       </div>
 
       {/* 2-Spalten Layout: Offert & Projekt | Empfänger */}
@@ -424,7 +490,9 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
             />
           </div>
 
-          {/* 2.1 Koordination */}
+          {/* 2.1 Koordination (entfällt bei "nur EMG") */}
+          {bsAktiv && (
+          <>
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-3">2.1 Koordination mit den Eigentümern</h4>
             <CheckboxGruppe
@@ -481,6 +549,79 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {} 
               onChange={(key, value) => updateCheckbox('dokumentation', key, value)}
             />
           </div>
+          </>
+          )}
+
+          {/* EMG: Erschütterungsmessungen */}
+          {emgAktiv && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">
+              {art === 'emg' ? '2.1' : '3.1'} Erschütterungsmessungen
+            </h4>
+            <div className="space-y-3">
+              <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-5">
+                <h4 className="font-medium text-gray-900 mb-3">Messumfang</h4>
+                <div className="grid grid-cols-2 gap-3 max-w-md">
+                  <div>
+                    <label className={labelClass}>Anzahl Geräte (Geophone) *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={emg.anzahlGeraete ?? ''}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        updateEmg({ anzahlGeraete: Number.isFinite(v) ? v : null });
+                      }}
+                      placeholder="z.B. 3"
+                      className={inputClass}
+                    />
+                    {errors['emg.anzahlGeraete'] && <p className="text-red-500 text-xs mt-1">{errors['emg.anzahlGeraete']}</p>}
+                  </div>
+                  <div>
+                    <label className={labelClass}>Anzahl Wochen *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={emg.anzahlWochen ?? ''}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        updateEmg({ anzahlWochen: Number.isFinite(v) ? v : null });
+                      }}
+                      placeholder="z.B. 16"
+                      className={inputClass}
+                    />
+                    {errors['emg.anzahlWochen'] && <p className="text-red-500 text-xs mt-1">{errors['emg.anzahlWochen']}</p>}
+                  </div>
+                </div>
+              </div>
+              <CheckboxGruppe
+                titel="Leistungen"
+                untertitel="Standardmässig alle enthalten, bei Bedarf abwählbar."
+                checkboxen={[
+                  { key: 'konfiguration', label: 'Konfiguration/Bereitstellung Geophone', checked: emg.leistungen.konfiguration },
+                  { key: 'smsAlarmierung', label: 'inkl. SMS-Alarmierung/Web-Zugriff', checked: emg.leistungen.smsAlarmierung },
+                  { key: 'terminvereinbarung', label: 'Terminvereinbarung mit den Eigentümern', checked: emg.leistungen.terminvereinbarung },
+                  { key: 'erstinstallation', label: 'Erstinstallation mit Testmessung', checked: emg.leistungen.erstinstallation },
+                  { key: 'vorhalten', label: 'Vorhalten', checked: emg.leistungen.vorhalten },
+                  { key: 'deinstallation', label: 'Deinstallation', checked: emg.leistungen.deinstallation },
+                ]}
+                onChange={(key, value) =>
+                  updateEmg({ leistungen: { ...emg.leistungen, [key]: value } })
+                }
+              />
+              <CheckboxGruppe
+                titel="Abschlussbericht (optional)"
+                untertitel="Wenn angekreuzt, wird der Abschlussbericht ins Total eingerechnet (Preis in Tab 2 anpassbar), sonst erscheint er als Klammerposition."
+                checkboxen={[
+                  { key: 'abschlussbericht', label: 'Abschlussbericht einrechnen', checked: emg.abschlussbericht },
+                ]}
+                onChange={(_key, value) => updateEmg({ abschlussbericht: value })}
+              />
+            </div>
+          </div>
+          )}
         </div>
       </div>
 

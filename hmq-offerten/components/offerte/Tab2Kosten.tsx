@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Offerte } from '@/lib/types';
+import { Offerte, getOffertart } from '@/lib/types';
+import { EmgBasiswerte } from '@/lib/supabase';
 import { berechneKosten, KostenErgebnis } from '@/lib/kosten-rechner';
 import { rundeAuf5Rappen } from '@/lib/kosten-helpers';
 import { useKostenConfig } from '@/lib/hooks/use-kosten-config';
@@ -10,13 +11,19 @@ import { useEinsatzpauschale } from '@/lib/hooks/use-einsatzpauschale';
 import KategorienGrid from './kosten/KategorienGrid';
 import SpesenGrid from './kosten/SpesenGrid';
 import KostenUebersicht from './kosten/KostenUebersicht';
+import EmgKostenBlock from './kosten/EmgKostenBlock';
 
 interface Tab2KostenProps {
   offerte: Offerte;
   onChange: (offerte: Offerte) => void;
+  emgBasiswerte: EmgBasiswerte | null;
+  emgFehler: boolean;
 }
 
-export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
+export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler }: Tab2KostenProps) {
+  const art = getOffertart(offerte);
+  const bsAktiv = art !== 'emg';
+  const emgAktiv = art !== 'bs';
   const [showPlanbeilage, setShowPlanbeilage] = useState(true);
   const [einsatzpauschaleManual, setEinsatzpauschaleManual] = useState(false);
 
@@ -206,7 +213,8 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
         </div>
       )}
 
-      {/* Hauptbereich: Kategorien, Spesen, Kostenübersicht */}
+      {/* Hauptbereich: Kategorien, Spesen, Kostenübersicht (entfällt bei "nur EMG") */}
+      {bsAktiv && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Spalte 1+2: Kategorien & Spesen */}
       <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -285,6 +293,17 @@ export default function Tab2Kosten({ offerte, onChange }: Tab2KostenProps) {
         showPositionen={!!ergebnis && ergebnis.totalN > 0}
       />
       </div>
+      )}
+
+      {/* EMG: eigener Kostenblock mit separatem Total */}
+      {emgAktiv && (
+        <EmgKostenBlock
+          offerte={offerte}
+          onChange={onChange}
+          emgBasiswerte={emgBasiswerte}
+          emgFehler={emgFehler}
+        />
+      )}
     </div>
   );
 }
