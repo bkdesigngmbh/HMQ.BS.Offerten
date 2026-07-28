@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import PizZip from 'pizzip';
 import { generateOfferteFromTemplate } from '@/lib/docx-template-generator';
-import { createEmptyOfferte, type Offerte } from '@/lib/types';
+import { createEmptyEmg, createEmptyOfferte, type EmgKonfiguration, type Offerte } from '@/lib/types';
+import { erstelleEmgGespeicherteWerte } from '@/lib/emg-kosten-rechner';
+import { DEFAULT_EMG_BASISWERTE } from '@/lib/constants';
 
 // End-to-End-Snapshot von word/document.xml. Sperrt das DOCX-Rendering ein:
 // Refactor #11 (Monolith aufteilen) MUSS identisches XML liefern; #1/#2 (Escaping)
@@ -28,10 +30,26 @@ function sampleOfferte(overrides: Partial<Offerte> = {}): Offerte {
   return { ...o, ...overrides };
 }
 
+// EMG-Konfiguration wie die Muster-Offerte 51.26.392 "mit EMG":
+// 3 Geräte, 16 Wochen, Grundpauschale 700 → Vorhalten 3'840, Total 4'907.75
+function sampleEmg(overrides: Partial<EmgKonfiguration> = {}): EmgKonfiguration {
+  const emg = createEmptyEmg();
+  emg.anzahlGeraete = 3;
+  emg.anzahlWochen = 16;
+  emg.overrides.grundpauschaleEnd = 700;
+  const merged = { ...emg, ...overrides };
+  merged.gespeicherteWerte = erstelleEmgGespeicherteWerte(merged, DEFAULT_EMG_BASISWERTE);
+  return merged;
+}
+
 async function renderDocumentXml(offerte: Offerte): Promise<string> {
   const buffer = await generateOfferteFromTemplate(offerte);
   const zip = new PizZip(buffer);
   return zip.file('word/document.xml')!.asText();
+}
+
+function plainText(xml: string): string {
+  return xml.replace(/<[^>]+>/g, '');
 }
 
 describe('generateOfferteFromTemplate', () => {
@@ -103,5 +121,168 @@ describe('generateOfferteFromTemplate', () => {
     // Roh-Sonderzeichen dürfen NICHT im Text stehen (würden XML zerstören)
     expect(xml).toContain('Test &amp; Co &lt;X&gt;');
     expect(xml).not.toContain('Test & Co <X>');
+  });
+
+  // === EMG (Erschütterungsmessung) ===
+
+  it('ohne EMG (bs): keine EMG-Inhalte, keine Marker-Reste', async () => {
+    const xml = await renderDocumentXml(sampleOfferte());
+    expect(xml).not.toContain('Erschütterungsmessung');
+    expect(xml).not.toContain('Wochentarife');
+    expect(xml).not.toContain('Grundpauschale');
+    for (const marker of ['EMG_START', 'EMG_END', 'EMGK_START', 'EMGK_END', 'BS_START', 'BS_END', 'BSK_START', 'BSK_END']) {
+      expect(xml).not.toContain(marker);
+    }
+    // Betreff und Ausgangslage wie bisher
+    expect(plainText(xml)).toContain('Offerte für Beweissicherung');
+    expect(plainText(xml)).toContain('sollen vorgängig zwecks Beweissicherung Zustandsaufnahmen der umliegenden Bauten erstellt werden.');
+  });
+
+  it('bs_emg: EMG-Kapitel + zweite Kostentabelle mit Muster-Beträgen, Nummern 4.1/4.2', async () => {
+    const xml = await renderDocumentXml(
+      sampleOfferte({ offertart: 'bs_emg', emg: sampleEmg() })
+    );
+    const text = plainText(xml);
+    // Leistungsblock
+    expect(text).toContain('Leistungen Erschütterungsmessung');
+    expect(text).toContain('Konfiguration/Bereitstellung von ');
+    expect(text).toContain('3 Geophonen');
+    expect(text).toContain('Vorhalten für 16 Wochen');
+    expect(text).toContain('Strom wird kostenlos zur Verfügung gestellt');
+    expect(text).toContain('Installation erfolgt zeitgleich mit der Aufnahme der Rissprotokolle.');
+    // Wochentarife aus den Basiswerten
+    expect(text).toContain('Ab 1 Woche Laufzeit');
+    expect(text).toContain('CHF 100.00 pro Gerät/Woche');
+    expect(text).toContain('Ab 10 Wochen Laufzeit');
+    expect(text).toContain('CHF 80.00 pro Gerät/Woche');
+    expect(text).toContain('Ab 50 Wochen Laufzeit');
+    // Nummern: EMG-Leistungen 3.1, Kostenteil BS 4.1 und EMG 4.2
+    expect(xml).toContain('<w:t>3.1</w:t>');
+    expect(xml).toContain('<w:t>4.1</w:t>');
+    expect(xml).toContain('<w:t>4.2</w:t>');
+    expect(text).toContain('(Annahme: 3 Geräte, 16 Wochen)');
+    expect(text).toContain('3 Geräte à 16 Wochen (total 48 Wochen)');
+    expect(text).toContain('700.00');
+    expect(text).toContain("3'840.00");
+    expect(text).toContain('Abschlussbericht optional (nicht eingerechnet)');
+    expect(text).toContain('(250.00)');
+    expect(text).toContain("4'540.00");
+    expect(text).toContain('367.75');
+    expect(text).toContain("4'907.75");
+    expect(text).toContain('Für jede weitere Woche fallen pro Gerät CHF 80.- an.');
+    // Betreff bleibt Beweissicherung, BS-Kapitel vorhanden
+    expect(text).toContain('Offerte für Beweissicherung');
+    expect(text).toContain('Koordination mit den Eigentümern');
+    // Kein unersetzter Platzhalter
+    expect(text).not.toMatch(/\{\{[A-Z0-9_]+\}\}/);
+  });
+
+  it('bs_emg: 8 zusätzliche Checkboxen, 6 davon angekreuzt (Abschlussbericht aus)', async () => {
+    const ohne = await renderDocumentXml(sampleOfferte());
+    const mit = await renderDocumentXml(
+      sampleOfferte({ offertart: 'bs_emg', emg: sampleEmg() })
+    );
+    const glyphen = (x: string) => (x.match(/<w:t>[☐☒]<\/w:t>/g) || []).length;
+    const gesetzt = (x: string) => (x.match(/<w:t>☒<\/w:t>/g) || []).length;
+    expect(glyphen(mit)).toBe(glyphen(ohne) + 8);
+    expect(gesetzt(mit)).toBe(gesetzt(ohne) + 6);
+    // Abschlussbericht angekreuzt → +7
+    const mitBericht = await renderDocumentXml(
+      sampleOfferte({ offertart: 'bs_emg', emg: sampleEmg({ abschlussbericht: true }) })
+    );
+    expect(gesetzt(mitBericht)).toBe(gesetzt(ohne) + 7);
+  });
+
+  it('bs_emg + Vergleichsaufnahme: VA-Abschnitt (2.4) und EMG (4.1/4.2) kombiniert', async () => {
+    const xml = await renderDocumentXml(
+      sampleOfferte({ offertart: 'bs_emg', vergleichsaufnahme: true, emg: sampleEmg() })
+    );
+    const text = plainText(xml);
+    expect(text).toContain('Beweissicherung Vergleichsaufnahme');
+    expect(xml).toContain('<w:t>2.4</w:t>');
+    expect(xml).toContain('<w:t>4.1</w:t>');
+    expect(xml).toContain('<w:t>4.2</w:t>');
+    // 41 + 8 EMG-Checkboxen
+    const glyphen = (xml.match(/<w:t>[☐☒]<\/w:t>/g) || []).length;
+    expect(glyphen).toBe(49);
+    // Seitenumbrüche: Dokumentation (VA) + KOSTEN (EMG); Schluss-Umbruch entfernt
+    expect((xml.match(/<w:pageBreakBefore\/>/g) || []).length).toBe(2);
+    expect(xml).not.toContain('SCHLUSS_UMBRUCH');
+    expect(text).not.toMatch(/\{\{[A-Z0-9_]+\}\}/);
+  });
+
+  it('nur EMG: BS-Kapitel entfernt, Betreff/Ausgangslage/Termine angepasst, Nummern 2.1/3.1', async () => {
+    const xml = await renderDocumentXml(
+      sampleOfferte({ offertart: 'emg', emg: sampleEmg() })
+    );
+    const text = plainText(xml);
+    // Betreff und Ausgangslage
+    expect(text).toContain('Offerte für Erschütterungsmessung');
+    expect(text).not.toContain('Offerte für Beweissicherung');
+    expect(text).toContain('sollen während den Bautätigkeiten Erschütterungsmessungen durchgeführt werden.');
+    // BS-Kapitel weg, Kapitel 1 bleibt
+    expect(text).toContain('Art des Bauvorhabens');
+    expect(text).not.toContain('Koordination mit den Eigentümern');
+    expect(text).not.toContain('Beweissicherung Erstaufnahme');
+    expect(text).not.toContain('Rissprotokoll der gemäss');
+    expect(text).not.toContain('Leistungen gemäss Offerte');
+    // Voraussetzung mit Rissprotokoll-Bezug entfällt
+    expect(text).not.toContain('Installation erfolgt zeitgleich');
+    // Nummern: EMG-Leistungen 2.1, EMG-Kosten 3.1
+    expect(xml).toContain('<w:t>2.1</w:t>');
+    expect(xml).toContain('<w:t>3.1</w:t>');
+    expect(xml).not.toContain('<w:t>4.1</w:t>');
+    // Termine-Texte
+    expect(text).toContain('Die Installation der Messgeräte wird in Absprache mit dem Auftraggeber durchgeführt.');
+    expect(text).toContain('um die gewünschte Installation zu terminieren');
+    // Checkboxen: 20 (Kapitel 1) + 8 (EMG)
+    const glyphen = (xml.match(/<w:t>[☐☒]<\/w:t>/g) || []).length;
+    expect(glyphen).toBe(28);
+    expect(text).not.toMatch(/\{\{[A-Z0-9_]+\}\}/);
+  });
+
+  it('EMG-Rabatt: eigene Rabattzeile nur in der EMG-Tabelle', async () => {
+    const xml = await renderDocumentXml(
+      sampleOfferte({
+        offertart: 'bs_emg',
+        kosten: { leistungspreis: 5000, rabattProzent: 0 },
+        emg: sampleEmg({ rabattProzent: 10 }),
+      })
+    );
+    const text = plainText(xml);
+    expect(text).toContain('Rabatt 10.0%');
+    expect(text).toContain('-454.00');
+    expect(text).toContain('Total pauschal (inkl. 10.0% Rabatt und inkl. 8.1% MwSt.)*');
+  });
+
+  it('Legende: EMG-Symbol wird bei aktivem EMG eingebettet', async () => {
+    const mitEmg = await generateOfferteFromTemplate(
+      sampleOfferte({ offertart: 'bs_emg', emg: sampleEmg() })
+    );
+    const zipMit = new PizZip(mitEmg);
+    expect(zipMit.file('word/media/legende_emg.png')).toBeTruthy();
+    expect(plainText(zipMit.file('word/document.xml')!.asText())).toContain('Erschütterungsmessung');
+
+    const ohneEmg = await generateOfferteFromTemplate(sampleOfferte());
+    const zipOhne = new PizZip(ohneEmg);
+    expect(zipOhne.file('word/media/legende_emg.png')).toBeFalsy();
+
+    // Nur EMG: einziger Legendeneintrag ist die Erschütterungsmessung
+    const nurEmg = await generateOfferteFromTemplate(
+      sampleOfferte({ offertart: 'emg', emg: sampleEmg() })
+    );
+    const zipNur = new PizZip(nurEmg);
+    expect(zipNur.file('word/media/legende_emg.png')).toBeTruthy();
+    expect(zipNur.file('word/media/legende_fassade.png')).toBeFalsy();
+    expect(zipNur.file('word/media/legende_innenraum.png')).toBeFalsy();
+    expect(zipNur.file('word/media/legende_strasse.png')).toBeFalsy();
+  });
+
+  it('EMG aktiv ohne gespeicherteWerte: expliziter Fehler statt stillem Fallback', async () => {
+    const emg = sampleEmg();
+    delete emg.gespeicherteWerte;
+    await expect(
+      generateOfferteFromTemplate(sampleOfferte({ offertart: 'bs_emg', emg }))
+    ).rejects.toThrow(/gespeicherteWerte/);
   });
 });

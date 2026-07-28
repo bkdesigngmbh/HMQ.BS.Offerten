@@ -60,6 +60,24 @@ export interface KostenBasiswerte {
   updated_at: string;
 }
 
+// Basiswerte Erschütterungsmessung (Tabelle emg_basiswerte, eine Zeile mit id=1)
+export interface EmgBasiswerte {
+  id: number;
+  stundensatz: number;
+  konfiguration_stk_chf: number;
+  km_satz: number;
+  tarif1_ab: number;
+  tarif1_chf: number;
+  tarif2_ab: number;
+  tarif2_chf: number;
+  tarif3_ab: number;
+  tarif3_chf: number;
+  tarif4_ab: number;
+  tarif4_chf: number;
+  abschlussbericht_chf: number;
+  updated_at: string;
+}
+
 export interface OfferteHistorie {
   id: string;
   offertnummer: string;
@@ -181,6 +199,36 @@ export async function updateBasiswerte(basiswerte: Partial<KostenBasiswerte>): P
   const { data, error } = await getSupabase()
     .from('kosten_basiswerte')
     .update(basiswerte)
+    .eq('id', 1)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// --- EMG BASISWERTE ---
+
+// Wirft einen Fehler, wenn die Tabelle fehlt (Migration database/emg-migration.sql
+// noch nicht ausgeführt). Bewusst kein stiller Fallback.
+export async function getEmgBasiswerte(): Promise<EmgBasiswerte> {
+  const { data, error } = await getSupabase()
+    .from('emg_basiswerte')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateEmgBasiswerte(basiswerte: Partial<EmgBasiswerte>): Promise<EmgBasiswerte> {
+  // id und updated_at nicht mitsenden (id ist fix 1, updated_at wird neu gesetzt)
+  const updateData: Partial<EmgBasiswerte> = { ...basiswerte };
+  delete updateData.id;
+  delete updateData.updated_at;
+  const { data, error } = await getSupabase()
+    .from('emg_basiswerte')
+    .update({ ...updateData, updated_at: new Date().toISOString() })
     .eq('id', 1)
     .select()
     .single();

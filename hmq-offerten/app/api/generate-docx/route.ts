@@ -17,13 +17,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Ungültiges Offertnummer-Format (erwartet: XX.XX.XXX)' }, { status: 400 });
     }
 
+    // EMG-Validierung: bei aktivem EMG sind Geräte, Wochen und berechnete Werte Pflicht
+    const offertart: string = offerte.offertart ?? 'bs';
+    if (offertart === 'bs_emg' || offertart === 'emg') {
+      if (!offerte.emg || !(offerte.emg.anzahlGeraete >= 1)) {
+        return NextResponse.json({ error: 'EMG: Anzahl Geräte fehlt' }, { status: 400 });
+      }
+      if (!(offerte.emg.anzahlWochen >= 1)) {
+        return NextResponse.json({ error: 'EMG: Anzahl Wochen fehlt' }, { status: 400 });
+      }
+      if (!offerte.emg.gespeicherteWerte) {
+        return NextResponse.json({ error: 'EMG: Kostenwerte fehlen (Tab 2 Kosten öffnen)' }, { status: 400 });
+      }
+    }
+
     // DOCX generieren
     const docxBuffer = await generateOfferteFromTemplate(offerte);
 
     // Dateiname zusammenbauen
     const projektOrt = offerte.projekt?.ort || '';
     const projektBezeichnung = offerte.projekt?.bezeichnung || '';
-    let baseName = `Beweissicherung ¦ ${offerte.offertnummer}`;
+    const prefix = offertart === 'emg' ? 'Erschütterungsmessung' : 'Beweissicherung';
+    let baseName = `${prefix} ¦ ${offerte.offertnummer}`;
     if (projektOrt) {
       baseName += ` ${projektOrt}`;
     }

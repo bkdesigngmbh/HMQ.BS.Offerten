@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Offerte, createEmptyOfferte } from '@/lib/types';
+import { Offerte, createEmptyOfferte, getOffertart } from '@/lib/types';
 import { saveOfferte, getOffertenListe, getOfferte, deleteOfferte } from '@/lib/supabase';
 import { downloadBase64File } from '@/lib/download-utils';
+import { useEmgKosten } from '@/lib/hooks/use-emg-kosten';
 import Tab1Daten from '@/components/offerte/Tab1Daten';
 import Tab2Kosten from '@/components/offerte/Tab2Kosten';
 
@@ -59,14 +60,29 @@ export default function HomePage() {
     if (forGenerate && !o.empfaenger.firma.trim()) {
       e['empfaenger.firma'] = 'Firma fehlt';
     }
+    if (forGenerate && getOffertart(o) !== 'bs') {
+      if (!((o.emg?.anzahlGeraete ?? 0) >= 1)) {
+        e['emg.anzahlGeraete'] = 'Anzahl Geräte fehlt';
+      }
+      if (!((o.emg?.anzahlWochen ?? 0) >= 1)) {
+        e['emg.anzahlWochen'] = 'Anzahl Wochen fehlt';
+      }
+      if (!o.emg?.gespeicherteWerte) {
+        e['emg.anzahlGeraete'] = e['emg.anzahlGeraete']
+          || 'EMG-Kosten nicht berechnet (EMG-Basiswerte prüfen)';
+      }
+    }
     return e;
   }
 
-  function handleOfferteChange(newOfferte: Offerte) {
+  const handleOfferteChange = useCallback((newOfferte: Offerte) => {
     setOfferte(newOfferte);
     setIsSaved(false);
     setErrors({}); // Fehler verschwinden, sobald der Nutzer etwas korrigiert
-  }
+  }, []);
+
+  // EMG-Basiswerte laden und offerte.emg.gespeicherteWerte aktuell halten
+  const { emgBasiswerte, emgFehler } = useEmgKosten(offerte, handleOfferteChange);
 
   function handleNeueOfferte() {
     if (offerte.offertnummer && !isSaved) {
@@ -268,7 +284,7 @@ export default function HomePage() {
       <div className="mb-8">
         {activeTab === 'daten' && (
           <>
-            <Tab1Daten offerte={offerte} onChange={handleOfferteChange} onCreateNew={handleCreateNewFromImport} errors={errors} />
+            <Tab1Daten offerte={offerte} onChange={handleOfferteChange} onCreateNew={handleCreateNewFromImport} errors={errors} emgFehler={emgFehler} />
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setActiveTab('kosten')}
@@ -283,7 +299,7 @@ export default function HomePage() {
           </>
         )}
         {activeTab === 'kosten' && (
-          <Tab2Kosten offerte={offerte} onChange={handleOfferteChange} />
+          <Tab2Kosten offerte={offerte} onChange={handleOfferteChange} emgBasiswerte={emgBasiswerte} emgFehler={emgFehler} />
         )}
       </div>
 

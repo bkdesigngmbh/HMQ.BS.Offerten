@@ -5,17 +5,19 @@ import AppLayout from '@/components/layout/AppLayout';
 import {
   getKategorien, createKategorie, updateKategorie, deleteKategorie,
   getBasiswerte, updateBasiswerte,
+  getEmgBasiswerte, updateEmgBasiswerte,
   getEinstellungen, updateEinstellungen,
   getStandorte, updateStandort,
-  KostenKategorie, KostenBasiswerte, AppEinstellungen, Standort,
+  KostenKategorie, KostenBasiswerte, EmgBasiswerte, AppEinstellungen, Standort,
 } from '@/lib/supabase';
 import KategorienTab from './components/KategorienTab';
 import BasiswerteTab from './components/BasiswerteTab';
+import EmgTab from './components/EmgTab';
 import StandorteTab from './components/StandorteTab';
 import AnsprechpartnerTab from './components/AnsprechpartnerTab';
 import EinstellungenTab from './components/EinstellungenTab';
 
-type AdminTab = 'kategorien' | 'basiswerte' | 'standorte' | 'ansprechpartner' | 'einstellungen';
+type AdminTab = 'kategorien' | 'basiswerte' | 'emg' | 'standorte' | 'ansprechpartner' | 'einstellungen';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('kategorien');
@@ -25,6 +27,7 @@ export default function AdminPage() {
 
   const [kategorien, setKategorien] = useState<KostenKategorie[]>([]);
   const [basiswerte, setBasiswerte] = useState<KostenBasiswerte | null>(null);
+  const [emgBasiswerte, setEmgBasiswerte] = useState<EmgBasiswerte | null>(null);
   const [einstellungen, setEinstellungen] = useState<AppEinstellungen | null>(null);
   const [standorte, setStandorte] = useState<Standort[]>([]);
 
@@ -44,6 +47,14 @@ export default function AdminPage() {
     } catch (e) {
       console.error(e);
       setMessage({ type: 'error', text: 'Daten konnten nicht geladen werden — bitte Verbindung prüfen und neu laden.' });
+    }
+    // EMG separat laden: fehlende Tabelle (Migration noch nicht ausgeführt)
+    // darf die übrigen Tabs nicht blockieren, der EMG-Tab zeigt den Hinweis an
+    try {
+      setEmgBasiswerte(await getEmgBasiswerte());
+    } catch (e) {
+      console.error('EMG-Basiswerte nicht ladbar (Migration ausgeführt?):', e);
+      setEmgBasiswerte(null);
     }
     setLoading(false);
   }
@@ -98,6 +109,19 @@ export default function AdminPage() {
     setSaving(false);
   }
 
+  async function handleSaveEmg(e: React.FormEvent) {
+    e.preventDefault();
+    if (!emgBasiswerte) return;
+    setSaving(true);
+    try {
+      await updateEmgBasiswerte(emgBasiswerte);
+      showMessage('success', 'EMG-Basiswerte gespeichert');
+    } catch {
+      showMessage('error', 'Fehler beim Speichern');
+    }
+    setSaving(false);
+  }
+
   async function handleSaveEinst(e: React.FormEvent) {
     e.preventDefault();
     if (!einstellungen) return;
@@ -134,6 +158,7 @@ export default function AdminPage() {
   const tabs: { id: AdminTab; label: string }[] = [
     { id: 'kategorien', label: 'Kostenkategorien' },
     { id: 'basiswerte', label: 'Basiswerte' },
+    { id: 'emg', label: 'EMG' },
     { id: 'standorte', label: 'Standorte' },
     { id: 'ansprechpartner', label: 'Ansprechpartner' },
     { id: 'einstellungen', label: 'Einstellungen' },
@@ -209,6 +234,16 @@ export default function AdminPage() {
             setBasiswerte={setBasiswerte}
             saving={saving}
             onSave={handleSaveBasis}
+            inputClass={inputClass}
+          />
+        )}
+
+        {activeTab === 'emg' && (
+          <EmgTab
+            basiswerte={emgBasiswerte}
+            setBasiswerte={setEmgBasiswerte}
+            saving={saving}
+            onSave={handleSaveEmg}
             inputClass={inputClass}
           />
         )}

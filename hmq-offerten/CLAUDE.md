@@ -32,6 +32,7 @@ npm test         # Vitest (kosten-rechner, mail-parser, DOCX-Snapshot)
     /components/
       KategorienTab.tsx       # Categories CRUD + DnD sorting
       BasiswerteTab.tsx       # Base values form
+      EmgTab.tsx              # EMG base values form (rates, week tariffs)
       StandorteTab.tsx        # Office locations grid
       AnsprechpartnerTab.tsx  # Contact persons display
       EinstellungenTab.tsx    # App settings form
@@ -40,7 +41,7 @@ npm test         # Vitest (kosten-rechner, mail-parser, DOCX-Snapshot)
 /components
   /layout/AppLayout.tsx       # Header + navigation
   /offerte/
-    Tab1Daten.tsx            # Customer & project info, checkboxes
+    Tab1Daten.tsx            # Customer & project info, Offertart, checkboxes, EMG inputs
     Tab2Kosten.tsx           # Cost calculation (orchestrator)
     CheckboxGruppe.tsx       # Checkbox groups with auto-linking
     PlanUpload.tsx           # Image upload (PNG/JPG)
@@ -48,14 +49,16 @@ npm test         # Vitest (kosten-rechner, mail-parser, DOCX-Snapshot)
     /kosten/
       KategorienGrid.tsx     # Category input grid
       SpesenGrid.tsx         # Travel expenses inputs
-      KostenUebersicht.tsx   # Price sidebar + totals
+      KostenUebersicht.tsx   # Price sidebar + totals (BS)
+      EmgKostenBlock.tsx     # EMG cost block (Grundpauschale grid, overrides, own total)
 
 /lib
-  types.ts                    # TypeScript interfaces
-  constants.ts                # Shared constants (MWST, rounding, months, standorte)
+  types.ts                    # TypeScript interfaces (incl. Offertart, EmgKonfiguration)
+  constants.ts                # Shared constants (MWST, rounding, months, standorte, EMG defaults)
   store.ts                    # LocalStorage management (with JSON.parse error handling)
   supabase.ts                 # Database functions (lazy init)
-  kosten-rechner.ts          # Cost calculation logic
+  kosten-rechner.ts          # Cost calculation logic (BS)
+  emg-kosten-rechner.ts      # EMG cost calculation (Grundpauschale components, week tariffs)
   kosten-helpers.ts          # Shared helpers (rundeAuf5Rappen, formatCHF, berechneRabattUndMwst)
   download-utils.ts          # File download utilities
   mail-parser.ts             # EML/MSG/folder parsing
@@ -65,10 +68,17 @@ npm test         # Vitest (kosten-rechner, mail-parser, DOCX-Snapshot)
     use-kosten-config.ts     # Load kategorienConfig + basiswerte from Supabase
     use-editable-preise.ts   # EditablePreise state, init, recalculation, persistence
     use-einsatzpauschale.ts  # Auto-calculation of einsatzpauschale
+    use-emg-kosten.ts        # Load EMG basiswerte + keep emg.gespeicherteWerte current
 
 /public
-  Offerte_Template_V12.docx  # Word template (current version, V11 = pre-Vergleichsaufnahme)
+  Offerte_Template_V13.docx  # Word template (current version, V12 = pre-EMG, V11 = pre-Vergleichsaufnahme)
   data/                       # JSON fallback data
+
+/scripts
+  build_template_v13.py       # Programmatic template build V12 -> V13 (EMG blocks)
+
+/database
+  emg-migration.sql           # Additive Supabase migration: table emg_basiswerte
 ```
 
 ## Core Data Structure: Offerte
@@ -102,6 +112,20 @@ npm test         # Vitest (kosten-rechner, mail-parser, DOCX-Snapshot)
   vorlaufzeit: "3 Wochen"
   einsatzpauschalen: number           // Auto: ceil(stundenEnd / 8)
   vergleichsaufnahme?: boolean        // Optional: Abschnitt 2.3 Vergleichsaufnahme + Kostenzeile "(Preis)" aufführen
+
+  offertart?: "bs" | "bs_emg" | "emg" // Missing on old offers = "bs" (BS only, output as before)
+  emg?: {                             // Only relevant for bs_emg/emg
+    anzahlGeraete, anzahlWochen: number | null   // Required >= 1 when EMG active, no defaults
+    leistungen: { konfiguration, smsAlarmierung, terminvereinbarung,
+                  erstinstallation, vorhalten, deinstallation }  // default all true, deselectable
+    abschlussbericht: boolean         // checked -> priced into total, else "(250.00)" bracket row
+    grundpauschale: { organisationH, beschaffungH, konfigurationStk (null=auto=anzahlGeraete),
+                      installationH, deinstallationH, fahrtenInstallationKm,
+                      reisezeitInstallationH, fahrtenDeinstallationKm, reisezeitDeinstallationH }
+    overrides: { grundpauschaleEnd?, vorhaltenEnd?, abschlussberichtPreisEnd? }
+    rabattProzent: number             // separate EMG discount (independent of BS discount)
+    gespeicherteWerte?: EmgGespeicherteWerte  // Frozen values used by the generator (REQUIRED when EMG active)
+  }
 
   checkboxen: {
     artBauvorhaben: { neubau, umbau, rueckbau, sonstiges }
@@ -143,6 +167,23 @@ Total           = Zwischentotal - Rabatt + MwSt
 
 **Einsatzpauschalen:** `Math.ceil(aufnahmeStunden / 8)` → 1 pro angefangene 8 Stunden
 
+## EMG Cost Calculation (`emg-kosten-rechner.ts`)
+
+```
+Grundpauschale  = Σ(Komponenten-Anzahl × Ansatz)   // 9 Komponenten: h × Stundensatz,
+                                                    // Stk. × Konfigurationssatz, km × km-Satz
+Wochentarif     = höchstes Band mit abWochen <= anzahlWochen (Bänder aus emg_basiswerte)
+Vorhalten       = Geräte × Wochen × Wochentarif
+Zwischentotal   = Grundpauschale + Vorhalten + (Abschlussbericht wenn angekreuzt)
+Rabatt/MwSt/Total wie BS (eigener EMG-Rabatt, 8.1%, 5-Rappen-Rundung)
+```
+
+Overrides (`grundpauschaleEnd`, `vorhaltenEnd`, `abschlussberichtPreisEnd`) ersetzen die
+Berechnung. `konfigurationStk = null` folgt automatisch der Geräteanzahl.
+`use-emg-kosten.ts` (page-level) hält `emg.gespeicherteWerte` bei jeder Änderung aktuell;
+der Generator arbeitet ausschliesslich mit diesen eingefrorenen Werten und wirft einen
+Fehler, wenn sie bei aktivem EMG fehlen (kein stiller Fallback).
+
 ## Checkbox Auto-Linking
 
 When Erstaufnahme checkboxes change:
@@ -172,18 +213,29 @@ When Erstaufnahme checkboxes change:
 4. Handle Vergleichsaufnahme (`vergleichsaufnahme` flag):
    - Template contains section "2.3 Beweissicherung Vergleichsaufnahme" wrapped in hidden `{{VA_START}}`/`{{VA_END}}` marker paragraphs plus a cost table row with `{{PREIS_VERGLEICH}}`
    - Flag off: remove the whole block + cost row (output identical to V11). Flag on: remove only the markers; `{{NR_DOKU}}` becomes 2.4, `{{KOSTEN_TITEL}}` "Beweissicherung", `{{LEISTUNG_LABEL}}` "Leistungen Erstaufnahme", `{{PREIS_VERGLEICH}}` = same value as `{{PREIS_LEISTUNG}}` (shown in parentheses, NOT added to totals)
-   - Pagination (like the Muster-Offerte 51.26.404): flag on inserts `<w:pageBreakBefore/>` into the Dokumentation heading (2.4 starts a new page) and replaces the `{{SCHLUSS_UMBRUCH}}` break paragraph with two empty paragraphs, so KOMPETENZ stays on the same page as signatures/Beilagen. Flag off keeps the fixed page break before the closing part (marker replaced with '')
-5. Set checkboxes (37 in template + 4 in the Vergleichsaufnahme block, all 4 forced checked when the block is present):
-   - Word native: `<w14:checked w14:val="0"/>` → `val="1"`
-   - Unicode: `☐` → `☒`
-   - Both loops count by document order — the Vergleichsaufnahme states are spliced in at index 31 (between erstaufnahme and dokumentation)
-6. Embed plan image if present:
+   - Pagination (like the Muster-Offerte 51.26.404): flag on inserts `<w:pageBreakBefore/>` into the Dokumentation heading (2.4 starts a new page). The `{{SCHLUSS_UMBRUCH}}` break paragraph is replaced with two empty paragraphs whenever VA OR EMG is active (`passeSchlussUmbruchAn`), so KOMPETENZ stays on the same page as signatures/Beilagen; plain BS keeps the fixed page break (marker replaced with '')
+5. Handle EMG (`offertart`, modelled after the manually extended Muster-Offerte 51.26.392 "mit EMG"):
+   - Template V13 contains the EMG-Leistungen chapter in `{{EMG_START}}`/`{{EMG_END}}`, the EMG cost section in `{{EMGK_START}}`/`{{EMGK_END}}`, the BS-Leistungen chapter in `{{BS_START}}`/`{{BS_END}}` and the BS cost section (3.1 + table) in `{{BSK_START}}`/`{{BSK_END}}`
+   - `bs`: remove both EMG blocks + all markers → output identical to V12 (verified word-by-word)
+   - `bs_emg`: keep everything; EMG chapter auto-numbers to 3, `{{NR_KOSTEN}}` 4.1, `{{NR_EMGK}}` 4.2, `{{NR_EMG}}` 3.1; page break before the EMG chapter (para with `{{EMG_PB}}`) and `pageBreakBefore` injected into the KOSTEN heading (after `keepLines`, schema order)
+   - `emg`: remove BS blocks; subject becomes "Offerte für Erschütterungsmessung" (`{{OFFERT_TITEL}}`), `{{AUSGANGSLAGE_ZIEL}}`/`{{TERMINE_SATZ1}}`/`{{TERMINE_OBJEKT}}` switch to EMG wording, numbers 2.1/3.1, the `{{EMG_PB}}` page-break paragraph and the "Installation erfolgt zeitgleich..." bullet are removed; filename prefix "Erschütterungsmessung ¦ "
+   - Wochentarif list: the `{{EMG_TARIFE}}` marker paragraph is replaced with 4 generated bullet lines from `gespeicherteWerte.tarife`; the active band (by anzahlWochen) is bold
+   - EMG cost table: Grundpauschale/Vorhalten/Abschlussbericht rows via `{{EMG_PREIS_*}}`; Abschlussbericht row toggles between "(250.00)" bracket and real position; own Rabatt row (`{{EMG_PREIS_RABATT}}`) removed at 0%; footnote `{{EMG_FOLGETARIF}}` = applied band tariff ("80.-")
+   - All EMG amounts come from `emg.gespeicherteWerte` (frozen client-side); generator throws if missing
+6. Set checkboxes (in document order of the checkboxes REMAINING in the XML):
+   - Word native: `<w14:checked w14:val="0"/>` → `val="1"`; Unicode: `☐` → `☒`
+   - `bs`: 37 states (+4 forced-checked VA states between erstaufnahme and dokumentation when VA active)
+   - `bs_emg`: + 8 EMG states appended (6 Leistungen, Abschlussbericht, Leerzeile=false)
+   - `emg`: 20 states (Kapitel 1.1/1.2) + 8 EMG states; template V13 holds 49 checkboxes total
+7. Embed plan image if present:
    - Add to `word/media/`
    - Update `word/_rels/document.xml.rels`
    - Update `[Content_Types].xml`
-7. Generate legend PNG for erstaufnahme checkboxes
-8. Remove empty rows (missing Funktion, Abteilung, Rabatt)
-9. Rezip and return buffer
+8. Generate legend PNGs: erstaufnahme checkboxes (BS) plus green circle `legende_emg.png`
+   (#9BBB59, dark border, like the Word shape in the Muster-Offerte) whenever EMG is active;
+   at `emg` only the EMG entry remains
+9. Remove empty rows (missing Funktion, Abteilung, Rabatt)
+10. Rezip and return buffer
 
 **Critical:** All text must be escaped with `escapeXml()` before XML insertion.
 
@@ -230,6 +282,13 @@ Falls back to DOCX-only if not configured or fails.
 **app_einstellungen** (single row, id=1)
 - `standort_default`, `vorlaufzeit_default`, `einsatzpauschalen_default`, `standard_checkboxen`
 
+**emg_basiswerte** (single row, id=1; created by `database/emg-migration.sql`)
+- `stundensatz`, `konfiguration_stk_chf`, `km_satz`
+- `tarif1_ab`..`tarif4_ab`, `tarif1_chf`..`tarif4_chf` (week tariff bands)
+- `abschlussbericht_chf`
+- Missing table: admin EMG tab and EMG cost block show an explicit migration hint,
+  the other tabs keep working (loaded separately)
+
 **standorte**
 - `id` ("zh", "gr", "ag"), `name`, `firma`, `strasse`, `plz`, `ort`
 
@@ -273,7 +332,7 @@ CLOUDCONVERT_API_KEY=your_api_key
 **NEVER edit the template in Microsoft Word.** Word splits `{{PLACEHOLDER}}` across multiple XML runs (e.g. `<w:t>{{OFFNR_A</w:t>` + `<w:t>}}</w:t>`) and inserts `<w:proofErr>` tags between them. This silently breaks placeholder replacement. Always modify the template programmatically via Python/zipfile, editing `word/document.xml` as a string.
 
 **Template modification workflow:**
-1. Read the current template from `public/Offerte_Template_V12.docx` via `zipfile.ZipFile`
+1. Read the current template from `public/Offerte_Template_V13.docx` via `zipfile.ZipFile` (Vorbild: `scripts/build_template_v13.py`)
 2. Extract `word/document.xml` as UTF-8 string
 3. Make text replacements (verify with `.count()` before and after)
 4. Rewrite the ZIP with all original files, replacing only modified ones
@@ -292,6 +351,6 @@ CLOUDCONVERT_API_KEY=your_api_key
 | Supabase connection error | Check `.env.local` variables |
 | PDF not generating | Check `CLOUDCONVERT_API_KEY`, review console logs |
 | Word shows "unreadable content" | Ensure `escapeXml()` on all text, check `[Content_Types].xml` for duplicate extensions (case-insensitive) |
-| Checkboxes not working | Template needs 41 checkboxes (37 + 4 Vergleichsaufnahme), both `<w14:checkbox>` and Unicode `☐` |
+| Checkboxes not working | Template needs 49 checkboxes (37 + 4 Vergleichsaufnahme + 8 EMG), both `<w14:checkbox>` and Unicode `☐` |
 | Import not detecting email | File must be `.eml` or `.msg`, folder name must match regex |
 | Placeholders not replaced | Template was likely edited in Word -- rebuild from git original programmatically |

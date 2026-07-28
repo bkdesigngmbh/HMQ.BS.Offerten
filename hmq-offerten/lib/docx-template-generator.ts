@@ -1,5 +1,5 @@
 import PizZip from 'pizzip';
-import { Offerte } from './types';
+import { EmgGespeicherteWerte, Offerte, Offertart, getOffertart } from './types';
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
@@ -78,13 +78,21 @@ function generiereEinsatzTexte(anzahl: number): { z1: string; z2: string; wort: 
 
 // === CHECKBOXEN ===
 
+// Reihenfolge = Dokumentreihenfolge der im XML VERBLIEBENEN Checkboxen.
+// Bei 'emg' sind die BS-Abschnitte (Koordination/Erstaufnahme/VA/Dokumentation)
+// bereits entfernt, bei inaktivem EMG der EMG-Block.
 function setCheckboxen(xml: string, offerte: Offerte): string {
   const cb = offerte.checkboxen;
+  const art = getOffertart(offerte);
+  const bsAktiv = art !== 'emg';
+  const emgAktiv = art !== 'bs';
+  const vaAktiv = bsAktiv && !!offerte.vergleichsaufnahme;
 
   // Strassen-Logik: Wenn Strassen aktiv, automatisch auch Belag und Rand
   const strassenBelag = cb.erstaufnahme.strassen ? true : cb.erstaufnahme.strassenBelag;
   const strassenRand = cb.erstaufnahme.strassen ? true : cb.erstaufnahme.strassenRand;
 
+  // Kapitel 1.1/1.2 sind in allen Offertarten vorhanden
   const states: boolean[] = [
     cb.artBauvorhaben.neubau,
     cb.artBauvorhaben.umbau,
@@ -106,29 +114,52 @@ function setCheckboxen(xml: string, offerte: Offerte): string {
     cb.taetigkeiten.sprengungen,
     cb.taetigkeiten.diverses,
     !!cb.taetigkeiten.sonstiges,
-    cb.koordination.schriftlicheInfo,
-    cb.koordination.terminvereinbarung,
-    cb.koordination.durchAuftraggeber,
-    !!cb.koordination.sonstiges,
-    cb.erstaufnahme.fassaden,
-    cb.erstaufnahme.strassen,
-    strassenBelag,
-    strassenRand,
-    cb.erstaufnahme.innenraeume,
-    cb.erstaufnahme.aussenanlagen,
-    !!cb.erstaufnahme.sonstiges,
-    cb.dokumentation.rissprotokoll,
-    cb.dokumentation.fotoAussen,
-    cb.dokumentation.fotoInnen,
-    cb.dokumentation.fotoStrasse,
-    cb.dokumentation.zustellbestaetigung,
-    cb.dokumentation.datenabgabe,
   ];
 
-  // Vergleichsaufnahme-Block (4 Checkboxen zwischen Erstaufnahme und Dokumentation):
-  // nur im XML vorhanden, wenn der Block nicht vorher entfernt wurde — dann immer alle angekreuzt
-  if (offerte.vergleichsaufnahme) {
-    states.splice(31, 0, true, true, true, true);
+  if (bsAktiv) {
+    states.push(
+      cb.koordination.schriftlicheInfo,
+      cb.koordination.terminvereinbarung,
+      cb.koordination.durchAuftraggeber,
+      !!cb.koordination.sonstiges,
+      cb.erstaufnahme.fassaden,
+      cb.erstaufnahme.strassen,
+      strassenBelag,
+      strassenRand,
+      cb.erstaufnahme.innenraeume,
+      cb.erstaufnahme.aussenanlagen,
+      !!cb.erstaufnahme.sonstiges,
+    );
+    // Vergleichsaufnahme-Block (4 Checkboxen zwischen Erstaufnahme und
+    // Dokumentation): nur im XML vorhanden, wenn aktiv — dann alle angekreuzt
+    if (vaAktiv) {
+      states.push(true, true, true, true);
+    }
+    states.push(
+      cb.dokumentation.rissprotokoll,
+      cb.dokumentation.fotoAussen,
+      cb.dokumentation.fotoInnen,
+      cb.dokumentation.fotoStrasse,
+      cb.dokumentation.zustellbestaetigung,
+      cb.dokumentation.datenabgabe,
+    );
+  }
+
+  if (emgAktiv) {
+    const leistungen = offerte.emg?.leistungen;
+    if (!leistungen) {
+      throw new Error('EMG aktiv, aber emg.leistungen fehlen');
+    }
+    states.push(
+      leistungen.konfiguration,
+      leistungen.smsAlarmierung,
+      leistungen.terminvereinbarung,
+      leistungen.erstinstallation,
+      leistungen.vorhalten,
+      leistungen.deinstallation,
+      !!offerte.emg?.abschlussbericht,
+      false, // Leerzeile "…………………."
+    );
   }
 
   let idx = 0;
@@ -228,14 +259,6 @@ function entferneVergleichsaufnahme(xml: string, aktiv: boolean): string {
       '$1<w:pageBreakBefore/>$2'
     );
 
-    // Kein fester Umbruch vor dem Schlussteil: KOMPETENZ bleibt mit Unterschriften und
-    // Beilagen-Hinweis auf einer Seite (wie Muster: zwei Leerzeilen statt Umbruch)
-    const leerAbsatz = '<w:pPr><w:spacing w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:rPr><w:noProof/></w:rPr></w:pPr></w:p>';
-    xml = xml.replace(
-      /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{SCHLUSS_UMBRUCH\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s,
-      `<w:p>${leerAbsatz}<w:p>${leerAbsatz}`
-    );
-
     return xml;
   }
 
@@ -250,6 +273,153 @@ function entferneVergleichsaufnahme(xml: string, aktiv: boolean): string {
     /<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{PREIS_VERGLEICH\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
     ''
   );
+
+  return xml;
+}
+
+// === EMG (ERSCHÜTTERUNGSMESSUNG) ===
+
+// Absatz, der nur den Marker-Platzhalter enthält, entfernen
+function entferneMarkerAbsatz(xml: string, marker: string): string {
+  return xml.replace(
+    new RegExp(`<w:p\\b[^>]*>(?:(?!</w:p>).)*?\\{\\{${marker}\\}\\}(?:(?!</w:p>).)*?</w:p>`, 'gs'),
+    ''
+  );
+}
+
+// Alles vom START- bis zum END-Markerabsatz entfernen (inkl. Marker, inkl. Tabellen)
+function entferneMarkerBlock(xml: string, startMarker: string, endMarker: string): string {
+  return xml.replace(
+    new RegExp(
+      `<w:p\\b[^>]*>(?:(?!</w:p>).)*?\\{\\{${startMarker}\\}\\}[\\s\\S]*?` +
+      `\\{\\{${endMarker}\\}\\}(?:(?!</w:p>).)*?</w:p>`,
+      's'
+    ),
+    ''
+  );
+}
+
+// Fester Umbruch vor dem Schlussteil: bei aktivem VA- oder EMG-Block entfernen
+// (KOMPETENZ bleibt mit Unterschriften auf einer Seite, wie die Muster-Offerten),
+// sonst bleibt der Absatz bestehen und nur der Marker wird später geleert.
+function passeSchlussUmbruchAn(xml: string, entfernen: boolean): string {
+  if (!entfernen) return xml;
+  const leerAbsatz = '<w:pPr><w:spacing w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:rPr><w:noProof/></w:rPr></w:pPr></w:p>';
+  return xml.replace(
+    /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{SCHLUSS_UMBRUCH\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s,
+    `<w:p>${leerAbsatz}<w:p>${leerAbsatz}`
+  );
+}
+
+// Singular/Plural-Texte für die dynamischen EMG-Stellen
+function formatGeraete(n: number): string {
+  return n === 1 ? '1 Gerät' : `${n} Geräte`;
+}
+function formatGeophone(n: number): string {
+  return n === 1 ? '1 Geophon' : `${n} Geophonen`;
+}
+function formatWochen(n: number): string {
+  return n === 1 ? '1 Woche' : `${n} Wochen`;
+}
+// Fussnote wie in der Muster-Offerte: "CHF 80.- an." (ganzzahlig), sonst "CHF 82.50 an."
+function formatFolgetarif(preis: number): string {
+  return Number.isInteger(preis) ? `${preis}.-` : preis.toFixed(2);
+}
+
+// Wochentarif-Zeilen (Bullet-Liste, kursiv; aktives Band fett wie in der Muster-Offerte)
+function baueTarifZeilen(werte: EmgGespeicherteWerte): string {
+  const sortiert = [...werte.tarife].sort((a, b) => a.abWochen - b.abWochen);
+  let aktivIdx = 0;
+  sortiert.forEach((t, i) => {
+    if (werte.anzahlWochen >= t.abWochen) aktivIdx = i;
+  });
+  return sortiert
+    .map((t, i) => {
+      const fett = i === aktivIdx ? '<w:b/><w:bCs/>' : '';
+      const rpr = `<w:rPr>${fett}<w:i/></w:rPr>`;
+      return (
+        '<w:p><w:pPr><w:pStyle w:val="Absatz1ohneTitelohneAbstandunten"/>' +
+        '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="15"/></w:numPr>' +
+        '<w:tabs><w:tab w:val="clear" w:pos="284"/></w:tabs>' +
+        `<w:spacing w:before="120" w:after="60"/><w:rPr>${fett}<w:i/></w:rPr></w:pPr>` +
+        `<w:r>${rpr}<w:t xml:space="preserve">Ab ${formatWochen(t.abWochen)} Laufzeit</w:t></w:r>` +
+        `<w:r>${rpr}<w:tab/></w:r>` +
+        `<w:r>${rpr}<w:tab/><w:t xml:space="preserve">CHF ${formatCHF(t.preisChf)} pro Gerät/Woche</w:t></w:r>` +
+        '</w:p>'
+      );
+    })
+    .join('');
+}
+
+// Strukturelle EMG-Verarbeitung: Blöcke entfernen oder aktivieren, Tarifzeilen
+// einsetzen, Paginierung anpassen. Die Text-Platzhalter ersetzt danach die
+// zentrale Replacement-Map.
+function verarbeiteEmg(
+  xml: string,
+  art: Offertart,
+  emgWerte: EmgGespeicherteWerte | undefined
+): string {
+  const emgAktiv = art !== 'bs';
+
+  if (!emgAktiv) {
+    // EMG-Blöcke komplett entfernen, BS-Marker aufräumen: Output wie bisher
+    xml = entferneMarkerBlock(xml, 'EMG_START', 'EMG_END');
+    xml = entferneMarkerBlock(xml, 'EMGK_START', 'EMGK_END');
+    xml = entferneMarkerAbsatz(xml, 'BS_START');
+    xml = entferneMarkerAbsatz(xml, 'BS_END');
+    xml = entferneMarkerAbsatz(xml, 'BSK_START');
+    xml = entferneMarkerAbsatz(xml, 'BSK_END');
+    return xml;
+  }
+
+  if (!emgWerte) {
+    throw new Error('EMG aktiv, aber emg.gespeicherteWerte fehlen');
+  }
+
+  if (art === 'emg') {
+    // Nur EMG: BS-Leistungskapitel und BS-Kostensektion komplett entfernen
+    xml = entferneMarkerBlock(xml, 'BS_START', 'BS_END');
+    xml = entferneMarkerBlock(xml, 'BSK_START', 'BSK_END');
+    // Kein Seitenumbruch vor dem EMG-Kapitel (folgt direkt auf Kapitel 1)
+    xml = entferneMarkerAbsatz(xml, 'EMG_PB');
+    // Voraussetzung "Installation erfolgt zeitgleich mit der Aufnahme der
+    // Rissprotokolle." entfällt ohne Beweissicherung
+    xml = xml.replace(
+      /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?Installation erfolgt zeitgleich mit der Aufnahme der Rissprotokolle\.(?:(?!<\/w:p>).)*?<\/w:p>/s,
+      ''
+    );
+  } else {
+    // BS + EMG: BS-Marker aufräumen, KOSTEN-Kapitel beginnt auf neuer Seite
+    // (pageBreakBefore nach keepLines = schemakonforme pPr-Reihenfolge)
+    xml = entferneMarkerAbsatz(xml, 'BS_START');
+    xml = entferneMarkerAbsatz(xml, 'BS_END');
+    xml = entferneMarkerAbsatz(xml, 'BSK_START');
+    xml = entferneMarkerAbsatz(xml, 'BSK_END');
+    xml = xml.replace(
+      /(<w:pStyle w:val="berschrift2"\/><w:keepLines w:val="0"\/>)((?:(?!<\/w:p>).)*?<w:t>KOSTEN<\/w:t>)/s,
+      '$1<w:pageBreakBefore/>$2'
+    );
+  }
+
+  // EMG-Blockmarker entfernen, Inhalt bleibt
+  xml = entferneMarkerAbsatz(xml, 'EMG_START');
+  xml = entferneMarkerAbsatz(xml, 'EMG_END');
+  xml = entferneMarkerAbsatz(xml, 'EMGK_START');
+  xml = entferneMarkerAbsatz(xml, 'EMGK_END');
+
+  // Wochentarif-Zeilen anstelle des Marker-Absatzes
+  xml = xml.replace(
+    /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{EMG_TARIFE\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s,
+    baueTarifZeilen(emgWerte)
+  );
+
+  // Rabattzeile der EMG-Tabelle entfernen, wenn kein EMG-Rabatt
+  if (!(emgWerte.rabattProzent > 0)) {
+    xml = xml.replace(
+      /<w:tr[^>]*>(?:(?!<\/w:tr>).)*\{\{EMG_PREIS_RABATT\}\}(?:(?!<\/w:tr>).)*<\/w:tr>/gs,
+      ''
+    );
+  }
 
   return xml;
 }
@@ -375,8 +545,66 @@ function createLinePng(width: number, height: number, lineHeight: number, r: num
   ]);
 }
 
+// PNG mit gefülltem Kreis erstellen (zentriert, mit dunklerem Rand, transparenter Hintergrund)
+function createCirclePng(
+  width: number,
+  height: number,
+  durchmesser: number,
+  fill: [number, number, number],
+  rand: [number, number, number]
+): Buffer {
+  const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+  const createChunk = (type: string, data: Buffer): Buffer => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length, 0);
+    const typeBuffer = Buffer.from(type);
+    const crcData = Buffer.concat([typeBuffer, data]);
+    const crcValue = Buffer.alloc(4);
+    crcValue.writeUInt32BE(crc32(crcData), 0);
+    return Buffer.concat([length, typeBuffer, data, crcValue]);
+  };
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr.writeUInt8(8, 8);   // Bit depth
+  ihdr.writeUInt8(6, 9);   // Color type (RGBA)
+  ihdr.writeUInt8(0, 10);  // Compression
+  ihdr.writeUInt8(0, 11);  // Filter
+  ihdr.writeUInt8(0, 12);  // Interlace
+
+  const cx = (width - 1) / 2;
+  const cy = (height - 1) / 2;
+  const radius = durchmesser / 2;
+  const randBreite = 1.2;
+
+  const rawData: number[] = [];
+  for (let y = 0; y < height; y++) {
+    rawData.push(0); // Filter byte
+    for (let x = 0; x < width; x++) {
+      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+      if (dist <= radius - randBreite) {
+        rawData.push(fill[0], fill[1], fill[2], 255);
+      } else if (dist <= radius) {
+        rawData.push(rand[0], rand[1], rand[2], 255);
+      } else {
+        rawData.push(0, 0, 0, 0);
+      }
+    }
+  }
+  const compressed = zlib.deflateSync(Buffer.from(rawData));
+
+  return Buffer.concat([
+    signature,
+    createChunk('IHDR', ihdr),
+    createChunk('IDAT', compressed),
+    createChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
 // Legende-Symbole als PNG erstellen - ALLE 40px BREIT, ALLE 15px HOCH
-function createLegendSymbols(): { fassade: Buffer; innenraum: Buffer; strasse: Buffer } {
+function createLegendSymbols(): { fassade: Buffer; innenraum: Buffer; strasse: Buffer; emg: Buffer } {
   // Fassade: Rote Linie 4px hoch, zentriert in 15px hohem Bild (40x15 Pixel, #FF0000, 60% Opazität = 153)
   const fassade = createLinePng(40, 15, 4, 255, 0, 0, 153);
 
@@ -386,12 +614,16 @@ function createLegendSymbols(): { fassade: Buffer; innenraum: Buffer; strasse: B
   // Strassen: Oranges Rechteck (40x15 Pixel, #FAC090, 60% Opazität)
   const strasse = createPng(40, 15, 250, 192, 144, 153);
 
-  return { fassade, innenraum, strasse };
+  // Erschütterungsmessung: Grüner Kreis mit dunklem Rand (wie Muster-Offerte:
+  // Word-Theme accent3 #9BBB59, Rand accent3 lumMod 50% ≈ #4E5E2D)
+  const emg = createCirclePng(40, 15, 13, [155, 187, 89], [78, 94, 45]);
+
+  return { fassade, innenraum, strasse, emg };
 }
 
 interface LegendeEintrag {
   text: string;
-  symbolKey: 'fassade' | 'innenraum' | 'strasse';
+  symbolKey: 'fassade' | 'innenraum' | 'strasse' | 'emg';
   rId: string;
 }
 
@@ -404,10 +636,14 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
   const cb = offerte.checkboxen?.erstaufnahme;
   if (!cb) return null;
 
+  const art = getOffertart(offerte);
+  const bsAktiv = art !== 'emg';
+  const emgAktiv = art !== 'bs';
+
   const eintraege: LegendeEintrag[] = [];
   let rIdCounter = nextRIdStart;
 
-  if (cb.fassaden) {
+  if (bsAktiv && cb.fassaden) {
     eintraege.push({
       text: 'Fassaden inkl. Aussenanlagen (Mauern, Vorplätze, etc.)',
       symbolKey: 'fassade',
@@ -415,7 +651,7 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
     });
   }
 
-  if (cb.innenraeume) {
+  if (bsAktiv && cb.innenraeume) {
     eintraege.push({
       text: 'Innenaufnahmen',
       symbolKey: 'innenraum',
@@ -423,10 +659,19 @@ function generiereLegende(offerte: Offerte, nextRIdStart: number): LegendeResult
     });
   }
 
-  if (cb.strassen) {
+  if (bsAktiv && cb.strassen) {
     eintraege.push({
       text: 'Strassen/Vorplätze',
       symbolKey: 'strasse',
+      rId: `rId${rIdCounter++}`
+    });
+  }
+
+  // EMG-Eintrag immer, wenn EMG aktiv (Geophon-Standorte werden auf dem Plan markiert)
+  if (emgAktiv) {
+    eintraege.push({
+      text: 'Erschütterungsmessung',
+      symbolKey: 'emg',
       rId: `rId${rIdCounter++}`
     });
   }
@@ -744,6 +989,16 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   const zip = new PizZip(await loadTemplateBuffer());
   let xml = zip.file('word/document.xml')?.asText() || '';
 
+  // Offertart-Flags: alte Offerten ohne offertart sind 'bs' (nur Beweissicherung)
+  const art = getOffertart(offerte);
+  const bsAktiv = art !== 'emg';
+  const emgAktiv = art !== 'bs';
+  const vaAktiv = bsAktiv && !!offerte.vergleichsaufnahme;
+  const emgWerte = offerte.emg?.gespeicherteWerte;
+  if (emgAktiv && !emgWerte) {
+    throw new Error('EMG aktiv, aber emg.gespeicherteWerte fehlen (Kosten in Tab 2 berechnen)');
+  }
+
   // Daten vorbereiten
   const standort = STANDORTE[offerte.standortId] || STANDORTE.zh;
 
@@ -791,7 +1046,9 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
   xml = entferneLeerenKontakt(xml, hatKontakt);
   xml = entferneLeereAbteilung(xml, offerte.empfaenger.abteilung || '');
   xml = entferneRabatt(xml, offerte.kosten.rabattProzent);
-  xml = entferneVergleichsaufnahme(xml, !!offerte.vergleichsaufnahme);
+  xml = entferneVergleichsaufnahme(xml, vaAktiv);
+  xml = verarbeiteEmg(xml, art, emgWerte);
+  xml = passeSchlussUmbruchAn(xml, vaAktiv || emgAktiv);
 
   // =====================================================
   // DANN Platzhalter ersetzen
@@ -824,11 +1081,55 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{PREIS_LEISTUNG}}': formatCHF(kosten.zwischentotal + kosten.rabattBetrag),
     // Vergleichsaufnahme: identischer Preis wie Erstaufnahme, rein informativ (fliesst nicht ins Total)
     '{{PREIS_VERGLEICH}}': formatCHF(kosten.zwischentotal + kosten.rabattBetrag),
-    '{{LEISTUNG_LABEL}}': offerte.vergleichsaufnahme ? 'Leistungen Erstaufnahme' : 'Leistungen gemäss Offerte',
-    '{{NR_DOKU}}': offerte.vergleichsaufnahme ? '2.4' : '2.3',
-    '{{KOSTEN_TITEL}}': offerte.vergleichsaufnahme ? 'Beweissicherung' : 'Beweissicherung Erstaufnahme',
+    '{{LEISTUNG_LABEL}}': vaAktiv ? 'Leistungen Erstaufnahme' : 'Leistungen gemäss Offerte',
+    '{{NR_DOKU}}': vaAktiv ? '2.4' : '2.3',
+    '{{KOSTEN_TITEL}}': vaAktiv ? 'Beweissicherung' : 'Beweissicherung Erstaufnahme',
     // Marker im Umbruch-Absatz vor dem Schlussteil (Absatz selbst bleibt bei VA-off bestehen)
     '{{SCHLUSS_UMBRUCH}}': '',
+    // Offertart-abhängige Texte (V13)
+    '{{OFFERT_TITEL}}': art === 'emg' ? 'Erschütterungsmessung' : 'Beweissicherung',
+    '{{AUSGANGSLAGE_ZIEL}}': art === 'emg'
+      ? 'sollen während den Bautätigkeiten Erschütterungsmessungen durchgeführt werden.'
+      : 'sollen vorgängig zwecks Beweissicherung Zustandsaufnahmen der umliegenden Bauten erstellt werden.',
+    '{{TERMINE_SATZ1}}': art === 'emg'
+      ? 'Die Installation der Messgeräte wird in Absprache mit dem Auftraggeber durchgeführt.'
+      : 'Die Aufnahmen werden in Absprache mit dem Auftraggeber durchgeführt.',
+    '{{TERMINE_OBJEKT}}': art === 'emg' ? 'die gewünschte Installation' : 'die gewünschten Aufnahmen',
+    // Kapitel-/Unterkapitelnummern: EMG schiebt KOSTEN von 3 auf 4;
+    // bei "nur EMG" entfällt das BS-Kapitel und alles rückt nach vorne
+    '{{NR_KOSTEN}}': emgAktiv ? '4.1' : '3.1',
+    '{{NR_EMG}}': art === 'emg' ? '2.1' : '3.1',
+    '{{NR_EMGK}}': art === 'emg' ? '3.1' : '4.2',
+    // EMG-Seitenumbruch-Marker (Absatz bleibt bei BS+EMG mit Umbruch bestehen)
+    '{{EMG_PB}}': '',
+    // EMG-Texte und -Beträge (bei inaktivem EMG sind die Blöcke bereits entfernt)
+    '{{EMG_GEOPHONE}}': emgWerte ? formatGeophone(emgWerte.anzahlGeraete) : '',
+    '{{EMG_VORHALTEN_WOCHEN}}': emgWerte ? formatWochen(emgWerte.anzahlWochen) : '',
+    '{{EMG_ANNAHME}}': emgWerte
+      ? `${formatGeraete(emgWerte.anzahlGeraete)}, ${formatWochen(emgWerte.anzahlWochen)}`
+      : '',
+    '{{EMG_VORHALTEN_DETAIL}}': emgWerte
+      ? `${formatGeraete(emgWerte.anzahlGeraete)} à ${formatWochen(emgWerte.anzahlWochen)} (total ${formatWochen(emgWerte.geraetewochen)})`
+      : '',
+    '{{EMG_PREIS_GRUND}}': emgWerte ? formatCHF(emgWerte.grundpauschale) : '',
+    '{{EMG_PREIS_VORHALTEN}}': emgWerte ? formatCHF(emgWerte.vorhalten) : '',
+    '{{EMG_AB_LABEL}}': emgWerte?.abschlussberichtAktiv
+      ? 'Abschlussbericht'
+      : 'Abschlussbericht optional (nicht eingerechnet)',
+    '{{EMG_PREIS_AB}}': emgWerte
+      ? (emgWerte.abschlussberichtAktiv
+          ? formatCHF(emgWerte.abschlussberichtPreis)
+          : `(${formatCHF(emgWerte.abschlussberichtPreis)})`)
+      : '',
+    '{{EMG_RABATT_LABEL}}': emgWerte ? `Rabatt ${emgWerte.rabattProzent.toFixed(1)}%` : '',
+    '{{EMG_PREIS_RABATT}}': emgWerte ? `-${formatCHF(emgWerte.rabattBetrag)}` : '',
+    '{{EMG_PREIS_ZWISCHEN}}': emgWerte ? formatCHF(emgWerte.zwischentotal) : '',
+    '{{EMG_PREIS_MWST}}': emgWerte ? formatCHF(emgWerte.mwstBetrag) : '',
+    '{{EMG_TOTAL_LABEL}}': emgWerte && emgWerte.rabattProzent > 0
+      ? `Total pauschal (inkl. ${emgWerte.rabattProzent.toFixed(1)}% Rabatt und inkl. 8.1% MwSt.)*`
+      : 'Total pauschal (inkl. 8.1% MwSt.)*',
+    '{{EMG_PREIS_TOTAL}}': emgWerte ? formatCHF(emgWerte.totalInklMwst) : '',
+    '{{EMG_FOLGETARIF}}': emgWerte ? formatFolgetarif(emgWerte.wochentarif) : '',
     '{{PREIS_RABATT}}': `-${formatCHF(kosten.rabattBetrag)}`,
     '{{PREIS_ZWISCHEN}}': formatCHF(kosten.zwischentotal),
     '{{PREIS_MWST}}': formatCHF(kosten.mwstBetrag),

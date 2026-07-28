@@ -160,6 +160,115 @@ export interface KostenBerechnung {
   gespeicherteWerte?: GespeicherteKostenWerte;
 }
 
+// =====================================================
+// EMG (ERSCHÜTTERUNGSMESSUNG)
+// =====================================================
+
+// 'bs' = nur Beweissicherung (wie bisher), 'bs_emg' = Beweissicherung + EMG,
+// 'emg' = nur Erschütterungsmessung
+export type Offertart = 'bs' | 'bs_emg' | 'emg';
+
+// Leistungs-Checkboxen im EMG-Abschnitt: standardmässig alle angekreuzt, abwählbar
+export interface EmgLeistungen {
+  konfiguration: boolean;
+  smsAlarmierung: boolean;
+  terminvereinbarung: boolean;
+  erstinstallation: boolean;
+  vorhalten: boolean;
+  deinstallation: boolean;
+}
+
+// Anzahlen der Grundpauschale-Komponenten (Ansätze kommen aus den EMG-Basiswerten)
+export interface EmgGrundpauschaleEingabe {
+  organisationH: number;
+  beschaffungH: number;
+  konfigurationStk: number | null; // null = automatisch gleich Anzahl Geräte
+  installationH: number;
+  deinstallationH: number;
+  fahrtenInstallationKm: number;
+  reisezeitInstallationH: number;
+  fahrtenDeinstallationKm: number;
+  reisezeitDeinstallationH: number;
+}
+
+export interface EmgOverrides {
+  grundpauschaleEnd: number | null;
+  vorhaltenEnd: number | null;
+  abschlussberichtPreisEnd: number | null;
+}
+
+export interface EmgTarifband {
+  abWochen: number;
+  preisChf: number;
+}
+
+// Beim Speichern/Generieren eingefrorene EMG-Werte (analog GespeicherteKostenWerte)
+export interface EmgGespeicherteWerte {
+  anzahlGeraete: number;
+  anzahlWochen: number;
+  geraetewochen: number;
+  wochentarif: number; // angewendeter Bandtarif pro Gerät/Woche
+  tarife: EmgTarifband[]; // alle Bänder für die Wochentarif-Liste im Dokument
+  grundpauschale: number;
+  vorhalten: number;
+  abschlussberichtAktiv: boolean;
+  abschlussberichtPreis: number;
+  zwischentotal: number;
+  rabattProzent: number;
+  rabattBetrag: number;
+  mwstBetrag: number;
+  totalInklMwst: number;
+}
+
+export interface EmgKonfiguration {
+  anzahlGeraete: number | null; // bewusst ohne Default, Pflicht bei aktivem EMG
+  anzahlWochen: number | null;
+  leistungen: EmgLeistungen;
+  abschlussbericht: boolean;
+  grundpauschale: EmgGrundpauschaleEingabe;
+  overrides: EmgOverrides;
+  rabattProzent: number;
+  gespeicherteWerte?: EmgGespeicherteWerte;
+}
+
+export function createEmptyEmg(): EmgKonfiguration {
+  return {
+    anzahlGeraete: null,
+    anzahlWochen: null,
+    leistungen: {
+      konfiguration: true,
+      smsAlarmierung: true,
+      terminvereinbarung: true,
+      erstinstallation: true,
+      vorhalten: true,
+      deinstallation: true,
+    },
+    abschlussbericht: false,
+    grundpauschale: {
+      organisationH: 0,
+      beschaffungH: 0,
+      konfigurationStk: null,
+      installationH: 0,
+      deinstallationH: 0,
+      fahrtenInstallationKm: 0,
+      reisezeitInstallationH: 0,
+      fahrtenDeinstallationKm: 0,
+      reisezeitDeinstallationH: 0,
+    },
+    overrides: {
+      grundpauschaleEnd: null,
+      vorhaltenEnd: null,
+      abschlussberichtPreisEnd: null,
+    },
+    rabattProzent: 0,
+  };
+}
+
+// Alte gespeicherte Offerten haben kein offertart-Feld: immer 'bs'
+export function getOffertart(offerte: Pick<Offerte, 'offertart'>): Offertart {
+  return offerte.offertart ?? 'bs';
+}
+
 export interface Offerte {
   offertnummer: string;
   datum: string;
@@ -178,6 +287,10 @@ export interface Offerte {
   // Optional (fehlt bei alten gespeicherten Offerten): Abschnitt 2.3 Vergleichsaufnahme
   // plus Kostenzeile "Optional: Leistungen Vergleichsaufnahme" im Dokument aufführen
   vergleichsaufnahme?: boolean;
+  // Optional (fehlt bei alten gespeicherten Offerten, dann 'bs'): Offertart
+  offertart?: Offertart;
+  // Optional: EMG-Konfiguration, nur relevant bei offertart 'bs_emg' oder 'emg'
+  emg?: EmgKonfiguration;
   checkboxen: Checkboxen;
   planbeilage: Planbeilage | null;
   planbeilageGisLink?: string; // GIS-Link (optional, wird nicht ins Word eingefügt)
@@ -227,6 +340,8 @@ export function createEmptyOfferte(): Offerte {
     vorlaufzeit: '3 Wochen',
     einsatzpauschalen: 2,
     vergleichsaufnahme: false,
+    offertart: 'bs',
+    emg: createEmptyEmg(),
     checkboxen: {
       artBauvorhaben: { neubau: true, umbau: false, rueckbau: false, sonstiges: '' },
       artGebaeude: { efhFreistehend: false, reihenhaus: false, terrassenhaus: false, mfh: true, strassen: false, kunstbauten: false, sonstiges1: '', sonstiges2: '' },
