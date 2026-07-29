@@ -407,6 +407,18 @@ function verarbeiteEmg(
   xml = entferneMarkerAbsatz(xml, 'EMGK_START');
   xml = entferneMarkerAbsatz(xml, 'EMGK_END');
 
+  // Offertgültigkeit in den Vorlaufzeit-Absatz ziehen (Feedback BPa 2026-07-29:
+  // spart eine Zeile, Datenschutz passt mit auf die Seite). Nur bei EMG-Offerten,
+  // damit reine BS-Offerten byte-identisch zum bisherigen Output bleiben.
+  xml = xml.replace(
+    /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?<w:t>Offertgültigkeit: 90 Tage<\/w:t>(?:(?!<\/w:p>).)*?<\/w:p>/s,
+    ''
+  );
+  xml = xml.replace(
+    'vorausgesetzt.</w:t></w:r></w:p>',
+    'vorausgesetzt.</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t>Offertgültigkeit: 90 Tage</w:t></w:r></w:p>'
+  );
+
   // Wochentarif-Zeilen anstelle des Marker-Absatzes
   xml = xml.replace(
     /<w:p\b[^>]*>(?:(?!<\/w:p>).)*?\{\{EMG_TARIFE\}\}(?:(?!<\/w:p>).)*?<\/w:p>/s,
