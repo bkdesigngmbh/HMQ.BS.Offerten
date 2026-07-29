@@ -173,8 +173,19 @@ describe('generateOfferteFromTemplate', () => {
     // Betreff bleibt Beweissicherung, BS-Kapitel vorhanden
     expect(text).toContain('Offerte für Beweissicherung');
     expect(text).toContain('Koordination mit den Eigentümern');
+    // SMS-Alarmierung auf eigener Zeile (nicht im Konfigurations-Absatz)
+    const smsPara = xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>).)*?SMS-Alarmierung(?:(?!<\/w:p>).)*?<\/w:p>/s)![0];
+    expect(smsPara).not.toContain('Geophonen');
+    // Offertgültigkeit hängt am Vorlaufzeit-Absatz (kein eigener Absatz mehr)
+    expect(xml).toContain('vorausgesetzt.</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t>Offertgültigkeit: 90 Tage</w:t></w:r></w:p>');
     // Kein unersetzter Platzhalter
     expect(text).not.toMatch(/\{\{[A-Z0-9_]+\}\}/);
+  });
+
+  it('ohne EMG (bs): Offertgültigkeit bleibt eigener Absatz wie bisher', async () => {
+    const xml = await renderDocumentXml(sampleOfferte());
+    expect(xml).toContain('<w:t>Offertgültigkeit: 90 Tage</w:t>');
+    expect(xml).not.toContain('vorausgesetzt.</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t>Offertgültigkeit');
   });
 
   it('bs_emg: 8 zusätzliche Checkboxen, 6 davon angekreuzt (Abschlussbericht aus)', async () => {
@@ -235,6 +246,8 @@ describe('generateOfferteFromTemplate', () => {
     // Termine-Texte
     expect(text).toContain('Die Installation der Messgeräte wird in Absprache mit dem Auftraggeber durchgeführt.');
     expect(text).toContain('um die gewünschte Installation zu terminieren');
+    // Offertgültigkeit hängt auch hier am Vorlaufzeit-Absatz
+    expect(xml).toContain('vorausgesetzt.</w:t></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:t>Offertgültigkeit: 90 Tage</w:t></w:r></w:p>');
     // Checkboxen: 20 (Kapitel 1) + 8 (EMG)
     const glyphen = (xml.match(/<w:t>[☐☒]<\/w:t>/g) || []).length;
     expect(glyphen).toBe(28);

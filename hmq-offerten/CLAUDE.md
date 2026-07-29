@@ -219,7 +219,9 @@ When Erstaufnahme checkboxes change:
    - `bs`: remove both EMG blocks + all markers → output identical to V12 (verified word-by-word)
    - `bs_emg`: keep everything; EMG chapter auto-numbers to 3, `{{NR_KOSTEN}}` 4.1, `{{NR_EMGK}}` 4.2, `{{NR_EMG}}` 3.1; page break before the EMG chapter (para with `{{EMG_PB}}`) and `pageBreakBefore` injected into the KOSTEN heading (after `keepLines`, schema order)
    - `emg`: remove BS blocks; subject becomes "Offerte für Erschütterungsmessung" (`{{OFFERT_TITEL}}`), `{{AUSGANGSLAGE_ZIEL}}`/`{{TERMINE_SATZ1}}`/`{{TERMINE_OBJEKT}}` switch to EMG wording, numbers 2.1/3.1, the `{{EMG_PB}}` page-break paragraph and the "Installation erfolgt zeitgleich..." bullet are removed; filename prefix "Erschütterungsmessung ¦ "
-   - Wochentarif list: the `{{EMG_TARIFE}}` marker paragraph is replaced with 4 generated bullet lines from `gespeicherteWerte.tarife`; the active band (by anzahlWochen) is bold
+   - Wochentarif list: the `{{EMG_TARIFE}}` marker paragraph is replaced with 4 generated bullet lines from `gespeicherteWerte.tarife`; the active band (by anzahlWochen) is bold. The EMG block deliberately has NO trailing empty paragraph (would spill to a new page and create a blank page before KOSTEN)
+   - "inkl. SMS-Alarmierung/Web-Zugriff" is its own checkbox line below Konfiguration (checkbox order unchanged)
+   - EMG modes only: the "Offertgültigkeit: 90 Tage" paragraph is merged into the end of the Vorlaufzeit paragraph (saves a line so Datenschutz fits the page); plain BS keeps the separate paragraph (byte-identical output)
    - EMG cost table: Grundpauschale/Vorhalten/Abschlussbericht rows via `{{EMG_PREIS_*}}`; Abschlussbericht row toggles between "(250.00)" bracket and real position; own Rabatt row (`{{EMG_PREIS_RABATT}}`) removed at 0%; footnote `{{EMG_FOLGETARIF}}` = applied band tariff ("80.-")
    - All EMG amounts come from `emg.gespeicherteWerte` (frozen client-side); generator throws if missing
 6. Set checkboxes (in document order of the checkboxes REMAINING in the XML):

@@ -142,7 +142,9 @@ def build_emg_leistungen_block() -> str:
         '<w:r><w:rPr><w:b/></w:rPr><w:tab/></w:r>'
         '<w:r><w:t>Dabei werden folgende Arbeiten ausgeführt:</w:t></w:r></w:p>'
     )
-    # Checkbox-Zeilen (8 Checkboxen in 7 Absaetzen, alle ungesetzt)
+    # Checkbox-Zeilen (8 Checkboxen in 8 Absaetzen, alle ungesetzt).
+    # SMS-Alarmierung auf eigener Zeile direkt unter der Konfiguration
+    # (Feedback BPa 2026-07-29; Reihenfolge der Checkboxen bleibt unveraendert)
     p.append(cb_line(
         '0B000007',
         cb(510000001, east_asia_lang=True)
@@ -150,9 +152,10 @@ def build_emg_leistungen_block() -> str:
         '<w:t xml:space="preserve"> Konfiguration/Bereitstellung von </w:t></w:r>'
         '<w:r><w:rPr><w:b/><w:bCs/><w:lang w:eastAsia="de-CH"/></w:rPr>'
         '<w:t>{{EMG_GEOPHONE}}</w:t></w:r>'
-        '<w:r><w:rPr><w:lang w:eastAsia="de-CH"/></w:rPr>'
-        '<w:t xml:space="preserve">      </w:t></w:r>'
-        + cb(510000002)
+    ))
+    p.append(cb_line(
+        '0B000030',
+        cb(510000002)
         + '<w:r><w:t xml:space="preserve"> inkl. SMS-Alarmierung/Web-Zugriff</w:t></w:r>'
     ))
     p.append(cb_line(
@@ -229,9 +232,10 @@ def build_emg_leistungen_block() -> str:
         '<w:r><w:rPr><w:i/><w:noProof/></w:rPr><w:t>Wochentarife</w:t></w:r></w:p>'
     )
     # Marker-Absatz: Generator ersetzt ihn durch die 4 Tarifzeilen
-    # (aktives Band fett, Werte aus dem Admin)
+    # (aktives Band fett, Werte aus dem Admin). Bewusst KEIN Leerabsatz danach:
+    # ein nachlaufender Leerabsatz kann auf eine Folgeseite rutschen und zusammen
+    # mit dem KOSTEN-Umbruch eine komplett leere Seite erzeugen (Feedback BPa)
     p.append(marker_para('0B00001E', '{{EMG_TARIFE}}'))
-    p.append(leer_para('0B00001F'))
     return marker_para('0B000000', '{{EMG_START}}') + ''.join(p) + marker_para('0B000020', '{{EMG_END}}')
 
 
