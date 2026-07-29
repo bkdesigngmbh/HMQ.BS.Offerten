@@ -382,9 +382,6 @@ function verarbeiteEmg(
     xml = entferneMarkerBlock(xml, 'BSK_START', 'BSK_END');
     // Kein Seitenumbruch vor dem EMG-Kapitel (folgt direkt auf Kapitel 1)
     xml = entferneMarkerAbsatz(xml, 'EMG_PB');
-    // Abstandsabsatz unter der KOSTEN-Überschrift entfällt (die EMG-Kosten
-    // folgen hier direkt auf die Überschrift, keine Leerzeile dazwischen)
-    xml = entferneMarkerAbsatz(xml, 'EMGK_ABSTAND');
     // Voraussetzung "Installation erfolgt zeitgleich mit der Aufnahme der
     // Rissprotokolle." entfällt ohne Beweissicherung
     xml = xml.replace(
@@ -392,20 +389,17 @@ function verarbeiteEmg(
       ''
     );
   } else {
-    // BS + EMG: BS-Marker aufräumen
+    // BS + EMG: BS-Marker aufräumen, KOSTEN-Kapitel beginnt auf neuer Seite
+    // (pageBreakBefore nach keepLines = schemakonforme pPr-Reihenfolge)
     xml = entferneMarkerAbsatz(xml, 'BS_START');
     xml = entferneMarkerAbsatz(xml, 'BS_END');
     xml = entferneMarkerAbsatz(xml, 'BSK_START');
     xml = entferneMarkerAbsatz(xml, 'BSK_END');
+    xml = xml.replace(
+      /(<w:pStyle w:val="berschrift2"\/><w:keepLines w:val="0"\/>)((?:(?!<\/w:p>).)*?<w:t>KOSTEN<\/w:t>)/s,
+      '$1<w:pageBreakBefore/>$2'
+    );
   }
-
-  // KOSTEN-Kapitel beginnt bei aktivem EMG immer auf neuer Seite, sonst stünde
-  // der Titel je nach Inhaltslänge allein am Seitenende
-  // (pageBreakBefore nach keepLines = schemakonforme pPr-Reihenfolge)
-  xml = xml.replace(
-    /(<w:pStyle w:val="berschrift2"\/><w:keepLines w:val="0"\/>)((?:(?!<\/w:p>).)*?<w:t>KOSTEN<\/w:t>)/s,
-    '$1<w:pageBreakBefore/>$2'
-  );
 
   // EMG-Blockmarker entfernen, Inhalt bleibt
   xml = entferneMarkerAbsatz(xml, 'EMG_START');
@@ -1120,8 +1114,6 @@ export async function generateOfferteFromTemplate(offerte: Offerte): Promise<Buf
     '{{NR_EMGK}}': art === 'emg' ? '3.1' : '4.2',
     // EMG-Seitenumbruch-Marker (Absatz bleibt bei BS+EMG mit Umbruch bestehen)
     '{{EMG_PB}}': '',
-    // Abstandsabsatz-Marker in der EMG-Kostensektion (bei "nur EMG" entfernt)
-    '{{EMGK_ABSTAND}}': '',
     // EMG-Texte und -Beträge (bei inaktivem EMG sind die Blöcke bereits entfernt)
     '{{EMG_GEOPHONE}}': emgWerte ? formatGeophone(emgWerte.anzahlGeraete) : '',
     '{{EMG_VORHALTEN_WOCHEN}}': emgWerte ? formatWochen(emgWerte.anzahlWochen) : '',

@@ -251,8 +251,6 @@ describe('generateOfferteFromTemplate', () => {
     // Checkboxen: 20 (Kapitel 1) + 8 (EMG)
     const glyphen = (xml.match(/<w:t>[☐☒]<\/w:t>/g) || []).length;
     expect(glyphen).toBe(28);
-    // KOSTEN beginnt auch bei "nur EMG" auf neuer Seite (kein Titel allein am Seitenende)
-    expect(xml).toMatch(/<w:pageBreakBefore\/>(?:(?!<\/w:p>).)*?<w:t>KOSTEN<\/w:t>/s);
     expect(text).not.toMatch(/\{\{[A-Z0-9_]+\}\}/);
   });
 
