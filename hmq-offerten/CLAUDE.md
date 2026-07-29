@@ -311,6 +311,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 
 # Optional (enables PDF generation)
 CLOUDCONVERT_API_KEY=your_api_key
+
+# Required (Basic Auth via proxy.ts, protects the whole app incl. /api and
+# static assets; missing vars = app locked, fail closed — same pattern as V2)
+BASIC_AUTH_USER=...
+BASIC_AUTH_PASS=...
 ```
 
 ## State Management
