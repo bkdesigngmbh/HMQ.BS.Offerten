@@ -14,6 +14,8 @@ Changes vs V12:
   6. {{BSK_START}}/{{BSK_END}} markers around the BS cost section (3.1 + table)
   7. EMG cost section between {{EMGK_START}}/{{EMGK_END}} (after BS cost table)
   8. Termine texts -> {{TERMINE_SATZ1}} / {{TERMINE_OBJEKT}}
+  9. Ueberschrift-2-Titel: Abstand "Vor" generell 0 statt 24 Pt direkt bzw.
+     10 Pt im Style (Feedback BPa 2026-07-29, wirkt auf alle Offertarten)
 
 All markers are hidden (<w:vanish/>) paragraphs, same pattern as {{VA_START}}.
 """
@@ -290,14 +292,18 @@ def label_para(pid, text, bold=False):
 
 def build_emg_kosten_block() -> str:
     p = []
-    # Abstand + Unterkapitel {{NR_EMGK}} Erschuetterungsmessung
+    # Abstand + Unterkapitel {{NR_EMGK}} Erschuetterungsmessung.
+    # Der Abstandsabsatz traegt einen versteckten Marker: bei "nur EMG" entfernt
+    # ihn der Generator (dort folgt die EMG-Kostensektion direkt auf die
+    # KOSTEN-Ueberschrift, der Abstand waere eine Leerzeile unter dem Titel)
     p.append(
         '<w:p w14:paraId="0C000001" w14:textId="77777777" w:rsidR="00996441" '
         'w:rsidRDefault="00996441"><w:pPr><w:pStyle w:val="Absatz1ohneTitelohneAbstandunten"/>'
         '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr>'
         '<w:tabs><w:tab w:val="clear" w:pos="284"/><w:tab w:val="left" w:pos="708"/></w:tabs>'
         '<w:spacing w:before="120" w:after="60"/><w:ind w:left="360" w:hanging="360"/>'
-        '<w:rPr><w:b/></w:rPr></w:pPr></w:p>'
+        '<w:rPr><w:b/></w:rPr></w:pPr>'
+        '<w:r><w:rPr><w:vanish/></w:rPr><w:t>{{EMGK_ABSTAND}}</w:t></w:r></w:p>'
     )
     p.append(
         '<w:p w14:paraId="0C000002" w14:textId="77777777" w:rsidR="00996441" '
@@ -538,6 +544,16 @@ def main() -> None:
         'Termine Vorlaufzeit-Objekt',
     )
 
+    # 8. Ueberschrift-2-Titel: Abstand "Vor" auf 0 (direkte Formatierung aller
+    # Kapitel-Ueberschriften; der Style-Wert folgt unten in styles.xml)
+    n_headings = xml.count('<w:spacing w:before="480" w:after="120"/>')
+    if n_headings != 8:
+        sys.exit(f'FEHLER: {n_headings} Ueberschrift-Abstaende gefunden (erwartet 8)')
+    xml = xml.replace(
+        '<w:spacing w:before="480" w:after="120"/>',
+        '<w:spacing w:before="0" w:after="120"/>',
+    )
+
     # Pruefungen
     n_checkboxes_after = xml.count('<w14:checkbox>')
     assert n_checkboxes_after == 49, n_checkboxes_after
@@ -571,13 +587,28 @@ def main() -> None:
     if dups:
         sys.exit(f'FEHLER: neue doppelte paraIds: {dups}')
 
-    # V13 schreiben: alle Original-Eintraege kopieren, nur document.xml ersetzen
+    # 9. styles.xml: Style "berschrift2" Abstand "Vor" 10 Pt -> 0
+    with zipfile.ZipFile(SRC) as z:
+        styles_xml = z.read('word/styles.xml').decode('utf-8')
+    style_match = re.search(
+        r'<w:style [^>]*w:styleId="berschrift2">.*?</w:style>', styles_xml, re.S
+    )
+    if not style_match or '<w:spacing w:before="200"/>' not in style_match.group(0):
+        sys.exit('FEHLER: Style berschrift2 mit w:before="200" nicht gefunden')
+    styles_xml = styles_xml.replace(
+        style_match.group(0),
+        style_match.group(0).replace('<w:spacing w:before="200"/>', '<w:spacing w:before="0"/>'),
+    )
+
+    # V13 schreiben: alle Original-Eintraege kopieren, document.xml + styles.xml ersetzen
     shutil.copyfile(SRC, DST)
     with zipfile.ZipFile(SRC) as zin, zipfile.ZipFile(DST, 'w', zipfile.ZIP_DEFLATED) as zout:
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename == 'word/document.xml':
                 data = xml.encode('utf-8')
+            elif item.filename == 'word/styles.xml':
+                data = styles_xml.encode('utf-8')
             zout.writestr(item, data)
 
     print(f'OK: {DST.name} geschrieben')
