@@ -18,6 +18,12 @@
   --color-hmq-red-soft: #ff4d3d;
   --color-hmq-ink: #1e3a5f;
 
+  /* Deep tones for LARGE filled areas (the total boxes). The bright brand
+     colours stay for small accents only, the way the reference uses them,
+     because #ef3120 across a whole panel is far too loud to look at. */
+  --color-hmq-red-deep: #a32b1a;
+  --color-hmq-red-ink: #6f1c11;
+
   /* Error states keep their own darker red so they never read as EMG accent */
   --color-danger: #dc2626;
   --color-danger-dark: #b91c1c;

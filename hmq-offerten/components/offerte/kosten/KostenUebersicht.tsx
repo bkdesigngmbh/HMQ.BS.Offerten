@@ -105,8 +105,8 @@ export default function KostenUebersicht({
         </div>
       )}
 
-      {/* Total - dunkelblauerBlock */}
-      <div className="bg-gradient-to-br from-hmq-blue to-hmq-blue-light rounded-2xl p-6 text-white">
+      {/* Total - Blau ins Navy statt ins Hellblau, ruhiger auf grosser Fläche */}
+      <div className="bg-gradient-to-br from-hmq-blue to-hmq-ink rounded-2xl p-6 text-white">
         {/* Zwischentotal - editierbar */}
         <div className="flex items-center justify-between mb-3">
           <span className="text-white/80 flex items-center gap-1.5">
