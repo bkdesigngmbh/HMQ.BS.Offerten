@@ -250,29 +250,31 @@ export default function HomePage() {
     >
       {/* Titel */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-hmq-ink tracking-tight">Offerte erstellen</h1>
+        <h1 className="text-3xl font-bold text-hmq-ink tracking-tight">
+          <span className="text-grad">Offerte</span> erstellen
+        </h1>
         <p className="text-gray-500 mt-1">Füllen Sie die Daten aus und generieren Sie das Word-Dokument</p>
       </div>
 
       {/* Tabs */}
       <div className="mb-6">
-        <div className="inline-flex bg-gray-100 rounded-xl p-1">
+        <div className="flex gap-2.5">
           <button
             onClick={() => setActiveTab('daten')}
-            className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${
+            className={`px-6 py-2.5 text-sm font-semibold rounded-xl border transition-all ${
               activeTab === 'daten'
-                ? 'bg-white text-hmq-blue shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'border-hmq-blue bg-hmq-blue/8 text-hmq-blue shadow-card-hover'
+                : 'border-gray-200 bg-white text-gray-600 shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:-translate-y-[2px]'
             }`}
           >
             1 · Daten
           </button>
           <button
             onClick={() => setActiveTab('kosten')}
-            className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${
+            className={`px-6 py-2.5 text-sm font-semibold rounded-xl border transition-all ${
               activeTab === 'kosten'
-                ? 'bg-white text-hmq-blue shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'border-hmq-blue bg-hmq-blue/8 text-hmq-blue shadow-card-hover'
+                : 'border-gray-200 bg-white text-gray-600 shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:-translate-y-[2px]'
             }`}
           >
             2 · Kosten
@@ -436,10 +438,10 @@ export default function HomePage() {
                     <div
                       key={o.id}
                       onClick={() => handleOfferteLoad(o.offertnummer)}
-                      className={`p-4 rounded-xl cursor-pointer transition-all mb-2 ${
+                      className={`p-4 rounded-xl cursor-pointer mb-2 lift ${
                         o.offertnummer === offerte.offertnummer
                           ? 'bg-hmq-blue/10 border-2 border-hmq-blue/30'
-                          : 'hover:bg-gray-50 border-2 border-transparent'
+                          : 'bg-white border-2 border-transparent hover:border-hmq-blue'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-4">
