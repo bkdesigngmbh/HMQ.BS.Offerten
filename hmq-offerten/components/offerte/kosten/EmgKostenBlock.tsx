@@ -63,8 +63,8 @@ export default function EmgKostenBlock({
 
   if (!emgBasiswerte || !ergebnis) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-center">
-        <div className="w-6 h-6 border-3 border-hmq-blue border-t-transparent rounded-full animate-spin"></div>
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200 flex items-center justify-center">
+        <div className="w-6 h-6 border-3 border-hmq-red border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -74,8 +74,11 @@ export default function EmgKostenBlock({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Spalte 1+2: Grundpauschale-Komponenten und Positionen */}
-      <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-900 mb-1">Erschütterungsmessung</h3>
+      <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-card border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-hmq-red shrink-0" aria-hidden="true" />
+          Erschütterungsmessung
+        </h3>
         <p className="text-sm text-gray-500 mb-5">
           {hatEingaben
             ? `${emg.anzahlGeraete} Geräte, ${emg.anzahlWochen} Wochen (Eingaben in Tab 1)`
@@ -83,7 +86,7 @@ export default function EmgKostenBlock({
         </p>
 
         {/* Grundpauschale-Komponenten */}
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Berechnung Grundpauschale</h4>
+        <h4 className="kicker mb-3">Berechnung Grundpauschale</h4>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -222,7 +225,7 @@ export default function EmgKostenBlock({
                 key={t.abWochen}
                 className={`px-2.5 py-1 rounded-full border ${
                   t.preisChf === ergebnis.wochentarif && hatEingaben
-                    ? 'bg-hmq-blue text-white border-hmq-blue'
+                    ? 'bg-hmq-red text-white border-hmq-red'
                     : 'bg-gray-50 text-gray-600 border-gray-200'
                 }`}
               >
@@ -235,7 +238,7 @@ export default function EmgKostenBlock({
 
       {/* Spalte 3: EMG-Total */}
       <div className="space-y-4">
-        <div className="bg-gradient-to-br from-[#3d5a3d] to-[#4e6e4e] rounded-2xl p-6 text-white">
+        <div className="bg-gradient-to-br from-hmq-red to-hmq-red-soft rounded-2xl p-6 text-white">
           <h3 className="font-semibold mb-4">Total Erschütterungsmessung</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">

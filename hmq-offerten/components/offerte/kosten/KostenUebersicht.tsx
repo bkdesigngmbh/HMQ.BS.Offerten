@@ -77,7 +77,7 @@ export default function KostenUebersicht({
     <div className="space-y-4">
       {/* Kostenübersicht - editierbar */}
       {showPositionen && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-gray-900">Kostenübersicht</h3>
             <span

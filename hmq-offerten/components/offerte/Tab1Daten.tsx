@@ -140,7 +140,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
       </div>
 
       {/* Offertart */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <div className="w-8 h-8 bg-hmq-blue/10 rounded-lg flex items-center justify-center">
             <svg className="w-4 h-4 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,23 +150,33 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
           Offertart
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {OFFERTART_OPTIONEN.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => setOffertart(option.id)}
-              className={`text-left rounded-xl border-2 p-4 transition-all ${
-                art === option.id
-                  ? 'border-hmq-blue bg-hmq-blue/5'
-                  : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
-              }`}
-            >
-              <span className={`block font-medium text-sm ${art === option.id ? 'text-hmq-blue' : 'text-gray-900'}`}>
-                {option.label}
-              </span>
-              <span className="block text-xs text-gray-500 mt-0.5">{option.beschreibung}</span>
-            </button>
-          ))}
+          {OFFERTART_OPTIONEN.map((option) => {
+            const aktiv = art === option.id;
+            // Kategoriefarbe der Offertart: Beweissicherung blau, EMG rot, kombiniert der Verlauf
+            const aktivRahmen =
+              option.id === 'emg' ? 'border-hmq-red bg-hmq-red/5'
+              : option.id === 'bs_emg' ? 'grad-border'
+              : 'border-hmq-blue bg-hmq-blue/5';
+            const aktivLabel =
+              option.id === 'emg' ? 'text-hmq-red'
+              : option.id === 'bs_emg' ? 'text-grad'
+              : 'text-hmq-blue';
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setOffertart(option.id)}
+                className={`text-left rounded-xl border-2 p-4 transition-all ${
+                  aktiv ? aktivRahmen : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
+                }`}
+              >
+                <span className={`block font-semibold text-sm ${aktiv ? aktivLabel : 'text-gray-900'}`}>
+                  {option.label}
+                </span>
+                <span className="block text-xs text-gray-500 mt-0.5">{option.beschreibung}</span>
+              </button>
+            );
+          })}
         </div>
         {emgAktiv && emgFehler && (
           <p className="mt-3 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
@@ -179,7 +189,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
       {/* 2-Spalten Layout: Offert & Projekt | Empfänger */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Spalte 1: Offert-Informationen & Projekt */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
             <div className="w-8 h-8 bg-hmq-blue/10 rounded-lg flex items-center justify-center">
               <svg className="w-4 h-4 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,7 +317,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
         </div>
 
         {/* Spalte 2: Empfänger */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
             <div className="w-8 h-8 bg-hmq-blue/10 rounded-lg flex items-center justify-center">
               <svg className="w-4 h-4 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,7 +434,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
       </div>
 
       {/* === CHECKBOXEN === */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
           <div className="w-8 h-8 bg-hmq-blue/10 rounded-lg flex items-center justify-center">
             <svg className="w-4 h-4 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -626,7 +636,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
       </div>
 
       {/* Planbeilage */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
           <div className="w-8 h-8 bg-hmq-blue/10 rounded-lg flex items-center justify-center">
             <svg className="w-4 h-4 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">

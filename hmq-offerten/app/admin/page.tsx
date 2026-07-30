@@ -186,15 +186,15 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="mb-6">
-        <div className="inline-flex bg-gray-100 rounded-xl p-1 flex-wrap gap-1">
+        <div className="flex flex-wrap gap-2.5">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              className={`px-5 py-2.5 text-sm font-semibold rounded-xl border transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-hmq-blue shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'border-hmq-blue bg-hmq-blue/8 text-hmq-blue shadow-card-hover'
+                  : 'border-gray-200 bg-white text-gray-600 shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:-translate-y-[2px]'
               }`}
             >
               {tab.label}
@@ -213,7 +213,7 @@ export default function AdminPage() {
       )}
 
       {/* Content */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
         {activeTab === 'kategorien' && (
           <KategorienTab
             kategorien={kategorien}

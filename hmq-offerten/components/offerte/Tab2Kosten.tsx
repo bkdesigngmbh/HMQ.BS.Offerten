@@ -157,7 +157,7 @@ export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler
     <div className="space-y-6">
       {/* Planbeilage Vorschau (wenn vorhanden) */}
       {offerte.planbeilage && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-card border border-gray-200 overflow-hidden">
           <button
             onClick={() => setShowPlanbeilage(!showPlanbeilage)}
             className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
@@ -217,7 +217,7 @@ export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler
       {bsAktiv && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Spalte 1+2: Kategorien & Spesen */}
-      <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-card border border-gray-200">
         <KategorienGrid
           kategorien={offerte.kostenBerechnung.kategorien}
           onKategorieChange={handleKategorieChange}
@@ -228,7 +228,7 @@ export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler
         {/* Feinabstimmung: Stunden & Bindemenge (direkt unter Kategorien) */}
         {ergebnis && ergebnis.totalN > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-100">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Feinabstimmung: Stunden &amp; Bindemenge</h4>
+            <h4 className="kicker mb-3">Feinabstimmung: Stunden &amp; Bindemenge</h4>
             <p className="text-xs text-gray-500 mb-3">Stunden überschreiben berechnet den Aufnahmepreis neu. Änderungen aktualisieren die Preise rechts.</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
