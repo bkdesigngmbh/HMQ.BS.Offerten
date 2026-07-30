@@ -120,13 +120,13 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
     onChange({ ...offerte, emg: { ...emg, ...patch } });
   }
 
-  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all";
+  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 smooth";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
 
   return (
     <div className="space-y-6">
       {/* Ordner-Import - empfohlener Startpunkt */}
-      <div className="bg-hmq-blue/5 rounded-2xl px-5 py-4 shadow-sm border border-hmq-blue/25">
+      <div className="bg-hmq-blue/5 rounded-2xl px-5 py-4 shadow-card border border-hmq-blue/25">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-6 h-6 bg-hmq-blue/15 rounded-lg flex items-center justify-center flex-shrink-0">
             <svg className="w-3.5 h-3.5 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +166,7 @@ export default function Tab1Daten({ offerte, onChange, onCreateNew, errors = {},
                 key={option.id}
                 type="button"
                 onClick={() => setOffertart(option.id)}
-                className={`text-left rounded-xl border-2 p-4 transition-all ${
+                className={`text-left rounded-xl border-2 p-4 smooth ${
                   aktiv ? aktivRahmen : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
                 }`}
               >

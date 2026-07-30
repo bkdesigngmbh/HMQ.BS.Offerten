@@ -25,7 +25,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles = `
       inline-flex items-center justify-center gap-2
       font-semibold rounded-xl
-      transition-all duration-200
+      smooth duration-200
       focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
       disabled:opacity-50 disabled:cursor-not-allowed
       disabled:shadow-none disabled:hover:translate-y-0

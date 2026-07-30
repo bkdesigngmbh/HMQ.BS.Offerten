@@ -29,6 +29,13 @@
   --shadow-button-hover: 0 16px 34px rgba(22, 106, 184, 0.42);
 }
 
+/* Reserve the scrollbar track permanently. Without this the centred
+   max-w-7xl column jumps sideways by half a scrollbar whenever a tab is
+   taller or shorter than the viewport. */
+html {
+  scrollbar-gutter: stable;
+}
+
 ::selection {
   background: rgba(22, 106, 184, 0.2);
 }
@@ -38,16 +45,34 @@
   outline-offset: 2px;
 }
 
-input, select, textarea {
-  @apply transition-all duration-200;
+/*
+ * One transition definition for every interactive element, listing the
+ * properties explicitly. `transition-all` used to animate layout values too
+ * (padding, width, border-width), which forces a reflow per frame and is what
+ * made hovering and switching feel choppy. Transform gets the soft easing so
+ * the lift settles instead of stopping dead.
+ */
+button, a, input, select, textarea, .smooth {
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 input:focus, select:focus, textarea:focus {
   @apply outline-none ring-2 ring-hmq-blue/20 border-hmq-blue;
 }
 
-button {
-  @apply transition-all duration-200;
+/* Tab content fades in instead of snapping into place */
+.tab-panel {
+  animation: panel-in 0.18s ease-out both;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* ===== Signature elements ===== */
@@ -98,7 +123,11 @@ button {
 
 /* Shared hover grammar: lift plus one shadow step */
 .lift {
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.22s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
 }
 
 .lift:hover {

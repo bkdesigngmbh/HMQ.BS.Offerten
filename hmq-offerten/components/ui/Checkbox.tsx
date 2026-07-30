@@ -25,7 +25,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             w-5 h-5
             border-2 border-gray-300 rounded
             bg-white
-            transition-all duration-200
+            smooth duration-200
             group-hover:border-gray-400
             peer-focus-visible:ring-2 peer-focus-visible:ring-hmq-blue/20 peer-focus-visible:border-hmq-blue
             peer-checked:bg-hmq-blue peer-checked:border-hmq-blue

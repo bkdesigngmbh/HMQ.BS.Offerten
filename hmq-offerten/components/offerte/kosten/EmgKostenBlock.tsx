@@ -43,7 +43,7 @@ export default function EmgKostenBlock({
   }
 
   const inputClass =
-    'w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all';
+    'w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 smooth';
   const overrideClass =
     'w-28 px-2 py-1 text-right font-mono text-sm rounded-lg border border-amber-200 bg-white focus:ring-2 focus:ring-hmq-blue/40';
 
