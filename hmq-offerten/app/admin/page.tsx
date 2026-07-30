@@ -164,7 +164,7 @@ export default function AdminPage() {
     { id: 'einstellungen', label: 'Einstellungen' },
   ];
 
-  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all";
+  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 smooth";
 
   if (loading) {
     return (
@@ -191,7 +191,7 @@ export default function AdminPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-2.5 text-sm font-semibold rounded-xl border transition-all ${
+              className={`px-5 py-2.5 text-sm font-semibold rounded-xl border smooth ${
                 activeTab === tab.id
                   ? 'border-hmq-blue bg-hmq-blue/8 text-hmq-blue shadow-card-hover'
                   : 'border-gray-200 bg-white text-gray-600 shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:-translate-y-[2px]'
@@ -213,7 +213,7 @@ export default function AdminPage() {
       )}
 
       {/* Content */}
-      <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200">
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-gray-200 tab-panel" key={activeTab}>
         {activeTab === 'kategorien' && (
           <KategorienTab
             kategorien={kategorien}

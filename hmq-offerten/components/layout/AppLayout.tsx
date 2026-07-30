@@ -15,7 +15,7 @@ interface AppLayoutProps {
 }
 
 const navButton =
-  'flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 rounded-xl transition-all hover:bg-hmq-blue/8 hover:text-hmq-blue';
+  'flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 rounded-xl smooth hover:bg-hmq-blue/8 hover:text-hmq-blue';
 
 export default function AppLayout({
   children,
@@ -86,7 +86,7 @@ export default function AppLayout({
               href={isAdmin ? '/' : '/admin'}
               className={
                 isAdmin
-                  ? 'flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all bg-hmq-blue/10 text-hmq-blue border border-hmq-blue/20'
+                  ? 'flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl smooth bg-hmq-blue/10 text-hmq-blue border border-hmq-blue/20'
                   : navButton
               }
             >

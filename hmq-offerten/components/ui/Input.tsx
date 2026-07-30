@@ -21,7 +21,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             bg-white border border-gray-200 rounded-lg
             text-gray-900 text-sm
             placeholder:text-gray-400
-            transition-all duration-200
+            smooth duration-200
             hover:border-gray-300
             focus:border-hmq-blue focus:ring-2 focus:ring-hmq-blue/10 focus:outline-none
             disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed

@@ -261,7 +261,7 @@ export default function HomePage() {
         <div className="flex gap-2.5">
           <button
             onClick={() => setActiveTab('daten')}
-            className={`px-6 py-2.5 text-sm font-semibold rounded-xl border transition-all ${
+            className={`px-6 py-2.5 text-sm font-semibold rounded-xl border smooth ${
               activeTab === 'daten'
                 ? 'border-hmq-blue bg-hmq-blue/8 text-hmq-blue shadow-card-hover'
                 : 'border-gray-200 bg-white text-gray-600 shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:-translate-y-[2px]'
@@ -271,7 +271,7 @@ export default function HomePage() {
           </button>
           <button
             onClick={() => setActiveTab('kosten')}
-            className={`px-6 py-2.5 text-sm font-semibold rounded-xl border transition-all ${
+            className={`px-6 py-2.5 text-sm font-semibold rounded-xl border smooth ${
               activeTab === 'kosten'
                 ? 'border-hmq-blue bg-hmq-blue/8 text-hmq-blue shadow-card-hover'
                 : 'border-gray-200 bg-white text-gray-600 shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:-translate-y-[2px]'
@@ -283,14 +283,15 @@ export default function HomePage() {
       </div>
 
       {/* Tab Content */}
-      <div className="mb-8">
+      {/* min-h hält die Seitenhöhe, während Tab 2 seine Basiswerte lädt */}
+      <div className="mb-8 tab-panel min-h-[60vh]" key={activeTab}>
         {activeTab === 'daten' && (
           <>
             <Tab1Daten offerte={offerte} onChange={handleOfferteChange} onCreateNew={handleCreateNewFromImport} errors={errors} emgFehler={emgFehler} />
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setActiveTab('kosten')}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-hmq-blue/30 text-hmq-blue font-medium rounded-xl hover:bg-hmq-blue/5 transition-all"
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-hmq-blue/30 text-hmq-blue font-medium rounded-xl hover:bg-hmq-blue/5 smooth"
               >
                 Weiter zu Kosten
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,7 +339,7 @@ export default function HomePage() {
             onClick={handleSave}
             disabled={saving || !offerte.offertnummer}
             title={!offerte.offertnummer ? 'Offertnummer eingeben, um zu speichern' : 'Speichern (⌘/Strg+S)'}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:shadow-card-hover hover:-translate-y-[3px] active:translate-y-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:border-gray-200 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:shadow-card-hover hover:-translate-y-[3px] active:translate-y-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:border-gray-200 disabled:cursor-not-allowed smooth"
           >
             {saving ? (
               <>
@@ -360,7 +361,7 @@ export default function HomePage() {
             onClick={handleGenerateWord}
             disabled={generating || !offerte.offertnummer}
             title={!offerte.offertnummer ? 'Offertnummer eingeben, um zu generieren' : 'Word generieren (⌘/Strg+Enter)'}
-            className="flex items-center gap-3 px-8 py-3 bg-hmq-blue text-white font-semibold rounded-full shadow-button hover:bg-hmq-blue-light hover:shadow-button-hover hover:-translate-y-[3px] active:translate-y-0 disabled:bg-gray-300 disabled:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-3 px-8 py-3 bg-hmq-blue text-white font-semibold rounded-full shadow-button hover:bg-hmq-blue-light hover:shadow-button-hover hover:-translate-y-[3px] active:translate-y-0 disabled:bg-gray-300 disabled:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed smooth"
           >
             {generating ? (
               <>

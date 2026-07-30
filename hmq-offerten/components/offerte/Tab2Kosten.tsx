@@ -151,7 +151,7 @@ export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler
     );
   }
 
-  const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all";
+  const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 smooth";
 
   return (
     <div className="space-y-6">

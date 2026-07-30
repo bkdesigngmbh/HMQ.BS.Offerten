@@ -47,7 +47,7 @@ export default function KategorienGrid({
                 min="0"
                 value={kat.anzahl || ''}
                 onChange={(e) => onKategorieChange(kat.kategorieId, parseInt(e.target.value) || 0)}
-                className="w-full px-2 py-1.5 bg-white border-0 rounded-lg text-sm text-center focus:ring-2 focus:ring-hmq-blue/40 transition-all"
+                className="w-full px-2 py-1.5 bg-white border-0 rounded-lg text-sm text-center focus:ring-2 focus:ring-hmq-blue/40 smooth"
                 placeholder="0"
               />
             </div>

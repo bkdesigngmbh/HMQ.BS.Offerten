@@ -92,7 +92,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
           onDrop={handleDrop}
           className={`
             relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
-            transition-all duration-200
+            smooth duration-200
             ${dragActive
               ? 'border-hmq-blue bg-hmq-blue/5'
               : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
@@ -137,7 +137,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
             value={gisLink}
             onChange={(e) => onGisLinkChange(e.target.value)}
             placeholder="https://map.geo.admin.ch/..."
-            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all"
+            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 smooth"
           />
           <p className="text-xs text-gray-500 mt-1">
             Link zu map.geo.admin.ch oder anderem GIS (wird nur gespeichert, nicht ins Word eingefügt)
