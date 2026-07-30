@@ -12,7 +12,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="space-y-1.5">
         <label className="flex items-center gap-1 text-sm font-medium text-gray-700">
           {label}
-          {required && <span className="text-accent">*</span>}
+          {required && <span className="text-danger">*</span>}
         </label>
         <input
           ref={ref}
@@ -23,9 +23,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             placeholder:text-gray-400
             transition-all duration-200
             hover:border-gray-300
-            focus:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f]/10 focus:outline-none
+            focus:border-hmq-blue focus:ring-2 focus:ring-hmq-blue/10 focus:outline-none
             disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
-            ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''}
+            ${error ? 'border-danger/50 focus:border-danger focus:ring-danger/15' : ''}
             ${className}
           `}
           {...props}

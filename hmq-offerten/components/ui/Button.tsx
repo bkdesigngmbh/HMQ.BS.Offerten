@@ -24,39 +24,41 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   }, ref) => {
     const baseStyles = `
       inline-flex items-center justify-center gap-2
-      font-medium rounded-lg
+      font-semibold rounded-xl
       transition-all duration-200
       focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
       disabled:opacity-50 disabled:cursor-not-allowed
+      disabled:shadow-none disabled:hover:translate-y-0
     `;
 
+    // Coloured glow plus a 3px lift on hover: the shared HMQ interaction grammar
     const variants = {
       primary: `
-        bg-[#1e3a5f] text-white
-        hover:bg-[#2d4a6f]
-        active:bg-[#152a47]
+        bg-hmq-blue text-white
+        hover:bg-hmq-blue-light hover:-translate-y-[3px]
+        active:bg-hmq-blue-dark active:translate-y-0
         shadow-button hover:shadow-button-hover
-        focus-visible:ring-[#1e3a5f]
+        focus-visible:ring-hmq-blue
       `,
       secondary: `
         bg-white text-gray-700 border border-gray-200
-        hover:bg-gray-50 hover:border-gray-300
-        active:bg-gray-100
-        shadow-button hover:shadow-button-hover
-        focus-visible:ring-gray-300
+        hover:border-hmq-blue hover:text-hmq-blue hover:-translate-y-[3px]
+        active:bg-gray-50 active:translate-y-0
+        shadow-card hover:shadow-card-hover
+        focus-visible:ring-hmq-blue
       `,
       ghost: `
         bg-transparent text-gray-600
-        hover:bg-gray-100 hover:text-gray-900
-        active:bg-gray-200
-        focus-visible:ring-gray-300
+        hover:bg-hmq-blue/8 hover:text-hmq-blue
+        active:bg-hmq-blue/12
+        focus-visible:ring-hmq-blue
       `,
       danger: `
-        bg-red-600 text-white
-        hover:bg-red-700
-        active:bg-red-800
-        shadow-button hover:shadow-button-hover
-        focus-visible:ring-red-500
+        bg-danger text-white
+        hover:bg-danger-dark hover:-translate-y-[3px]
+        active:bg-danger-dark active:translate-y-0
+        shadow-card hover:shadow-card-hover
+        focus-visible:ring-danger
       `,
     };
 

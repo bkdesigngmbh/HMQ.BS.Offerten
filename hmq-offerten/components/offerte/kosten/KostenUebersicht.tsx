@@ -39,7 +39,7 @@ function EditablePreisInput({
         onChange={(e) => onPreisChange(field as keyof EditablePreise, parseFloat(e.target.value) || 0)}
         className={`w-24 px-2 py-1 text-right font-mono text-sm rounded-lg border-0
           ${isChanged ? 'bg-orange-50' : 'bg-gray-50'}
-          focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all`}
+          focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all`}
         placeholder="0.00"
       />
     </div>
@@ -106,7 +106,7 @@ export default function KostenUebersicht({
       )}
 
       {/* Total - dunkelblauerBlock */}
-      <div className="bg-gradient-to-br from-[#1e3a5f] to-[#2d4a6f] rounded-2xl p-6 text-white">
+      <div className="bg-gradient-to-br from-hmq-blue to-hmq-blue-light rounded-2xl p-6 text-white">
         {/* Zwischentotal - editierbar */}
         <div className="flex items-center justify-between mb-3">
           <span className="text-white/80 flex items-center gap-1.5">

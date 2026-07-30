@@ -27,8 +27,8 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             bg-white
             transition-all duration-200
             group-hover:border-gray-400
-            peer-focus-visible:ring-2 peer-focus-visible:ring-[#1e3a5f]/20 peer-focus-visible:border-[#1e3a5f]
-            peer-checked:bg-[#1e3a5f] peer-checked:border-[#1e3a5f]
+            peer-focus-visible:ring-2 peer-focus-visible:ring-hmq-blue/20 peer-focus-visible:border-hmq-blue
+            peer-checked:bg-hmq-blue peer-checked:border-hmq-blue
             peer-disabled:bg-gray-100 peer-disabled:border-gray-200
           "/>
           <svg

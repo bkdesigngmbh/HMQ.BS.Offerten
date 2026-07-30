@@ -94,7 +94,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
             relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
             transition-all duration-200
             ${dragActive
-              ? 'border-[#1e3a5f] bg-[#1e3a5f]/5'
+              ? 'border-hmq-blue bg-hmq-blue/5'
               : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
             }
           `}
@@ -108,7 +108,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
           <div className="flex flex-col items-center gap-3">
             <div className={`
               w-14 h-14 rounded-xl flex items-center justify-center
-              ${dragActive ? 'bg-[#1e3a5f]/10 text-[#1e3a5f]' : 'bg-gray-100 text-gray-400'}
+              ${dragActive ? 'bg-hmq-blue/10 text-hmq-blue' : 'bg-gray-100 text-gray-400'}
               transition-colors
             `}>
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +117,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
             </div>
             <div>
               <p className="text-sm font-medium text-gray-700">
-                <span className="text-[#1e3a5f] hover:text-[#2d4a6f]">Datei auswählen</span>
+                <span className="text-hmq-blue hover:text-hmq-blue-light">Datei auswählen</span>
                 {' '}oder hierher ziehen
               </p>
               <p className="text-xs text-gray-500 mt-1">PNG oder JPG, max. 10 MB</p>
@@ -137,7 +137,7 @@ export default function PlanUpload({ value, onChange, gisLink = '', onGisLinkCha
             value={gisLink}
             onChange={(e) => onGisLinkChange(e.target.value)}
             placeholder="https://map.geo.admin.ch/..."
-            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
+            className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all"
           />
           <p className="text-xs text-gray-500 mt-1">
             Link zu map.geo.admin.ch oder anderem GIS (wird nur gespeichert, nicht ins Word eingefügt)

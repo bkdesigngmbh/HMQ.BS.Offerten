@@ -61,7 +61,7 @@ function SortableKategorieRow({
       <td className="px-3 py-3 text-center font-mono">{kategorie.faktor_abschluss}</td>
       <td className="px-4 py-3">
         <div className="flex gap-2 justify-end">
-          <button onClick={onEdit} className="text-[#1e3a5f] hover:underline">Bearbeiten</button>
+          <button onClick={onEdit} className="text-hmq-blue hover:underline">Bearbeiten</button>
           <button onClick={onDelete} className="text-red-600 hover:underline">Löschen</button>
         </div>
       </td>
@@ -147,7 +147,7 @@ export default function KategorienTab({
             faktor_bericht: 1, faktor_kontrolle: 1, faktor_abschluss: 1,
             created_at: '', updated_at: '',
           })}
-          className="px-4 py-2 bg-[#1e3a5f] text-white text-sm font-medium rounded-xl hover:bg-[#162b47] transition-colors"
+          className="px-4 py-2 bg-hmq-blue text-white text-sm font-medium rounded-xl hover:bg-hmq-blue-dark transition-colors"
         >
           + Neue Kategorie
         </button>
@@ -251,7 +251,7 @@ export default function KategorienTab({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-2.5 bg-[#1e3a5f] text-white font-medium rounded-xl hover:bg-[#162b47] disabled:opacity-50 transition-colors"
+                  className="flex-1 py-2.5 bg-hmq-blue text-white font-medium rounded-xl hover:bg-hmq-blue-dark disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Speichern...' : 'Speichern'}
                 </button>

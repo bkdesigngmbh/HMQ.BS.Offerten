@@ -128,7 +128,7 @@ export default function EmgTab({
       <button
         type="submit"
         disabled={saving}
-        className="w-full py-3 bg-[#1e3a5f] text-white font-semibold rounded-xl hover:bg-[#162b47] disabled:opacity-50 transition-colors"
+        className="w-full py-3 bg-hmq-blue text-white font-semibold rounded-xl hover:bg-hmq-blue-dark disabled:opacity-50 transition-colors"
       >
         {saving ? 'Speichern...' : 'EMG-Basiswerte speichern'}
       </button>

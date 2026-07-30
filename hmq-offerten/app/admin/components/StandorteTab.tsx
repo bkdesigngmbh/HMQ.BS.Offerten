@@ -24,8 +24,8 @@ export default function StandorteTab({
         {standorte.map((s) => (
           <div key={s.id} className="bg-gray-50 rounded-xl p-5">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-[#1e3a5f]/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-[#1e3a5f] uppercase">{s.id}</span>
+              <div className="w-12 h-12 bg-hmq-blue/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <span className="font-bold text-hmq-blue uppercase">{s.id}</span>
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900">{s.name}</h3>
@@ -82,7 +82,7 @@ export default function StandorteTab({
                 <button
                   onClick={() => onSaveStandort(s.id)}
                   disabled={saving}
-                  className="px-6 py-2.5 bg-[#1e3a5f] text-white text-sm font-medium rounded-xl hover:bg-[#162b47] disabled:opacity-50 transition-colors"
+                  className="px-6 py-2.5 bg-hmq-blue text-white text-sm font-medium rounded-xl hover:bg-hmq-blue-dark disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Speichern...' : 'Speichern'}
                 </button>

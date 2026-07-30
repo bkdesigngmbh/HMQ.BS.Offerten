@@ -250,7 +250,7 @@ export default function HomePage() {
     >
       {/* Titel */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Offerte erstellen</h1>
+        <h1 className="text-3xl font-bold text-hmq-ink tracking-tight">Offerte erstellen</h1>
         <p className="text-gray-500 mt-1">Füllen Sie die Daten aus und generieren Sie das Word-Dokument</p>
       </div>
 
@@ -261,7 +261,7 @@ export default function HomePage() {
             onClick={() => setActiveTab('daten')}
             className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${
               activeTab === 'daten'
-                ? 'bg-white text-[#1e3a5f] shadow-sm'
+                ? 'bg-white text-hmq-blue shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -271,7 +271,7 @@ export default function HomePage() {
             onClick={() => setActiveTab('kosten')}
             className={`px-6 py-2.5 text-sm font-medium rounded-lg transition-all ${
               activeTab === 'kosten'
-                ? 'bg-white text-[#1e3a5f] shadow-sm'
+                ? 'bg-white text-hmq-blue shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -288,7 +288,7 @@ export default function HomePage() {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setActiveTab('kosten')}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-[#1e3a5f]/30 text-[#1e3a5f] font-medium rounded-xl hover:bg-[#1e3a5f]/5 transition-all"
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-hmq-blue/30 text-hmq-blue font-medium rounded-xl hover:bg-hmq-blue/5 transition-all"
               >
                 Weiter zu Kosten
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +336,7 @@ export default function HomePage() {
             onClick={handleSave}
             disabled={saving || !offerte.offertnummer}
             title={!offerte.offertnummer ? 'Offertnummer eingeben, um zu speichern' : 'Speichern (⌘/Strg+S)'}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl shadow-card hover:border-hmq-blue hover:text-hmq-blue hover:shadow-card-hover hover:-translate-y-[3px] active:translate-y-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none disabled:hover:translate-y-0 disabled:hover:border-gray-200 disabled:cursor-not-allowed transition-all"
           >
             {saving ? (
               <>
@@ -358,7 +358,7 @@ export default function HomePage() {
             onClick={handleGenerateWord}
             disabled={generating || !offerte.offertnummer}
             title={!offerte.offertnummer ? 'Offertnummer eingeben, um zu generieren' : 'Word generieren (⌘/Strg+Enter)'}
-            className="flex items-center gap-3 px-8 py-3 bg-[#1e3a5f] text-white font-semibold rounded-xl hover:bg-[#162b47] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#1e3a5f]/20"
+            className="flex items-center gap-3 px-8 py-3 bg-hmq-blue text-white font-semibold rounded-full shadow-button hover:bg-hmq-blue-light hover:shadow-button-hover hover:-translate-y-[3px] active:translate-y-0 disabled:bg-gray-300 disabled:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed transition-all"
           >
             {generating ? (
               <>
@@ -408,7 +408,7 @@ export default function HomePage() {
                   placeholder="Suchen nach Nummer, Ort, Projekt, Firma..."
                   value={offertenSearch}
                   onChange={(e) => setOffertenSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40"
                 />
               </div>
             </div>
@@ -417,7 +417,7 @@ export default function HomePage() {
             <div className="flex-1 overflow-auto">
               {offertenLoading ? (
                 <div className="p-12 text-center">
-                  <div className="inline-block w-8 h-8 border-3 border-[#1e3a5f] border-t-transparent rounded-full animate-spin"></div>
+                  <div className="inline-block w-8 h-8 border-3 border-hmq-blue border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : filteredOfferten.length === 0 ? (
                 <div className="p-12 text-center">
@@ -438,18 +438,18 @@ export default function HomePage() {
                       onClick={() => handleOfferteLoad(o.offertnummer)}
                       className={`p-4 rounded-xl cursor-pointer transition-all mb-2 ${
                         o.offertnummer === offerte.offertnummer
-                          ? 'bg-[#1e3a5f]/10 border-2 border-[#1e3a5f]/30'
+                          ? 'bg-hmq-blue/10 border-2 border-hmq-blue/30'
                           : 'hover:bg-gray-50 border-2 border-transparent'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3">
-                            <span className="font-mono font-bold text-[#1e3a5f] text-lg">
+                            <span className="font-mono font-bold text-hmq-blue text-lg">
                               {o.offertnummer}
                             </span>
                             {o.offertnummer === offerte.offertnummer && (
-                              <span className="text-xs font-medium bg-[#1e3a5f] text-white px-2 py-0.5 rounded-full">
+                              <span className="text-xs font-medium bg-hmq-blue text-white px-2 py-0.5 rounded-full">
                                 Aktiv
                               </span>
                             )}
