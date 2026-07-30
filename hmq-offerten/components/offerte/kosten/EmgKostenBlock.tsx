@@ -43,9 +43,9 @@ export default function EmgKostenBlock({
   }
 
   const inputClass =
-    'w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all';
+    'w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all';
   const overrideClass =
-    'w-28 px-2 py-1 text-right font-mono text-sm rounded-lg border border-amber-200 bg-white focus:ring-2 focus:ring-[#1e3a5f]/40';
+    'w-28 px-2 py-1 text-right font-mono text-sm rounded-lg border border-amber-200 bg-white focus:ring-2 focus:ring-hmq-blue/40';
 
   if (emgFehler) {
     return (
@@ -64,7 +64,7 @@ export default function EmgKostenBlock({
   if (!emgBasiswerte || !ergebnis) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center justify-center">
-        <div className="w-6 h-6 border-3 border-[#1e3a5f] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-6 h-6 border-3 border-hmq-blue border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -222,7 +222,7 @@ export default function EmgKostenBlock({
                 key={t.abWochen}
                 className={`px-2.5 py-1 rounded-full border ${
                   t.preisChf === ergebnis.wochentarif && hatEingaben
-                    ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]'
+                    ? 'bg-hmq-blue text-white border-hmq-blue'
                     : 'bg-gray-50 text-gray-600 border-gray-200'
                 }`}
               >

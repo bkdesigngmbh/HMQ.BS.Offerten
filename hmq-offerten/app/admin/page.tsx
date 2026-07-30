@@ -164,13 +164,13 @@ export default function AdminPage() {
     { id: 'einstellungen', label: 'Einstellungen' },
   ];
 
-  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all";
+  const inputClass = "w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all";
 
   if (loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-3 border-[#1e3a5f] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-3 border-hmq-blue border-t-transparent rounded-full animate-spin"></div>
         </div>
       </AppLayout>
     );
@@ -180,7 +180,7 @@ export default function AdminPage() {
     <AppLayout>
       {/* Titel */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin-Bereich</h1>
+        <h1 className="text-3xl font-bold text-hmq-ink tracking-tight">Admin-Bereich</h1>
         <p className="text-gray-500 mt-1">Verwalten Sie Kategorien, Basiswerte und Einstellungen</p>
       </div>
 
@@ -193,7 +193,7 @@ export default function AdminPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-[#1e3a5f] shadow-sm'
+                  ? 'bg-white text-hmq-blue shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >

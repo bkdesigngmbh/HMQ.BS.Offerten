@@ -18,8 +18,8 @@ export default function KategorienGrid({
   return (
     <>
       <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
-        <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
-          <svg className="w-4 h-4 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-8 h-8 bg-hmq-blue/10 rounded-lg flex items-center justify-center">
+          <svg className="w-4 h-4 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
           </svg>
         </div>
@@ -47,7 +47,7 @@ export default function KategorienGrid({
                 min="0"
                 value={kat.anzahl || ''}
                 onChange={(e) => onKategorieChange(kat.kategorieId, parseInt(e.target.value) || 0)}
-                className="w-full px-2 py-1.5 bg-white border-0 rounded-md text-sm text-center focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all"
+                className="w-full px-2 py-1.5 bg-white border-0 rounded-lg text-sm text-center focus:ring-2 focus:ring-hmq-blue/40 transition-all"
                 placeholder="0"
               />
             </div>
@@ -58,7 +58,7 @@ export default function KategorienGrid({
       {totalN !== undefined && (
         <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
           <span className="text-sm text-gray-500">
-            Total Objekte: <span className="font-semibold text-[#1e3a5f]">{totalN}</span>
+            Total Objekte: <span className="font-semibold text-hmq-blue">{totalN}</span>
           </span>
         </div>
       )}

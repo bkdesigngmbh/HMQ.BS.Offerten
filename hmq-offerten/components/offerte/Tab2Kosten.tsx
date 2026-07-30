@@ -146,12 +146,12 @@ export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-3 border-[#1e3a5f] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-3 border-hmq-blue border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-[#1e3a5f]/40 transition-all";
+  const inputClass = "w-full px-3 py-2 bg-gray-50 border-0 rounded-lg text-sm text-center focus:bg-white focus:ring-2 focus:ring-hmq-blue/40 transition-all";
 
   return (
     <div className="space-y-6">
@@ -163,8 +163,8 @@ export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler
             className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#1e3a5f]/10 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-[#1e3a5f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 bg-hmq-blue/10 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-hmq-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
               </div>
@@ -200,7 +200,7 @@ export default function Tab2Kosten({ offerte, onChange, emgBasiswerte, emgFehler
                   href={offerte.planbeilageGisLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 mt-3 text-sm text-[#1e3a5f] hover:text-[#166ab8] transition-colors"
+                  className="inline-flex items-center gap-2 mt-3 text-sm text-hmq-blue hover:text-hmq-blue transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

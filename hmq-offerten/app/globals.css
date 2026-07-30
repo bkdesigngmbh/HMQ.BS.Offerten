@@ -1,14 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-:root {
-  --color-primary: #1e3a5f;
-  --color-primary-hover: #162b47;
-  --color-header: #166ab8;
+/*
+ * HMQ design tokens. Single source for brand colours, shadows and motion.
+ * Same values as the HMQ digital design line (DM Sans, blue #166ab8, red #ef3120).
+ * Rule of thumb: blue = interaction and Beweissicherung, red = EMG accent only,
+ * the blue-to-red gradient is reserved for the signature elements below.
+ */
+@theme {
+  /* DM Sans is loaded self-hosted via next/font in app/layout.tsx. A plain
+     @import url(...) on Google Fonts does NOT survive the Turbopack build. */
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+
+  --color-hmq-blue: #166ab8;
+  --color-hmq-blue-light: #1a7ed4;
+  --color-hmq-blue-dark: #12558f;
+  --color-hmq-red: #ef3120;
+  --color-hmq-red-soft: #ff4d3d;
+  --color-hmq-ink: #1e3a5f;
+
+  /* Error states keep their own darker red so they never read as EMG accent */
+  --color-danger: #dc2626;
+  --color-danger-dark: #b91c1c;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lift: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-button: 0 10px 26px rgba(22, 106, 184, 0.35);
+  --shadow-button-hover: 0 16px 34px rgba(22, 106, 184, 0.42);
 }
 
-* {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+::selection {
+  background: rgba(22, 106, 184, 0.2);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-hmq-blue);
+  outline-offset: 2px;
 }
 
 input, select, textarea {
@@ -16,9 +43,75 @@ input, select, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-  @apply outline-none ring-2 ring-[#1e3a5f]/20 border-[#1e3a5f];
+  @apply outline-none ring-2 ring-hmq-blue/20 border-hmq-blue;
 }
 
 button {
   @apply transition-all duration-200;
+}
+
+/* ===== Signature elements ===== */
+
+/* Gradient text, only for large headings and the cost total */
+.text-grad {
+  background: linear-gradient(120deg, var(--color-hmq-blue) 0%, var(--color-hmq-red) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Section label with the small gradient bar in front */
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-hmq-blue);
+}
+
+.kicker::before {
+  content: '';
+  width: 1.625rem;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--color-hmq-blue), var(--color-hmq-red));
+}
+
+/* 4px gradient strip, sits on top of a card */
+.card-bar {
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-hmq-blue) 0%, var(--color-hmq-red) 100%);
+}
+
+/* Gradient border via double background (padding-box + border-box) */
+.grad-border {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, var(--color-hmq-blue), var(--color-hmq-red)) border-box;
+}
+
+/* Shared hover grammar: lift plus one shadow step */
+.lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0.01s !important;
+  }
+  .lift:hover {
+    transform: none;
+  }
 }
