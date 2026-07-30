@@ -238,7 +238,7 @@ export default function EmgKostenBlock({
 
       {/* Spalte 3: EMG-Total */}
       <div className="space-y-4">
-        <div className="bg-gradient-to-br from-hmq-red to-hmq-red-soft rounded-2xl p-6 text-white">
+        <div className="bg-gradient-to-br from-hmq-red-deep to-hmq-red-ink rounded-2xl p-6 text-white">
           <h3 className="font-semibold mb-4">Total Erschütterungsmessung</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
