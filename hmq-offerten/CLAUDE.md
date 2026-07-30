@@ -335,6 +335,31 @@ BASIC_AUTH_PASS=...
 - **Components:** PascalCase
 - **Functions/variables:** camelCase
 
+## Design System
+
+Follows the HMQ digital design line (same values as the Bereichsüberblick reference:
+DM Sans, blue #166ab8, red #ef3120). Rules, in order of how easily they get broken:
+
+- **Tokens live only in `app/globals.css`** (`@theme`). No colour literals in TSX.
+  Use `hmq-blue`, `hmq-blue-light`, `hmq-blue-dark`, `hmq-red`, `hmq-ink`, `danger`.
+- **Large filled areas use the deep tones** (`hmq-red-deep`/`hmq-red-ink`, `hmq-ink`).
+  The bright brand colours are for small accents only: a full panel in #ef3120 is far
+  too loud. This is why the total boxes fade into the dark, not into the light.
+- **Category colours:** Beweissicherung is blue, EMG is red. Error states use `danger`
+  (a separate, darker red) so they never read as the EMG accent.
+- **Signature classes** for the reference's gradient elements: `.text-grad` (blue to red
+  text, headings only), `.kicker` (uppercase label with the gradient bar), `.card-bar`
+  (4px strip on top of a card), `.grad-border` (gradient border via the double
+  background trick), `.lift` (hover lift), `.tab-panel` (fade-in on tab switch).
+- **Never use `transition-all`.** It animates layout properties too, which forces a
+  reflow per frame and feels choppy. Use `.smooth`, or rely on the
+  `button, a, input, select, textarea` rule that already carries the explicit list.
+- **Fonts load via `next/font`** in `app/layout.tsx`. An `@import url(...)` on Google
+  Fonts does NOT survive the Turbopack build: it is silently dropped, and the font
+  never arrives (this had been the case for Inter for a long time).
+- `html` has `scrollbar-gutter: stable`, otherwise the centred `max-w-7xl` column
+  shifts sideways whenever a tab is taller or shorter than the viewport.
+
 ## Word Template: Critical Rules
 
 **NEVER edit the template in Microsoft Word.** Word splits `{{PLACEHOLDER}}` across multiple XML runs (e.g. `<w:t>{{OFFNR_A</w:t>` + `<w:t>}}</w:t>`) and inserts `<w:proofErr>` tags between them. This silently breaks placeholder replacement. Always modify the template programmatically via Python/zipfile, editing `word/document.xml` as a string.
