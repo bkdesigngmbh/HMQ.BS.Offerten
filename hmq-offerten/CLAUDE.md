@@ -71,7 +71,8 @@ npm test         # Vitest (kosten-rechner, mail-parser, DOCX-Snapshot)
     use-emg-kosten.ts        # Load EMG basiswerte + keep emg.gespeicherteWerte current
 
 /public
-  Offerte_Template_V13.docx  # Word template (current version, V12 = pre-EMG, V11 = pre-Vergleichsaufnahme)
+  Offerte_Template_V13.docx  # Word template (only version shipped; V12 = pre-EMG and
+                             # V11 = pre-Vergleichsaufnahme archived in ../_archiv/templates/)
   data/                       # JSON fallback data
 
 /scripts

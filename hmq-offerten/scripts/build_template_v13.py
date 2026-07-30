@@ -24,7 +24,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "public" / "Offerte_Template_V12.docx"
+SRC = ROOT.parent / "_archiv" / "templates" / "Offerte_Template_V12.docx"
 DST = ROOT / "public" / "Offerte_Template_V13.docx"
 
 CB = (
